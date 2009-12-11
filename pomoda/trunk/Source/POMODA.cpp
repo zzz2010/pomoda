@@ -55,7 +55,7 @@ p->seedlength= 6;
 p->min_supp_ratio=0.01;
 p->FDRthresh=1.e-4;
 p->olThresh=0.02;
-p->pdThresh=0.18;
+p->pdThresh=0.24;
 p->outputDIR=string(".");
 p->max_motif_length=26;
 p->N_motif=20;
@@ -180,7 +180,7 @@ void runAll(PARAM * setting)
 ////////////////////////////////////////////////
 	MM.switchFlag=true;
 	
-	vector<MotifModel*> SeedList=MM.getSeedMotifs(50*setting->N_motif,setting->seedlength,setting->min_supp_ratio);
+	vector<MotifModel*> SeedList=MM.getSeedMotifs(100*setting->N_motif,setting->seedlength,setting->min_supp_ratio);
 	double markThreshold=SeedList[0]->GetMixedScore();
 	cout<<"markThreshold: "<<markThreshold<<endl;
 	map<double,MotifModel*> sortlist;
@@ -233,7 +233,7 @@ void runAll(PARAM * setting)
 			if(MMinst->GetMixedScore()>markThreshold)
 			{				
 				MMinst->SearchEngine=engine2;
-				//MMinst->divergeSeedPart();
+				MMinst->divergeSeedPart();
 				MMinst->SearchEngine=&engine;
 				if(MMinst->GetMixedScore()>markThreshold&&MMinst->get_consensus().size()>setting->seedlength+1)
 				{
@@ -246,7 +246,7 @@ void runAll(PARAM * setting)
 			else if(MMinst->get_consensus().size()>setting->seedlength+1&&!MMinst->switchFlag)
 			{
 				MMinst->SearchEngine=&engine;
-				//MMinst->divergeSeedPart();
+				MMinst->divergeSeedPart();
 				MMinst->SearchEngine=engine2;
 			
 			}
