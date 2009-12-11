@@ -1,6 +1,6 @@
 /*************************************
 * Pomoda: Peak Oriented Motif Discovery Algorithm 
-* http://compbio.ddns.nus.edu.sg/chipseq
+* http://compbio.ddns.nus.edu.sg/~chipseq/Pomoda
 *
 * Function: generates position weight matrixes (PWM) for motifs concentrate around the ChIP-Seq peaks
 * 
