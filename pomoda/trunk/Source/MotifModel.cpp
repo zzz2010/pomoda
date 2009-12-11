@@ -952,7 +952,11 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 		int hash=i;
 		//ignore the reverseComplement
 		if(getReverseComplementHashing(hash,len)<i)
-			continue;
+		{
+			pattern=Hash2ACGT(hash,len);
+			pattern.insert(3,string("NN"));
+		}
+		else
 		pattern=Hash2ACGT(hash,len);
 
 		map<string,double> instset;
@@ -1182,8 +1186,13 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 		MotifModel* im=new MotifModel(SearchEngine,X(),Setting);
 
 		string fn="/AlignmentResult/"+Hash2ACGT(patternlist[ maxScoreIndex],len)+".fa";
-
+		
 		string topPattern=Hash2ACGT(patternlist[ maxScoreIndex],len);
+		int hash=patternlist[ maxScoreIndex];
+		if(getReverseComplementHashing(hash,len)<hash)
+		{
+			topPattern.insert(3,string("NN"));
+		}
 		cout<<"top:"<<motifid-1<<"\t"<<topPattern<<":"<<cdscoreList[maxScoreIndex]<<"\t"<<scoreList[maxScoreIndex].cdscore<<"\t"<<scoreList[maxScoreIndex].BindingRegion<<"\t"<<scoreList[maxScoreIndex].orscore<<endl;
 
 		im->AddInstance(printAlignment(topPattern,0,len));
@@ -1215,6 +1224,11 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 			if(cdscoreList[j]==MINSCORE)
 				continue;
 			string tempPattern=Hash2ACGT(patternlist[j],len);
+			int hash=patternlist[j];
+			if(getReverseComplementHashing(hash,len)<hash)
+			{
+				tempPattern.insert(3,string("NN"));
+			}
 			int alnScore=0;
 			int aln=AlignmentRC(topPattern,tempPattern,alnScore,1);
 			if(aln==0)
