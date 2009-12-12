@@ -383,61 +383,61 @@ void runAll(PARAM * setting)
 
 
 
-			map<MotifModel*,int>::iterator ITER22=filterList.begin();
-			maxalnscore=-MINSCORE;minscore=0;
-			while(ITER22!=filterList.end())
-			{
-				if(ITER22->first->ORScore<1.5||ITER22->second>=6000)//
-				{
-					ITER22++;
-					continue;				
-				}
+			//map<MotifModel*,int>::iterator ITER22=filterList.begin();
+			//maxalnscore=-MINSCORE;minscore=0;
+			//while(ITER22!=filterList.end())
+			//{
+			//	if(ITER22->first->ORScore<1.5||ITER22->second>=6000)//
+			//	{
+			//		ITER22++;
+			//		continue;				
+			//	}
 
-				double alnscore;
-					double bestas;
-					
-					int alnn=MMinst->AlignmentPWMRC(MMinst,ITER22->first,bestas);
-					alnscore=(double)bestas;
-				int comcount=0;
-				double score=MMinst->SimilarityScore(ITER22->first->POSLIST,templist,ITER22->first->Consensus.size(),MMinst->Consensus.size(),comcount);
-				score=(double)comcount/min(templist.size(),ITER22->first->POSLIST.size());////////
+			//	double alnscore;
+			//		double bestas;
+			//		
+			//		int alnn=MMinst->AlignmentPWMRC(MMinst,ITER22->first,bestas);
+			//		alnscore=(double)bestas;
+			//	int comcount=0;
+			//	double score=MMinst->SimilarityScore(ITER22->first->POSLIST,templist,ITER22->first->Consensus.size(),MMinst->Consensus.size(),comcount);
+			//	score=(double)comcount/min(templist.size(),ITER22->first->POSLIST.size());////////
 
-				if(minscore<score)/////
-					{
-						minscore=score;
-						if(minscore>0.4)//<0.0001
-						{
-							filterId=4000+minscore*100;
-							MMinst->seed+="-"+ITER22->first->seed;
-							//merge
-							filterMaps[ITER22->first].push_back(MMinst);
-							break;
-						}
-					}
-					if(maxalnscore>alnscore)
-					{
-						maxalnscore=alnscore;
-						if(maxalnscore<0.14)
-						{
-							filterId=5000+maxalnscore*100;
-							MMinst->seed+="-"+ITER22->first->seed;
-							//merge
-							filterMaps[ITER22->first].push_back(MMinst);
-							break;
-						}
-					}
-				ITER22++;
-			}
+			//	if(minscore<score)/////
+			//		{
+			//			minscore=score;
+			//			if(minscore>0.4)//<0.0001
+			//			{
+			//				filterId=4000+minscore*100;
+			//				MMinst->seed+="-"+ITER22->first->seed;
+			//				//merge
+			//				filterMaps[ITER22->first].push_back(MMinst);
+			//				break;
+			//			}
+			//		}
+			//		if(maxalnscore>alnscore)
+			//		{
+			//			maxalnscore=alnscore;
+			//			if(maxalnscore<0.14)
+			//			{
+			//				filterId=5000+maxalnscore*100;
+			//				MMinst->seed+="-"+ITER22->first->seed;
+			//				//merge
+			//				filterMaps[ITER22->first].push_back(MMinst);
+			//				break;
+			//			}
+			//		}
+			//	ITER22++;
+			//}
 
-			if(minscore>0.4||maxalnscore<0.17) //minscore<0.00000001
-			{
-				ITER++;
-				filterList[MMinst]=filterId;
-				if(DEBUG)
-				cout<<"filter:"<<MMinst->get_consensus(0)<<"\t"<<(0-ITER->first)<<endl;
-				//delete MMinst;
-				continue;
-			}
+			//if(minscore>0.4||maxalnscore<0.17) //minscore<0.00000001
+			//{
+			//	ITER++;
+			//	filterList[MMinst]=filterId;
+			//	if(DEBUG)
+			//	cout<<"filter:"<<MMinst->get_consensus(0)<<"\t"<<(0-ITER->first)<<endl;
+			//	//delete MMinst;
+			//	continue;
+			//}
 
 
 

@@ -206,6 +206,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\MotifCluster.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\MotifModel.cpp"
 				>
 			</File>
