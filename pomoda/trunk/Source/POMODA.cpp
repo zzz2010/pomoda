@@ -55,10 +55,10 @@ p->seedlength= 6;
 p->min_supp_ratio=0.01;
 p->FDRthresh=1.e-4;
 p->olThresh=0.02;
-p->pdThresh=0.24;
+p->pdThresh=0.18;
 p->outputDIR=string(".");
 p->max_motif_length=26;
-p->N_motif=20;
+p->N_motif=100;
 p->resolution=100;
 p->startwSize=100;
 
@@ -184,8 +184,15 @@ void runAll(PARAM * setting)
 	double markThreshold=SeedList[0]->GetMixedScore();
 	cout<<"markThreshold: "<<markThreshold<<endl;
 	map<double,MotifModel*> sortlist;
+		vector<MotifModel*> markMotifs;
+			vector< vector<VAL> > postLists;
+
+	map<MotifModel*,int> filterList;
+	map<MotifModel*,vector<MotifModel*> > filterMaps;
 		double iterCnt=0;
 		double improveCount=0;
+		do{
+			markMotifs.clear();
 	FOR(i,SeedList.size())
 	{		
 		cout<<i<<endl;
@@ -277,13 +284,10 @@ void runAll(PARAM * setting)
 	improveCount=improveCount/SeedList.size();
 	map<double,MotifModel*>::iterator ITER=sortlist.begin();
 	i=0;
-	vector< vector<VAL> > postLists;
-	vector<MotifModel*> markMotifs;
-	map<MotifModel*,int> filterList;
-	map<MotifModel*,vector<MotifModel*> > filterMaps;
 
 
-	while(ITER!=sortlist.end()&&i<setting->N_motif)
+
+	while(ITER!=sortlist.end())//&&i<setting->N_motif
 	{
 		MotifModel* MMinst=ITER->second;
 
@@ -463,10 +467,24 @@ void runAll(PARAM * setting)
 
 		filterMaps[MMinst]=vector<MotifModel*>();
 		}
+		SeedList.clear();
 		FOR(k,markMotifs.size())
 		{
 				MotifModel* MMinst=markMotifs[k];
 				MMinst->MergeList(filterMaps[MMinst]);
+				SeedList.push_back(MMinst);
+				
+		}
+		
+		filterMaps.clear();
+		postLists.clear();
+		sortlist.clear();
+		}while(markMotifs.size()>setting->N_motif);
+		FOR(k,markMotifs.size())
+		{
+				MotifModel* MMinst=markMotifs[k];
+				MMinst->PWMRefinement();
+			//	MMinst->MergeList(filterMaps[MMinst]);
 			stringstream bindingsites(stringstream::in | stringstream::out);
 			FOR(j,MMinst->POSLIST.size())
 			{

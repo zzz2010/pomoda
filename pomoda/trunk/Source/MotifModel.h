@@ -29,7 +29,7 @@ public:
 	void ComputeScore(double sampleratio, double & CDScore, double & ORScore, double & BindingRegion, double & CNSVScore, double & DiffScore);
 	// MCMC method generate instance from this motif model
 	map<string,double> GenerateInstanceFromPWM(double sampleratio,bool noThreshold=false);
-	map<string,double> GenerateInstanceFromPWMPQ(double sampleratio,bool noThreshold=false);
+	map<string,double> GenerateInstanceFromPWMPQ(double sampleratio,bool noThreshold=true);
 	vector<int> columnOrder(int col);
 	void resetPWM();
 	HashEngine* SearchEngine;
