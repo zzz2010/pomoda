@@ -77,7 +77,7 @@ static	double ComputeINTScore(double* Histogram);
 	string Consensus;
 	string seed;
 	// update the PWM by random search , and runid specify the column will be updated
-	void divergeSeedPart();
+	void divergeSeedPart(vector<int>* hotsites_p=NULL);
 	double updateModel(int runid);
 	double GetMixedScore(double CDScore, double ORScore,double INTScore, double CNSVScore, double DiffScore);
 	double getLogProb(char* instance);

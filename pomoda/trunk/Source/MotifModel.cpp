@@ -403,7 +403,7 @@ double MotifModel::getLogProb(char* instance)
 }
 
 
-void MotifModel::divergeSeedPart()
+void MotifModel::divergeSeedPart(vector<int>* hotsites_p)
 {
 
 	int i,j,k,q;
@@ -436,7 +436,10 @@ int nonConPos=0;
 					int pos=POSLIST[q]%SEQLEN;
 					double bias=abs(pos-SEQLEN/2);
 					if(bias<BindingRegion/2)
+					{
+						
 						centCNT++;
+					}
 					else
 						bgCNT++;
 				 }
@@ -552,15 +555,20 @@ int lastpos=-1;
 
 				if(bias<windowsize/2)
 				{
+					
 						string pa;
 						if(rc)
 						{
+							if(hotsites_p!=NULL)
+								hotsites_p->push_back(upos-tail);
 							pa=SearchEngine->getSite(upos,len);//(upos-tail,X());
-				
+							
 							pa=reverseString(pa);
 						}
 						else
 						{
+							if(hotsites_p!=NULL)
+								hotsites_p->push_back(upos-head);
 							pa=SearchEngine->getSite(upos,len);//(upos-head,X());
 					
 						}
@@ -1066,10 +1074,10 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 								bgcnter+=CDHist[j];
 							double avgvalue=(double)(bgcnter/( realBINNUMBER-ii-1));
 							double ssr=0;
-							for(j=ii+1;j<realBINNUMBER;j++)
-									ssr+=(CDHist[j]-avgvalue)*(CDHist[j]-avgvalue);
-							ssr=sqrt( (double)(ssr/(realBINNUMBER-ii-1)));
-							bgcnter=ssr+avgvalue; //
+							//for(j=ii+1;j<realBINNUMBER;j++)
+							//		ssr+=(CDHist[j]-avgvalue)*(CDHist[j]-avgvalue);
+							//ssr=sqrt( (double)(ssr/(realBINNUMBER-ii-1)));
+							bgcnter=ssr+avgvalue; // 
 							score=(double)((cdcnter/(ii+1))/bgcnter);
 							if(score>=bestscore&&cdcnter*sum>Setting->min_supp_ratio*MAXSEQNUM&&bgcnter*sum>bgfold)
 							{
@@ -1120,7 +1128,7 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 
 				}
 				//the number of seed depend on the output number
-			    if(bestscore<0.9)
+			    if(bestscore<1)
 					continue;
 				ScoreObj tempobj;
 				if(!LargeDataFlag)
@@ -1223,20 +1231,20 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 			//merge the similar k-mer
 			if(cdscoreList[j]==MINSCORE)
 				continue;
-			string tempPattern=Hash2ACGT(patternlist[j],len);
-			int hash=patternlist[j];
-			if(getReverseComplementHashing(hash,len)<hash)
-			{
-				tempPattern.insert(3,string("NN"));
-			}
-			int alnScore=0;
-			int aln=AlignmentRC(topPattern,tempPattern,alnScore,1);
-			if(aln==0)
-			{
-				MotifModel* imMerge=new MotifModel(SearchEngine,X(),Setting);
-				imMerge->AddInstance(printAlignment(tempPattern,0,len));
-			}
-			else 
+			//string tempPattern=Hash2ACGT(patternlist[j],len);
+			//int hash=patternlist[j];
+			//if(getReverseComplementHashing(hash,len)<hash)
+			//{
+			//	tempPattern.insert(3,string("NN"));
+			//}
+			//int alnScore=0;
+			//int aln=AlignmentRC(topPattern,tempPattern,alnScore,1);
+			//if(aln==0)
+			//{
+			//	MotifModel* imMerge=new MotifModel(SearchEngine,X(),Setting);
+			//	imMerge->AddInstance(printAlignment(tempPattern,0,len));
+			//}
+			//else 
 
 			if(maxScore<cdscoreList[j])
 			{
@@ -1658,9 +1666,9 @@ int BINSIZE2=SEQLEN/2/(BINNUMBER)+1;
 				//only average on bg
 				double avgvalue=(double)(bgcnter/(realBINNUMBER-i-1));
 				double ssr=0;
-				for(j=i+1;j<realBINNUMBER;j++)
-						ssr+=(CDHist[j]-avgvalue)*(CDHist[j]-avgvalue);
-				ssr=sqrt( (double)(ssr/(realBINNUMBER-i-1)));
+				for(j=i+1;j<realBINNUMBER-1;j++)
+						ssr+=(CDHist[j+1]-CDHist[j])*(CDHist[j+1]-CDHist[j]);
+				ssr=sqrt( (double)(ssr/(realBINNUMBER-i-2)));
 				bgcnter=ssr+avgvalue; //1.95996*
 				if(cdcnter<Setting->min_supp_ratio*MAXSEQNUM||bgcnter<expbgcnt)//zzz
 					continue;
@@ -1929,6 +1937,7 @@ map<string,double> MotifModel::GenerateInstanceFromPWMPQ(double sampleratio,bool
 	PQ[sumRatio*smallscale-probv]=tophashcode;//make the key little different
 	hashtable.insert(tophashcode);
 	int maxsize=1<<(int)(effLen-Setting->seedlength+2);
+	maxsize=min(maxsize,MAXSEQNUM);
 	while(sumRatio<sampleratio)
 	{
 		if(PQ.size()==0)

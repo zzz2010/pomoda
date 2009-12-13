@@ -52,7 +52,7 @@ static char* syntax = "Pomoda -i inputFasta  [-o outputDIR -w weightFile -ot ove
 if(nargs < 3){ printf("%s\n",syntax); exit(0); }
 p = new param_st();//(PARAM*)calloc(1,sizeof(PARAM));
 p->seedlength= 6;
-p->min_supp_ratio=0.01;
+p->min_supp_ratio=0.05;
 p->FDRthresh=1.e-4;
 p->olThresh=0.02;
 p->pdThresh=0.18;
@@ -95,6 +95,10 @@ void test(PARAM * setting)
 {
 		//setting->inputFile="p53_4k.fa";
 		HashEngine engine(setting->inputFile.c_str(),8,setting->weightFile);
+		char* q="tctggctcctcatgtgacctctaaaa";
+		vector<long> posl;
+		engine.searchPatternNRC(q,0,0,posl);
+		string g=engine.getSite(61,13);
 		MotifModel MM2(&engine,setting->max_motif_length,setting);
 		MM2.AddInstance("GGCATAA");
 		MM2.InitializePWMofInstanceSet();
@@ -161,13 +165,16 @@ void runAll(PARAM * setting)
 {
 
 	int split=setting->inputFile.find_last_of("/\\");
+	vector<int> hotsites;
 	
 	if(split<0)
 		split=0;
 
 	string outfilename=setting->outputDIR+"/"+setting->inputFile.substr(split+1)+".pomoda";
+	string outfilename2=setting->outputDIR+"/"+setting->inputFile.substr(split+1)+"_hotsites.fa";
 	cout<<outfilename<<endl;
 	ofstream resultout(outfilename.c_str());
+	ofstream resultout2(outfilename2.c_str());
 	resultout<<"Top "<<setting->N_motif<<" motifs"<<"\t"<<"Window\tScore\tSegment\tCon\tDeg"<<endl;
 	int i,j,k;
 	VAL start=setStartTime();
@@ -207,7 +214,7 @@ void runAll(PARAM * setting)
 				double improve=MMinst->updateModel(j);
 				if(improve==-1)
 				{
-					if((iterCnt-improveCount>6))//(MMinst->GetMixedScore())
+					if((iterCnt-improveCount>3))//(MMinst->GetMixedScore())
 					break;
 				}
 				else if(improve!=MINSCORE)
@@ -240,7 +247,7 @@ void runAll(PARAM * setting)
 			if(MMinst->GetMixedScore()>markThreshold)
 			{				
 				MMinst->SearchEngine=engine2;
-				MMinst->divergeSeedPart();
+				MMinst->divergeSeedPart(&hotsites);
 				MMinst->SearchEngine=&engine;
 				if(MMinst->GetMixedScore()>markThreshold&&MMinst->get_consensus().size()>setting->seedlength+1)
 				{
@@ -253,12 +260,41 @@ void runAll(PARAM * setting)
 			else if(MMinst->get_consensus().size()>setting->seedlength+1&&!MMinst->switchFlag)
 			{
 				MMinst->SearchEngine=&engine;
-				MMinst->divergeSeedPart();
+				MMinst->divergeSeedPart(&hotsites);
 				MMinst->SearchEngine=engine2;
 			
 			}
 			else
 			{
+				int i;
+				if(MMinst->GetMixedScore()>1)
+				FOR(i,MMinst->POSLIST.size())
+				{
+					long int wpos=MMinst->POSLIST[i];
+							bool rc=(wpos<0);
+							VAL upos=wpos;
+							if(rc)
+								upos=0-wpos;
+							int seqnum=upos/engine.SeqLen;
+							int pos=upos%engine.SeqLen;
+					int windowsize=MMinst->BindingRegion;
+					double bias=abs(pos-engine.SeqLen/2);
+					if(bias<windowsize/2)
+					{					
+							string pa;
+							if(rc)
+							{
+							
+									hotsites.push_back(upos-MMinst->tail);
+							}
+							else
+							{
+								
+									hotsites.push_back(upos-MMinst->head);
+							}
+					}
+
+				}
 				MMinst->InstanceSet.clear();
 				
 			}
@@ -283,10 +319,32 @@ void runAll(PARAM * setting)
 	iterCnt=iterCnt/SeedList.size();
 	improveCount=improveCount/SeedList.size();
 	map<double,MotifModel*>::iterator ITER=sortlist.begin();
+	
+	
+
+	//handle hotsites
+	sort(hotsites.begin(),hotsites.end());
+	FOR(i,hotsites.size())
+	{
+		int pos=hotsites[i];
+		int pos2=pos;
+		FOR(j,hotsites.size()-i-1)
+		{
+			if(pos2+MM.X()<hotsites[i+j+1])
+				break;
+			pos2=hotsites[i+j+1];
+		}
+		if(j==0)
+			continue;
+		int len=pos2-pos+MM.X();
+		string site=engine2->getSite(pos,len);
+		resultout2<<">SEQ"<<pos/engine.SeqLen<<":"<<pos%engine.SeqLen<<"-"<<pos%engine.SeqLen+len<<"\t"<<j+1<<endl;
+		resultout2<<site<<endl;
+		i=i+j;
+	}
+	resultout2.close();
+	return ;
 	i=0;
-
-
-
 	while(ITER!=sortlist.end())//&&i<setting->N_motif
 	{
 		MotifModel* MMinst=ITER->second;
@@ -483,7 +541,9 @@ void runAll(PARAM * setting)
 		FOR(k,markMotifs.size())
 		{
 				MotifModel* MMinst=markMotifs[k];
+				cout<<"top "<<k<<":\t"<<MMinst->get_consensus(0)<<endl;
 				MMinst->PWMRefinement();
+				cout<<"top "<<k<<":\t"<<MMinst->get_consensus(0)<<endl;
 			//	MMinst->MergeList(filterMaps[MMinst]);
 			stringstream bindingsites(stringstream::in | stringstream::out);
 			FOR(j,MMinst->POSLIST.size())
