@@ -656,7 +656,7 @@ void MotifModel::MarkPos()
 	vector<VAL> poslist;
 	double threshold=log(PWMThreshold);
 	 HashEngine* SearchEngine2=(HashEngine*)SearchEngine;
-	 map<string,double> insts=GenerateInstanceFromPWMPQ(0.99);
+	 map<string,double> insts=GenerateInstanceFromPWMPQ(0.8);
 	
 	 map<string,double>::iterator Iter;
 	double totalCount=0;
@@ -1896,7 +1896,7 @@ map<string,double> MotifModel::GenerateInstanceFromPWMPQ(double sampleratio,bool
 	map<string,double> retSet;
 	map<double,unsigned long long int> PQ;
 	vector< vector<int> > orderedCol;
-	set<int> hashtable;
+	set<unsigned long long int> hashtable;
 	double sumRatio=0;
 	string instance="";
 
@@ -1914,6 +1914,7 @@ map<string,double> MotifModel::GenerateInstanceFromPWMPQ(double sampleratio,bool
 	}
 	int effLen=effIndex.size();
 	head=effIndex[0];
+
 	tail=X()-effIndex[effLen-1]-1;
 	unsigned long long int tophashcode=0;
 	double probv=1;
@@ -1954,7 +1955,7 @@ map<string,double> MotifModel::GenerateInstanceFromPWMPQ(double sampleratio,bool
 			retSet[topptn]=probv;
 			//hashtable.insert(topptn);// add to hashtable
 			PQ.erase(PQ.begin()); //dequeue
-			if(sumRatio>sampleratio||(probv<PWMThreshold&&!noThreshold)||(retSet.size()>=maxsize&&!noThreshold))//
+			if(sumRatio>sampleratio||(probv<PWMThreshold&&!noThreshold)||(retSet.size()>=maxsize))//&&!noThreshold
 				break;
 		//mutate 
 			FOR(i,effLen)
@@ -2398,6 +2399,8 @@ double MotifModel::updateModel(int runid)
 	{
 		DiffScore=Setting->seedlength;
 		CNSVScore=Setting->seedlength;
+		if(this->Length()>8)
+			this->print();
 		ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
 		bgfold=5; //zzz
 		return 0;
