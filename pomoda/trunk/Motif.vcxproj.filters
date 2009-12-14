@@ -1,0 +1,186 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Source Files\ABLAS">
+      <UniqueIdentifier>{254c053d-a991-48bd-8ba4-580c97116ff4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\FMI">
+      <UniqueIdentifier>{cc6f46c0-b6ed-4bae-bc43-f578d9ab1c0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\MATLIGN">
+      <UniqueIdentifier>{c19020fe-f143-4a07-86f8-d390663f5285}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MotifCluster.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ap.cpp">
+      <Filter>Source Files\ABLAS</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BGModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\binomialdistr.cpp">
+      <Filter>Source Files\ABLAS</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\blas.cpp">
+      <Filter>Source Files\ABLAS</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\cholesky.cpp">
+      <Filter>Source Files\ABLAS</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\flmatrix.cpp">
+      <Filter>Source Files\MATLIGN</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\gammaf.cpp">
+      <Filter>Source Files\ABLAS</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\HashEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ibetaf.cpp">
+      <Filter>Source Files\ABLAS</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\intmatrix.cpp">
+      <Filter>Source Files\MATLIGN</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ISearchEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\lbfgs.cpp">
+      <Filter>Source Files\ABLAS</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MemManager.cpp">
+      <Filter>Source Files\FMI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\minlm.cpp">
+      <Filter>Source Files\ABLAS</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MiscUtilities.cpp">
+      <Filter>Source Files\FMI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MotifModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\nearunityunit.cpp">
+      <Filter>Source Files\ABLAS</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\normaldistr.cpp">
+      <Filter>Source Files\ABLAS</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\POMODA.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\QSufSort.cpp">
+      <Filter>Source Files\FMI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\spdsolve.cpp">
+      <Filter>Source Files\ABLAS</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\TextConverter.cpp">
+      <Filter>Source Files\FMI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\trinverse.cpp">
+      <Filter>Source Files\ABLAS</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\ap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\apvt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BGModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\binomialdistr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\blas.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\cholesky.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\flmatrix.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\gammaf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\HashEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ibetaf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\intmatrix.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\intmatrixrow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ISearchEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\lbfgs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MemManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MemManagerDummy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\minlm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MiscUtilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MotifModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\nearunityunit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\normaldistr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\QSufSort.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\spdsolve.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\TextConverter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\trinverse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\TypeNLimit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
