@@ -24,9 +24,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MotifCluster.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\ap.cpp">
       <Filter>Source Files\ABLAS</Filter>
     </ClCompile>
@@ -41,6 +38,9 @@
     </ClCompile>
     <ClCompile Include="Source\cholesky.cpp">
       <Filter>Source Files\ABLAS</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\EM.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\flmatrix.cpp">
       <Filter>Source Files\MATLIGN</Filter>
@@ -117,6 +117,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\cholesky.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\EM.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\flmatrix.h">

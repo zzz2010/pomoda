@@ -219,9 +219,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\BGModel.cpp" />
+    <ClCompile Include="Source\EM.cpp" />
     <ClCompile Include="Source\HashEngine.cpp" />
     <ClCompile Include="Source\ISearchEngine.cpp" />
-    <ClCompile Include="MotifCluster.cpp" />
     <ClCompile Include="Source\MotifModel.cpp" />
     <ClCompile Include="Source\POMODA.cpp" />
     <ClCompile Include="Source\stdafx.cpp" />
@@ -251,6 +251,7 @@
     <ClInclude Include="Source\binomialdistr.h" />
     <ClInclude Include="Source\blas.h" />
     <ClInclude Include="Source\cholesky.h" />
+    <ClInclude Include="Source\EM.h" />
     <ClInclude Include="Source\flmatrix.h" />
     <ClInclude Include="Source\gammaf.h" />
     <ClInclude Include="Source\HashEngine.h" />
