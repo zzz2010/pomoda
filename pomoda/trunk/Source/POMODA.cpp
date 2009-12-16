@@ -36,7 +36,7 @@
 #include "MotifModel.h"
 #include <sstream>
 #include "HashEngine.h"
-
+#include "EM.h"
 
 //string seqFile="select_m_10k.fa";//"snber_1000_sorted.fasta";//"select_H_sapiens_UCSC_hg18_10000.fas";//"E2F_Q4V1200.fasta";//"iterSim/0U.fasta";//"testset/select_MAKEW14S1A2V200L10000N2000U.fasta";//"select_MAKEW7S1A1V1200L10000N3000U.fasta";//"P$CBT_01V200.fasta";//"testset/simdata1.fas";//"select_p300.fasta";//"select_ctcf.fasta";//"snber_1000_sorted.fasta";//"select_MAKEW8S1A1V50.fasta";//"select_m_10k.fa";//"select_i10k.fasta";//"seq_ctcf_sort_intensity.fa";//"select_m_Q1_2000.faW16S1A1V100.fa";//"select_cmyc.fasta";//"select_m_Q1_2000.fa";///"select_m_Q1_2000.faW8S1A1V400.fa";//"select_2fold_im_m.fa.SeqRev";//"select_i_Q1.fa.SeqRev";//"select_2fold_im_i.fa.SeqRev";//"select_m_Q1.fa.SeqRev";//"bg1000.SeqW12S3A4V200.Seq";//"bg1000.SeqW16S1A1V100.Seq";//"select_2fold_im_m.fa.SeqRev";//"MCF7E2.txt.SeqRev";//"seq500_mcf7e2_promoter.fa.SeqRev";//"bg1000.SeqW8S1A1V100.Seq";//
 
@@ -58,7 +58,7 @@ p->olThresh=0.02;
 p->pdThresh=0.18;
 p->outputDIR=string(".");
 p->max_motif_length=26;
-p->N_motif=100;
+p->N_motif=20;
 p->resolution=100;
 p->startwSize=100;
 
@@ -324,6 +324,9 @@ void runAll(PARAM * setting)
 
 	//handle hotsites
 	sort(hotsites.begin(),hotsites.end());
+	stringstream headerSS(stringstream::in | stringstream::out);
+	stringstream SequenSS(stringstream::in | stringstream::out);
+	int lastseq=-1;
 	FOR(i,hotsites.size())
 	{
 		int pos=hotsites[i];
@@ -338,12 +341,27 @@ void runAll(PARAM * setting)
 			continue;
 		int len=pos2-pos+MM.X();
 		string site=engine2->getSite(pos,len);
-		resultout2<<">SEQ"<<pos/engine.SeqLen<<":"<<pos%engine.SeqLen<<"-"<<pos%engine.SeqLen+len<<"\t"<<j+1<<endl;
-		resultout2<<site<<endl;
+		int seqnum=pos/engine.SeqLen;
+		if(seqnum!=lastseq)
+		{
+			lastseq=seqnum;
+			if(lastseq!=0)
+			{	
+			resultout2<<">"<<headerSS.str()<<endl;
+			resultout2<<SequenSS.str()<<endl;	
+		
+			headerSS.str("");
+			SequenSS.str("");
+			}
+		}
+		headerSS<<"SEQ"<<seqnum<<":"<<pos%engine.SeqLen<<"-"<<pos%engine.SeqLen+len<<"\t"<<j+1<<"\t";
+		SequenSS<<site<<"NNNNNNNNNN"; //split different hot sites
 		i=i+j;
 	}
+	resultout2<<headerSS.str()<<endl;
+	resultout2<<SequenSS.str()<<endl;
 	resultout2.close();
-	return ;
+	//return ;
 	i=0;
 	while(ITER!=sortlist.end())//&&i<setting->N_motif
 	{
@@ -537,12 +555,17 @@ void runAll(PARAM * setting)
 		filterMaps.clear();
 		postLists.clear();
 		sortlist.clear();
-		}while(markMotifs.size()>setting->N_motif);
+		}while(false);
+			
+		EM emOpt;
+	emOpt.LoadSeqFile(outfilename2);
+	markMotifs=emOpt.LoadSeedModels(markMotifs,setting->N_motif);
+
 		FOR(k,markMotifs.size())
 		{
 				MotifModel* MMinst=markMotifs[k];
 				cout<<"top "<<k<<":\t"<<MMinst->get_consensus(0)<<endl;
-				MMinst->PWMRefinement();
+				//MMinst->PWMRefinement();
 				cout<<"top "<<k<<":\t"<<MMinst->get_consensus(0)<<endl;
 			//	MMinst->MergeList(filterMaps[MMinst]);
 			stringstream bindingsites(stringstream::in | stringstream::out);
@@ -608,6 +631,9 @@ void runAll(PARAM * setting)
 	cout<<"Elapse Time: "<<getElapsedTime(start)<<endl;
 	resultout<<"Elapse Time: "<<getElapsedTime(start)<<endl;
 	resultout.close();
+
+
+
 	
 }
 
@@ -615,8 +641,8 @@ void runAll(PARAM * setting)
 
 int main(int argc, char* argv[])
 {
-	std::ofstream log("result/log.txt");
-    std::streambuf *oldbuf = std::cout.rdbuf(log.rdbuf());
+	//std::ofstream log("result/log.txt");
+ //   std::streambuf *oldbuf = std::cout.rdbuf(log.rdbuf());
 
 	PARAM * setting=read_parameters (argc, argv);
 	unsigned long int aa=1;

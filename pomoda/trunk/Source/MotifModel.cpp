@@ -39,7 +39,7 @@ MotifModel::MotifModel(void)
 , ORScore(0)
 , BindingRegion(0)
 , CNSVScore(0)
-, DiffScore(0),FlMatrix(16,4)
+, DiffScore(0),FlMatrix(26,4)
 {
 	cdavg=cdvar=intavg=intvar=oravg=orvar=0;
 	scoreIndex=0;
@@ -119,6 +119,53 @@ void MotifModel::InitializePWMofInstanceSet()
 				double weight=1;
 				if(j<instSeq.size())
 					weight=SearchEngine->getSeqWeight(instSeq[j]);
+			sum[col]+=weight;
+			sumAll[i]+=weight;
+			}
+		}
+
+		FOR(j,4)
+		{
+			double temp=sum[j]/sumAll[i];
+			if(sumAll[i]==basecount*4)
+				temp=0.25;
+			s(temp,(X()-width)/2+i,j);
+		}
+	}
+	//this->print();
+	delete [] sumAll;
+}
+
+void MotifModel::InitializePWMofInstanceSet(vector<double> weightlist)
+{
+	if(InstanceSet.size()==0)
+		return;
+	int width=InstanceSet[0].size();
+	initialise(0.25);
+	int i,j,k;
+	double basecount=PWMThreshold*InstanceSet.size();
+	double* sumAll=new double [width];
+	FOR(i,width)
+	{
+		sumAll[i]=PWMThreshold*4;	
+		double sum[4];
+		FOR(j,4)
+			sum[j]=PWMThreshold;
+		FOR(j,InstanceSet.size())
+		{
+			int col=acgt(InstanceSet[j][i]);
+			if(col>3||col<0)
+			{
+				FOR(col,4)
+					sum[col]+=PWMThreshold;
+				sumAll[i]+=PWMThreshold*4;
+				continue;
+			}
+			else
+			{
+				double weight=1;
+				if(j<weightlist.size())
+					weight=weightlist[j];
 			sum[col]+=weight;
 			sumAll[i]+=weight;
 			}
@@ -377,11 +424,12 @@ void MotifModel::printPWM(string name)
 	  fclose(outstream);
 }
 
-double MotifModel::getLogProb(char* instance)
+double MotifModel::getLogProb(const char* instance)
 {
 	int i;
 		double score=0;
-		FOR(i,X())
+		int len=strlen(instance);
+		FOR(i,len)
 		{
 			int a=acgt(*(instance+i));
 			if(a>3||a<0)
@@ -389,14 +437,14 @@ double MotifModel::getLogProb(char* instance)
 				score=MINSCORE;
 				break;
 			}
-			double sss=g(i,a);
+			double sss=g(i+head,a);
 			if(sss==0)
 			{
 				score=MINSCORE;
 				break;
 			}
-			if(sss==0.25)
-				continue;
+			//if(sss==0.25)
+			//	continue;
 			score+=log(sss);
 		}
 	return score;
