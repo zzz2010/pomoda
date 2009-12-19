@@ -143,7 +143,7 @@ void MotifModel::InitializePWMofInstanceSet(vector<double> weightlist)
 	int width=InstanceSet[0].size();
 	initialise(0.25);
 	int i,j,k;
-	double basecount=PWMThreshold*InstanceSet.size();
+	double basecount=0.0001;
 	double* sumAll=new double [width];
 	FOR(i,width)
 	{
@@ -178,6 +178,8 @@ void MotifModel::InitializePWMofInstanceSet(vector<double> weightlist)
 				temp=0.25;
 			s(temp,(X()-width)/2+i,j);
 		}
+		head=(X()-width)/2;
+		tail=X()-width-head;
 	}
 	//this->print();
 	delete [] sumAll;
@@ -2342,6 +2344,8 @@ string MotifModel::get_consensus(double pseudo_weight , double genome_fra , doub
     }
 
    Consensus=consensus;
+   if(pseudo_weight!=-1)
+   {
 		head=tail=0;
 	FOR(j,X())
 	{
@@ -2358,6 +2362,7 @@ string MotifModel::get_consensus(double pseudo_weight , double genome_fra , doub
 		else
 			break;
 	}
+   }
 	Consensus=(consensus.substr(head,X()-head-tail));
 		return Consensus;
 };
