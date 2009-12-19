@@ -94,25 +94,33 @@ return(p);
 void test(PARAM * setting)
 {
 		//setting->inputFile="p53_4k.fa";
+		
+	
+
 		HashEngine engine(setting->inputFile.c_str(),8,setting->weightFile);
 		char* q="tctggctcctcatgtgacctctaaaa";
 		vector<long> posl;
 		engine.searchPatternNRC(q,0,0,posl);
 		string g=engine.getSite(61,13);
 		MotifModel MM2(&engine,setting->max_motif_length,setting);
-		MM2.AddInstance("GGCATAA");
+		MM2.AddInstance("AGGTCANNNTGACCYNNG");
 		MM2.InitializePWMofInstanceSet();
-		MM2.get_consensus(); 
+		cout<<MM2.get_consensus()<<endl; 
 		MM2.ORScore=2;
 		MM2.get_consensus(0);
 		MotifModel MM3(&engine,setting->max_motif_length,setting);
-		MM3.AddInstance("AAGGGCC");
+		MM3.AddInstance("CTTGTTTGCT");
+		//MM3.AddInstance("ACCACGTGC");
 		MM3.InitializePWMofInstanceSet();
 		MM3.ORScore=2;
-		MM3.get_consensus(0);
+		cout<<MM3.get_consensus(0)<<endl;
 		vector<MotifModel*> simlist;
 		simlist.push_back(&MM2);
 		simlist.push_back(&MM3);
+
+	EM emOpt;
+	emOpt.LoadSeqFile("./result/stber.fa_hotsites.fa");
+	simlist=emOpt.LoadSeedModels(simlist,setting->N_motif);
 
 		MotifModel MM(&engine,setting->max_motif_length,setting);
 		MM.seed="GGGCAT"; //ATGCCC
@@ -127,6 +135,10 @@ void test(PARAM * setting)
 
 		cout<<	MM.get_consensus(0);
 		MM.print();
+
+
+
+
 		double iterCnt=0;
 		double improveCount=0;
 		iterCnt=improveCount=0;
@@ -172,9 +184,11 @@ void runAll(PARAM * setting)
 
 	string outfilename=setting->outputDIR+"/"+setting->inputFile.substr(split+1)+".pomoda";
 	string outfilename2=setting->outputDIR+"/"+setting->inputFile.substr(split+1)+"_hotsites.fa";
+	string outfilename3=setting->outputDIR+"/"+setting->inputFile.substr(split+1)+".match";
 	cout<<outfilename<<endl;
 	ofstream resultout(outfilename.c_str());
 	ofstream resultout2(outfilename2.c_str());
+	ofstream resultout3(outfilename3.c_str());
 	resultout<<"Top "<<setting->N_motif<<" motifs"<<"\t"<<"Window\tScore\tSegment\tCon\tDeg"<<endl;
 	int i,j,k;
 	VAL start=setStartTime();
@@ -355,10 +369,10 @@ void runAll(PARAM * setting)
 			}
 		}
 		headerSS<<"SEQ"<<seqnum<<":"<<pos%engine.SeqLen<<"-"<<pos%engine.SeqLen+len<<"\t"<<j+1<<"\t";
-		SequenSS<<site<<"NNNNNNNNNN"; //split different hot sites
+		SequenSS<<site<<"X"; //split different hot sites
 		i=i+j;
 	}
-	resultout2<<headerSS.str()<<endl;
+	resultout2<<">"<<headerSS.str()<<endl;
 	resultout2<<SequenSS.str()<<endl;
 	resultout2.close();
 	//return ;
@@ -559,20 +573,23 @@ void runAll(PARAM * setting)
 			
 		EM emOpt;
 	emOpt.LoadSeqFile(outfilename2);
+	markMotifs.erase(markMotifs.begin()+(setting->N_motif*10),markMotifs.end());
 	markMotifs=emOpt.LoadSeedModels(markMotifs,setting->N_motif);
 
 		FOR(k,markMotifs.size())
 		{
 				MotifModel* MMinst=markMotifs[k];
-				cout<<"top "<<k<<":\t"<<MMinst->get_consensus(0)<<endl;
-				//MMinst->PWMRefinement();
-				cout<<"top "<<k<<":\t"<<MMinst->get_consensus(0)<<endl;
+				//cout<<"top "<<k<<":\t"<<MMinst->get_consensus(0)<<endl;
+				////MMinst->PWMRefinement();
+				//cout<<"top "<<k<<":\t"<<MMinst->get_consensus(0)<<endl;
 			//	MMinst->MergeList(filterMaps[MMinst]);
 			stringstream bindingsites(stringstream::in | stringstream::out);
 			FOR(j,MMinst->POSLIST.size())
 			{
-				int SEQLEN=engine2->SeqLen;
+				int SEQLEN=10000;
 				long int wpos=MMinst->POSLIST[j];
+				if(wpos==-1)
+					continue;
 				bool rc=(wpos<0);
 				VAL upos=wpos;
 				
@@ -582,15 +599,17 @@ void runAll(PARAM * setting)
 				int pos=upos%SEQLEN;
 				int windowsize=MMinst->BindingRegion;
 				double bias=abs(pos-SEQLEN/2);
-				if(bias<=windowsize/2)
+				int motiflen=MMinst->Length();
+				//if(bias<=windowsize/2)
 				{
-					bindingsites<<">SEQ_"<<seqnum+1<<"\t"; //start from 1
-					if(rc)
-						bindingsites<<"b";
-					else
-						bindingsites<<"f";
+					bindingsites<<"Motif_"<<k<<"\t"<<seqnum<<"\t"; //start from 1
+					//if(rc)
+					//	bindingsites<<"b";
+					//else
+					//	bindingsites<<"f";
 					bindingsites<<pos<<"\t";
-					bindingsites<<MMinst->SearchEngine->getSite(upos,MMinst->Length())<<endl;								
+					bindingsites<<pos+motiflen<<endl;		
+					//bindingsites<<MMinst->SearchEngine->getSite(upos,MMinst->Length())<<endl;								
 				}
 			}
 
@@ -613,8 +632,7 @@ void runAll(PARAM * setting)
 			}
 			resultout<<"XX"<<endl;
 			resultout<<endl;
-			resultout<<bindingsites.str()
-				<<endl;
+			resultout3<<bindingsites.str();
 			resultout<<endl;
 
 
@@ -631,8 +649,9 @@ void runAll(PARAM * setting)
 	cout<<"Elapse Time: "<<getElapsedTime(start)<<endl;
 	resultout<<"Elapse Time: "<<getElapsedTime(start)<<endl;
 	resultout.close();
+	resultout3.close();
 
-
+	
 
 	
 }
@@ -649,7 +668,7 @@ int main(int argc, char* argv[])
 	cout<<sizeof(aa)*8<<endl;
 
 
-	//test(setting);
+	test(setting);
 	runAll(setting);
 
 	string tag;

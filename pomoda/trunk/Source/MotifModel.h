@@ -72,6 +72,7 @@ static	double ComputeINTScore(double* Histogram);
 	int scoreIndex;
 	map<int,double> badmove;
 	vector<int> instSeq;
+	vector<double> instWeight;
 	vector<string> BGInstanceSet;
 	void PWMRefinement();
 	string Consensus;
