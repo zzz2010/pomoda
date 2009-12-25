@@ -202,7 +202,7 @@ inline char reverseC(char w)
 	case 'M': return 'K';
 	case 'H': return 'D';
 	case 'D': return 'H';
-	
+	case 'X': return 'X';
 	}
 }
 

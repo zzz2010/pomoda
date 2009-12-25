@@ -6,13 +6,15 @@
 class EM
 {
 public:
+	EM(PARAM* setting);
 	MotifModel* BackModel;
 	void LoadSeqFile(string filename);
 	vector<MotifModel*> LoadSeedModels(vector<MotifModel*> candidates,int outMotifNum);
 	vector<long> EMIterate(MotifModel* seed);
 	vector<string> DATASET;
 	vector<double> Prior;
-	map<int,double> ErasingFactor;
+	double** ErasingFactor;
+	PARAM* Setting;
 
 };
 
