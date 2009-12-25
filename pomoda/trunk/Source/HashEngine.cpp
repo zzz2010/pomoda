@@ -26,6 +26,8 @@ HashEngine::HashEngine(const char* filename,int hashlen,string wfile):ISearchEng
 	FOR(i,addrange)
 	{
 		HashIndex[i]=new vector<VAL>();
+		HashIndex[i]->reserve(1000);
+
 	}
 	 EnableWeight=true;
 	 weightfile=wfile;
@@ -53,6 +55,7 @@ HashEngine::~HashEngine(void)
  {
 	 int i;
 	 string ret;
+	 ret.reserve(len);
 	FOR(i,len)
 		ret.push_back(*(CharText+pos+i));
 

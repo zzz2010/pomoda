@@ -4,6 +4,11 @@
 #include <map>
 
 
+EM::EM(PARAM* setting)
+{
+	Setting=setting;
+}
+
 void EM::LoadSeqFile(string filename)
 {
 		ifstream openfile(filename.c_str());
@@ -51,42 +56,54 @@ void EM::LoadSeqFile(string filename)
 			FOR(j,4)
 				BackModel->s(bgprob[j],i,j);
 		}
-	
+		ErasingFactor=new double*[DATASET.size()];
+		FOR(i,DATASET.size())
+		{
+			ErasingFactor[i]=(double *)calloc(DATASET[i].size(),sizeof(double));
+		}
+		
 	}
+
 
 }
 
 	vector<long> EM::EMIterate(MotifModel* seed)
 	{
 		const int maxSeqlen=10000;
-		double lamda=0.5; //(seed->ORScore-1)/seed->ORScore;
+		double lamda=0.5;//(seed->ORScore-1)/seed->ORScore;
 		BackModel->head=0;
 		
 		vector<long> sitepos;
 		int i,j,k,iter;
 		int motiflen=seed->Length();
-
+	
 		BackModel->tail= BackModel->X()-motiflen;
 		seed->POSLIST.clear();
 		seed->InstanceSet.clear();
 		seed->BGInstanceSet.clear();
 		seed->instWeight.clear();
-		vector<map<int,double> > bgPROBmap;
-
-		double sumWeight;
+		double ** bgPROBmap;
 		//build a bg prob cache
+		bgPROBmap=new double*[DATASET.size()];
 		FOR(i,DATASET.size())
 		{
-			bgPROBmap.push_back(map<int,double>());
+			bgPROBmap[i]=(double *)calloc(DATASET[i].size(),sizeof(double));
 		}
+		vector<double> ErasingList;
+
+		double sumWeight;
+			double Evalue=0;
+		double lastEvalue=MINSCORE;
+
 		//iteration EM
 		FOR(iter,100)
 		{
+			Evalue=0;
 			seed->POSLIST.clear();
 			seed->InstanceSet.clear();
 			seed->BGInstanceSet.clear();
 			seed->instWeight.clear();
-
+			ErasingList.clear();
 		//assume each sequence contain at most one occurrence
 			 sumWeight=0;
 		// lamda=0.9;//fix lamda
@@ -130,14 +147,24 @@ void EM::LoadSeqFile(string filename)
 					else
 						bgpv=bgPROBmap[i][j];
 					double Epv1=exp(pv1);
-				double	Zj=lamda*Epv1/(lamda*(Epv1+(1-Epv1)*bgpv)+(1-lamda)*bgpv) ;//(lamda*Epv1+(1-lamda)*bgpv);
+					double erasing=1;
+					FOR(k,motiflen)
+						erasing*=(1-ErasingFactor[i][j+k]);
+					double posT=1.0/(sequence.size()-motiflen+1);
+					//Epv1*=erasing;
+				double	Zj=lamda*posT*Epv1/(lamda*Epv1*posT+(1-lamda*posT)*bgpv) ;//(lamda*Epv1+(1-lamda)*bgpv);
 				
-				if(ErasingFactor.find(j+maxSeqlen*i)!=ErasingFactor.end())
-					Zj=Zj*(1-ErasingFactor[j+maxSeqlen*i]);
+				//if(ErasingFactor.find(j+maxSeqlen*i)!=ErasingFactor.end())
+				
 				adhocSum+=Zj;
-				double Sx=Epv1/bgpv;
-				if(Sx<(1-lamda)/lamda)
-					continue;
+				
+				//if(Zj<0.5)
+				//	continue;
+				if(Zj>=0.5)
+				ErasingList.push_back(j+maxSeqlen*i+Zj);
+				
+				Zj=Zj*erasing; //time the erasing factor after putting into the list
+
 					if(Zj>maxscore)
 					{
 						maxscore=Zj;
@@ -160,6 +187,9 @@ void EM::LoadSeqFile(string filename)
 				}
 				if(maxscore<0)
 					continue;
+
+				
+
 				seed->POSLIST.push_back(matchpos+maxSeqlen*i); 
 				
 				//if(normalFactor>nSplit)
@@ -169,20 +199,23 @@ void EM::LoadSeqFile(string filename)
 				//	maxscore=maxscore/(normalFactor/1);
 				/**********no normalization***********/
 				//add prior
-				maxscore=maxscore*Prior[i];
+				//maxscore=maxscore*Prior[i];
 	
 				
 				seed->InstanceSet.push_back(matchsite);
 				seed->instWeight.push_back(maxscore);
-				sumWeight+=maxscore;	
+				sumWeight+=maxscore;
 			}
 			//update lamda
-			lamda=sumWeight/DATASET.size();
+			lamda=(double)sumWeight/DATASET.size(); //
+			if(lamda<Setting->min_supp_ratio)
+				lamda=2*Setting->min_supp_ratio; //double it to search
 
 			//copy backup currenct matrix
 			MotifModel tempmodel(seed->SearchEngine,seed->X(),seed->Setting);
-			tempmodel.head=seed->head;
-			tempmodel.tail=seed->tail;
+				tempmodel.head=seed->head;
+				tempmodel.tail=seed->tail;
+			
 			FOR(i,seed->X())
 				FOR(j,4)
 				tempmodel.s(seed->g(i,j),i,j);
@@ -192,63 +225,93 @@ void EM::LoadSeqFile(string filename)
 			double algnScore=1000;
 			int overlap=0;
 			seed->AlignmentPWM(seed,&tempmodel,algnScore,overlap);
-			cout<<seed->get_consensus(-1)<<endl;
+	
 			//seed->print();
-			if(algnScore<0.001||lamda<=0||lamda>=1)
-				break;
+				double sumlog=0;
+				FOR(i,motiflen)
+					FOR(j,4)
+					{
+						double v=seed->g(i+seed->head,j);
+						sumlog+=v*log(v);
+					}
+			
+				if(lamda!=0)
+					Evalue=lamda*(log(lamda)+sumlog);
+				double bgsumlog=0;
+				FOR(j,4)
+				{
+					double v=BackModel->g(0,j);
+					bgsumlog+=v*log(v);
+				}
+				if(lamda!=1)
+					Evalue+=(1-lamda)*(log(1-lamda)+motiflen*bgsumlog);
+				cout<<seed->get_consensus(-1)<<"\t"<<sumWeight<<"\t"<<Evalue<<endl;
+				if(algnScore<0.01||lamda<=0||lamda>=1)
+					break;
+				//restore the good one
+				//if(lastEvalue>Evalue)
+				//{
+				//		FOR(i,seed->X())
+				//			FOR(j,4)
+				//				seed->s(tempmodel.g(i,j),i,j);
+
+				//		break;
+				//}
+				lastEvalue=Evalue;
 		}
 		
 		seed->ORScore=lamda/(1-lamda);
 		seed->CDScore=sumWeight;
-		double sumlog=0;
-		FOR(i,motiflen)
-			FOR(j,4)
-			{
-				double v=seed->g(i+seed->head,j);
-				sumlog+=v*log(v);
-			}
-		double Evalue=lamda*(log(lamda)+sumlog);
-		double bgsumlog=0;
-		FOR(j,4)
-		{
-			double v=BackModel->g(0,j);
-			bgsumlog+=v*log(v);
-		}
-		Evalue+=(1-lamda)*(log(1-lamda)+motiflen*bgsumlog);
-		seed->SeqPvalue=exp(Evalue);
-		cout<<seed->get_consensus(0)<<"\t"<<seed->ORScore<<"\t"<<seed->CDScore<<"\t"<<seed->SeqPvalue<<endl;
 
-		//update erasing factor and prior
+		seed->SeqPvalue=exp(Evalue);
+
 		
+		//only consider Zvalue>0.5
 		FOR(i,seed->POSLIST.size())
 		{
-			int pos=seed->POSLIST[i];
+			if(seed->instWeight[i]<0.5)// suppose the prior is 0.5
+			{
+				seed->CDScore-=seed->instWeight[i];
+				seed->instWeight[i]=0;
+				seed->POSLIST[i]=-1;
+
+			}
+		}
+
+		cout<<seed->get_consensus(0)<<"\t"<<seed->ORScore<<"\t"<<seed->CDScore<<"\t"<<seed->SeqPvalue<<endl;
+		//update erasing factor and prior
+		
+		FOR(i,ErasingList.size())
+		{
+		
+			int pos=floor(ErasingList[i]);
 			int seq=pos/maxSeqlen;
-			double Px=seed->instWeight[i]/Prior[seq];//get back the conditional probablity
+			double Px=ErasingList[i]-pos;//get back the conditional probablity
+			pos=pos%maxSeqlen;
+			//Px=1-pow(1-Px,1.0/motiflen);
 			FOR(j,motiflen)
 			{
-				if(ErasingFactor.find(pos+j)!=ErasingFactor.end())
-				{
-					ErasingFactor[pos+j]=ErasingFactor[pos+j]+(1-ErasingFactor[pos+j])*Px;
-				}
-				else
-					ErasingFactor[pos+j]=Px;
+					ErasingFactor[seq][pos+j]=ErasingFactor[seq][pos+j]+(1-ErasingFactor[seq][pos+j])*Px;
 			}
-			//update Prior =P(X|theta)+(1-P(X|theta))*Prior
-			
-			Prior[seq]=Px+(1-Px)*Prior[seq];
+			//update Prior =P(X|theta)+(1-P(X|theta))*Prior			
+			//Prior[seq]=Px+(1-Px)*Prior[seq];
 		}
-		//noramlize Prior
-		double sumPrior=0;
-		FOR(i,Prior.size())
-		{
-			sumPrior+=Prior[i];
-		}
-		sumPrior=sumPrior/(0.5*DATASET.size());
-		FOR(i,Prior.size())
-			Prior[i]=Prior[i]/sumPrior;
+		//noramlize Prior: prior is not good just using main motifs
+		//double sumPrior=0;
+		//FOR(i,Prior.size())
+		//{
+		//	sumPrior+=Prior[i];
+		//}
+		//sumPrior=sumPrior/(0.5*DATASET.size());
+		//FOR(i,Prior.size())
+		//	Prior[i]=Prior[i]/sumPrior;
 		
-
+		//free memory
+		FOR(i,DATASET.size())
+		{
+			free(bgPROBmap[i]);
+		}
+		delete[] bgPROBmap;
 
 		return sitepos;
 	}
@@ -265,7 +328,7 @@ vector<MotifModel*> EM::LoadSeedModels(vector<MotifModel*> candidates, int outMo
 	FOR(i,candidates.size())
 	{
 		//extend the length of short motif
-		if(candidates[i]->Length()<10)
+		//if(candidates[i]->Length()<10)
 		{
 			candidates[i]->head=max(candidates[i]->head-2,0);
 			candidates[i]->tail=max(candidates[i]->tail-2,0);
@@ -274,25 +337,30 @@ vector<MotifModel*> EM::LoadSeedModels(vector<MotifModel*> candidates, int outMo
 		vector < long > temp=EMIterate(candidates[i]);
 		poslist.push_back(temp);
 		occCounter[i]=candidates[i]->CDScore;
+		candidates[i]->deltaScore=0; //record the overlap ratio
 	}
 
 	vector<long> markedPos;
 	//select max mutual cover set
-	FOR(i,outMotifNum)
+	FOR(i,min(outMotifNum,candidates.size()))
 	{
 		int maxCount=0;
 		int index=0;
 		FOR(j,candidates.size())
 		{
-			if(candidates[j]->Length()<7)
-				occCounter[j]=0;
+			//if(candidates[j]->Length()<7)
+			//	occCounter[j]=0;
 
-			if(occCounter[j]>maxCount)
+			if(occCounter[j]>maxCount)//  &&candidates[j]->POSLIST.size()>minSupport  &&candidates[j]->deltaScore<(Setting->olThresh*candidates[j]->CDScore)
 			{
 				index=j;
 				maxCount=occCounter[j];
 			}
 		}
+
+		// no more good motif
+		if(maxCount==0)
+			break;
 		//mark this motif in later loop
 		occCounter[index]=0;
 		// add this motif position to marked Pos
@@ -300,7 +368,7 @@ vector<MotifModel*> EM::LoadSeedModels(vector<MotifModel*> candidates, int outMo
 		{
 			if(candidates[index]->POSLIST[j]!=-1)
 			{
-				if(candidates[index]->instWeight[j]>0.05)
+				if(candidates[index]->instWeight[j]>0.05) //dumy check
 				markedPos.push_back(candidates[index]->POSLIST[j]);
 				else
 				candidates[index]->POSLIST[j]=-1;
@@ -328,6 +396,8 @@ vector<MotifModel*> EM::LoadSeedModels(vector<MotifModel*> candidates, int outMo
 							//do clean up
 
 							occCounter[j]=occCounter[j]-candidates[j]->instWeight[y];
+							// increase the overlap counter
+							candidates[j]->deltaScore+=candidates[j]->instWeight[y];
 							candidates[j]->POSLIST[y]=-1;
 							x++;
 							y++;
@@ -343,6 +413,8 @@ vector<MotifModel*> EM::LoadSeedModels(vector<MotifModel*> candidates, int outMo
 						
 							candidates[j]->POSLIST[y]=-1;
 			            	occCounter[j]=occCounter[j]-candidates[j]->instWeight[y];
+							// increase the overlap counter
+							candidates[j]->deltaScore+=candidates[j]->instWeight[y];
 							x++;
 							y++;
 						}

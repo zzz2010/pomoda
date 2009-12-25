@@ -468,11 +468,13 @@ void MotifModel::divergeSeedPart(vector<int>* hotsites_p)
 	FOR(i,Setting->seedlength)
 		divCnt[i]=0;
 	InstanceSet.clear();
+	InstanceSet.reserve(POSLIST.capacity());
 	map<string,double> inst=GenerateInstanceFromPWMPQ(0.8);
 			map<string,double>::iterator Iter1=inst.begin();
 string ACGT="ACGT";
 int lastsize=0;
 int nonConPos=0;
+
 	while(Iter1!=inst.end())
 	{
 		 int centCNT,bgCNT;
@@ -990,9 +992,12 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 	
 	vector<double> cdscoreList;
 	vector<ScoreObj> scoreList;
-	
+	cdscoreList.reserve(Setting->N_motif*100);
+	scoreList.reserve(Setting->N_motif*100);
+
 	int BINSIZE2=SEQLEN/2/(BINNUMBER)+1;
 	vector<int> patternlist;
+	patternlist.reserve(Setting->N_motif*100);
 	int maxScoreIndex=0;
 	double maxScore=MINSCORE;
 	double testscore=0;
@@ -1025,6 +1030,7 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 		char instemp[64];
 		strcpy(instemp,pattern.c_str());//
 		vector<VAL> positions;
+		positions.reserve(MAXSEQNUM);
 		SearchEngine->searchPattern(instemp,mismatch,positions);
 		
 		
@@ -2470,8 +2476,8 @@ double MotifModel::updateModel(int runid)
 	MotifModel tempmodel(SearchEngine,X(),Setting);
 	MotifModel tempBGmodel(SearchEngine,X(),Setting);
 	int width=X();
-
-
+	tempmodel.InstanceSet.reserve(POSLIST.size()/bgfold);
+	tempBGmodel.InstanceSet.reserve(POSLIST.size()/bgfold);
 	int col=(width+(runid%2)-1)/2+((runid%2)-0.5)*runid;
 	
 

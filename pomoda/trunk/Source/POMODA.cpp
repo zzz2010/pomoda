@@ -53,7 +53,7 @@ if(nargs < 3){ printf("%s\n",syntax); exit(0); }
 p = new param_st();//(PARAM*)calloc(1,sizeof(PARAM));
 p->seedlength= 6;
 p->min_supp_ratio=0.05;
-p->FDRthresh=1.e-4;
+p->FDRthresh=1.e-2;
 p->olThresh=0.02;
 p->pdThresh=0.18;
 p->outputDIR=string(".");
@@ -103,13 +103,14 @@ void test(PARAM * setting)
 		engine.searchPatternNRC(q,0,0,posl);
 		string g=engine.getSite(61,13);
 		MotifModel MM2(&engine,setting->max_motif_length,setting);
-		MM2.AddInstance("AGGTCANNNTGACCYNNG");
+		MM2.AddInstance("GGTCACNSTGAC");
 		MM2.InitializePWMofInstanceSet();
 		cout<<MM2.get_consensus()<<endl; 
 		MM2.ORScore=2;
 		MM2.get_consensus(0);
 		MotifModel MM3(&engine,setting->max_motif_length,setting);
-		MM3.AddInstance("CTTGTTTGCT");
+		MM3.AddInstance("GAGATANGNA");  //CAGGACANSNTGNC
+		//MM3.AddInstance("TGGTCA");
 		//MM3.AddInstance("ACCACGTGC");
 		MM3.InitializePWMofInstanceSet();
 		MM3.ORScore=2;
@@ -118,7 +119,7 @@ void test(PARAM * setting)
 		simlist.push_back(&MM2);
 		simlist.push_back(&MM3);
 
-	EM emOpt;
+	EM emOpt(setting);
 	emOpt.LoadSeqFile("./result/stber.fa_hotsites.fa");
 	simlist=emOpt.LoadSeedModels(simlist,setting->N_motif);
 
@@ -228,7 +229,7 @@ void runAll(PARAM * setting)
 				double improve=MMinst->updateModel(j);
 				if(improve==-1)
 				{
-					if((iterCnt-improveCount>3))//(MMinst->GetMixedScore())
+					if((iterCnt-improveCount>6))//(MMinst->GetMixedScore())
 					break;
 				}
 				else if(improve!=MINSCORE)
@@ -389,7 +390,7 @@ void runAll(PARAM * setting)
 		vector<VAL> templist=MMinst->POSLIST;
 		
 		int j;
-		double minscore=-MINSCORE;
+		double minscore=0;
 		
 		int filterId=-1;
 
@@ -476,7 +477,7 @@ void runAll(PARAM * setting)
 
 
 
-
+/**************************second pass filtering ****************************/
 			//map<MotifModel*,int>::iterator ITER22=filterList.begin();
 			//maxalnscore=-MINSCORE;minscore=0;
 			//while(ITER22!=filterList.end())
@@ -533,7 +534,7 @@ void runAll(PARAM * setting)
 			//	continue;
 			//}
 
-
+/**************************second pass filtering ****************************/
 
 		double snr,prbE,prbN;
 
@@ -558,23 +559,107 @@ void runAll(PARAM * setting)
 		filterMaps[MMinst]=vector<MotifModel*>();
 		}
 		SeedList.clear();
-		FOR(k,markMotifs.size())
-		{
-				MotifModel* MMinst=markMotifs[k];
-				MMinst->MergeList(filterMaps[MMinst]);
-				SeedList.push_back(MMinst);
-				
-		}
-		
+		/***************Merge the filtered Motifs*************************/
+		//FOR(k,markMotifs.size())
+		//{
+		//		MotifModel* MMinst=markMotifs[k];
+		//		MMinst->MergeList(filterMaps[MMinst]);
+		//		SeedList.push_back(MMinst);
+		//		
+		//}
+		/***************Merge the filtered Motifs*************************/
 		filterMaps.clear();
 		postLists.clear();
 		sortlist.clear();
 		}while(false);
-			
-		EM emOpt;
-	emOpt.LoadSeqFile(outfilename2);
-	markMotifs.erase(markMotifs.begin()+(setting->N_motif*10),markMotifs.end());
+	
+/***************Generalization Phase*****************/
+	EM emOpt(setting);
+	emOpt.LoadSeqFile(outfilename2);//("./result/stber300.fa");
 	markMotifs=emOpt.LoadSeedModels(markMotifs,setting->N_motif);
+	sortlist.clear();
+//	FOR(k,markMotifs.size())
+//	{
+//		MotifModel* MMinst=markMotifs[k];
+//		MMinst->SearchEngine=engine2;
+//		MMinst->ComputeScore(0.8,MMinst->CDScore,MMinst->ORScore,MMinst->BindingRegion,MMinst->CNSVScore,MMinst->DiffScore);
+//		double smallrandom=0.0000000001*sortlist.size();
+//		sortlist[0-MMinst->ORScore+smallrandom]=MMinst;
+//	}
+//		map<double,MotifModel*>::iterator ITER=sortlist.begin();
+//		k=0;
+//
+//		markMotifs.clear();
+//	while(ITER!=sortlist.end())
+//	{
+//		if(0-ITER->first<1)
+//			break;
+//		MotifModel* MMinst=ITER->second;
+//		vector<VAL> templist=MMinst->POSLIST;
+//		
+//		int j;
+//		double minscore=0;
+//        double maxalnscore=-MINSCORE;
+//		int filterId=-1;
+//		FOR(j,markMotifs.size())
+//		{
+//
+//			int comcount=0;
+//				try
+//				{
+//					double alnscore;
+//					double bestas;
+//					int alnn=MMinst->AlignmentPWMRC(MMinst,markMotifs[j],bestas);
+//					alnscore=(double)bestas;//min(MMinst->Consensus.size(),markMotifs[j]->Consensus.size());
+//					double alterP=1/(pow(4.0,MMinst->Length()*(1-alnscore)));
+//					double score=MMinst->SimilarityScore(postLists[j],templist,markMotifs[j]->Consensus.size(),MMinst->Consensus.size(),comcount,alterP);
+//				score=(double)comcount/min(templist.size(),postLists[j].size());////////
+//
+//					if(minscore<score)/////
+//					{
+//						minscore=score;
+//						if(minscore>setting->olThresh)//<0.0001
+//						{
+//							filterId=9000+minscore*100;
+//							MMinst->seed+="-"+markMotifs[j]->seed;
+//
+//							//merge
+//							filterMaps[markMotifs[j]].push_back(MMinst);
+//						}
+//					}
+//					if(maxalnscore>alnscore)
+//					{
+//						maxalnscore=alnscore;
+//						if(maxalnscore<setting->pdThresh)
+//						{
+//							filterId=8000+maxalnscore*100;
+//							MMinst->seed+="-"+markMotifs[j]->seed;
+//						}
+//					}
+//				}
+//				catch( char * str ) 
+//				{
+//					 cout << "Exception raised: " << str << '\n';
+//					 break;
+//				}
+//
+//		}
+//
+//
+//		if(minscore>setting->olThresh||maxalnscore<setting->pdThresh) //minscore<0.00000001
+//		{
+//			ITER++;
+//			filterList[MMinst]=filterId;
+//			int mainId=filterId%1000;	
+//			if(DEBUG)
+//			cout<<"filter:"<<MMinst->get_consensus(0)<<"\t"<<(0-ITER->first)<<endl;
+//			
+//			continue;
+//		}
+//		markMotifs.push_back(MMinst);
+//		ITER++;
+//	}
+///***************Generalization Phase*****************/
 
 		FOR(k,markMotifs.size())
 		{
@@ -613,13 +698,12 @@ void runAll(PARAM * setting)
 				}
 			}
 
-			resultout<<"Motif "<<k<<":\t";
+			resultout<<"DE	Motif_"<<k<<"\t";
 			resultout<<MMinst->BindingRegion<<"\t";
 			resultout<<MMinst->ORScore<<"\t";
 			resultout<<MMinst->CDScore<<"\t";
 			resultout<<MMinst->Consensus<<"\t";
 			resultout<<reverseString( MMinst->Consensus)<<endl;
-			resultout<<"DE	Motif_"<<k<<endl;
 			resultout<<"PO	A	C	G	T"<<endl;
 			for(int kkk=MMinst->head;kkk<MMinst->X()-MMinst->tail;kkk++)
 			{
@@ -668,7 +752,7 @@ int main(int argc, char* argv[])
 	cout<<sizeof(aa)*8<<endl;
 
 
-	test(setting);
+	//test(setting);
 	runAll(setting);
 
 	string tag;
