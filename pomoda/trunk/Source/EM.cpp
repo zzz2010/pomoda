@@ -55,6 +55,7 @@ void EM::LoadSeqFile(string filename)
 		{
 			FOR(j,4)
 				BackModel->s(bgprob[j],i,j);
+				//BackModel->s(0.25,i,j);
 		}
 		ErasingFactor=new double*[DATASET.size()];
 		FOR(i,DATASET.size())
@@ -134,7 +135,7 @@ void EM::LoadSeqFile(string filename)
 						j=j+motiflen-1;
 						if(adhocSum>normalFactor)
 						normalFactor=adhocSum;
-						adhocSum=0;
+						//adhocSum=0;
 						continue;
 					}
 					double bgpv=0;
@@ -152,8 +153,11 @@ void EM::LoadSeqFile(string filename)
 						erasing*=(1-ErasingFactor[i][j+k]);
 					double posT=1.0/(sequence.size()-motiflen+1);
 					//Epv1*=erasing;
+				//general Z-value
 				double	Zj=lamda*posT*Epv1/(lamda*Epv1*posT+(1-lamda*posT)*bgpv) ;//(lamda*Epv1+(1-lamda)*bgpv);
-				
+				/*********zoops mod*************/
+				//double	Zj=Epv1/bgpv;
+				/*********zoops mod*************/
 				//if(ErasingFactor.find(j+maxSeqlen*i)!=ErasingFactor.end())
 				
 				adhocSum+=Zj;
@@ -161,8 +165,17 @@ void EM::LoadSeqFile(string filename)
 				//if(Zj<0.5)
 				//	continue;
 				if(Zj>=0.5)
-				ErasingList.push_back(j+maxSeqlen*i+Zj);
-				
+				{
+					ErasingList.push_back(j+maxSeqlen*i+Zj);
+				}
+				/*********zoops mod*************/
+				//if(Zj>1&&Zj>adhocSum/2)
+				//	ErasingList.push_back(j+maxSeqlen*i+Zj);
+				/*********zoops mod*************/
+
+
+				//if(erasing<1&&Zj>=0.5)
+				//	cout<<site<<"\t"<<erasing<<endl;
 				Zj=Zj*erasing; //time the erasing factor after putting into the list
 
 					if(Zj>maxscore)
@@ -183,6 +196,8 @@ void EM::LoadSeqFile(string filename)
 							rc=false;
 							matchsite=site;
 						}
+
+
 					}
 				}
 				if(maxscore<0)
@@ -200,9 +215,14 @@ void EM::LoadSeqFile(string filename)
 				/**********no normalization***********/
 				//add prior
 				//maxscore=maxscore*Prior[i];
-	
-				
+
+
+				/************zoops*************/
+				//maxscore=maxscore/adhocSum;
+				/************zoops*************/
+
 				seed->InstanceSet.push_back(matchsite);
+
 				seed->instWeight.push_back(maxscore);
 				sumWeight+=maxscore;
 			}
@@ -248,6 +268,17 @@ void EM::LoadSeqFile(string filename)
 				cout<<seed->get_consensus(-1)<<"\t"<<sumWeight<<"\t"<<Evalue<<endl;
 				if(algnScore<0.01||lamda<=0||lamda>=1)
 					break;
+				
+				/***********for test purpose***********/
+				//seed->print();
+				//FOR(i,seed->POSLIST.size())
+				//{
+				//	bgPROBmap[i][0]=bgPROBmap[i][seed->POSLIST[i]%maxSeqlen];
+				//	DATASET[i]=seed->InstanceSet[i];
+
+				//}
+
+
 				//restore the good one
 				//if(lastEvalue>Evalue)
 				//{
@@ -288,7 +319,7 @@ void EM::LoadSeqFile(string filename)
 			int seq=pos/maxSeqlen;
 			double Px=ErasingList[i]-pos;//get back the conditional probablity
 			pos=pos%maxSeqlen;
-			//Px=1-pow(1-Px,1.0/motiflen);
+			//Px=1-pow(1-Px,1.0/motiflen);  /* 1 means complete mark, 0 means unmark*/
 			FOR(j,motiflen)
 			{
 					ErasingFactor[seq][pos+j]=ErasingFactor[seq][pos+j]+(1-ErasingFactor[seq][pos+j])*Px;
@@ -328,7 +359,7 @@ vector<MotifModel*> EM::LoadSeedModels(vector<MotifModel*> candidates, int outMo
 	FOR(i,candidates.size())
 	{
 		//extend the length of short motif
-		//if(candidates[i]->Length()<10)
+		if(candidates[i]->Length()<10)
 		{
 			candidates[i]->head=max(candidates[i]->head-2,0);
 			candidates[i]->tail=max(candidates[i]->tail-2,0);

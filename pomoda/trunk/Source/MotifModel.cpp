@@ -483,6 +483,7 @@ int nonConPos=0;
 		char instemp2[64];
 				strcpy(instemp2,Iter1->first.c_str());
 		int rcindex=SearchEngine->searchPattern(instemp2,0,POSLIST);	//search for each non-mutate instance
+		/*******filter the none signifcant ones********/
 				for(q=lastsize;q<POSLIST.size();q++)
 				 {
 					int pos=POSLIST[q]%SEQLEN;
@@ -505,6 +506,8 @@ int nonConPos=0;
 					 Iter1++;
 					 continue;
 				 }
+		/*******filter the none signifcant ones********/
+
 		//mark the reverse complement to be negative
 		for(q=rcindex;q<POSLIST.size();q++)
 			POSLIST[q]=0-POSLIST[q];
@@ -525,7 +528,7 @@ int nonConPos=0;
 					continue;//skip the non-revised one
 
 				 rcindex=SearchEngine->searchPattern(instemp,0,POSLIST); //search one-mismatch instance
-			
+				/*******filter the none signifcant ones********/
 				 centCNT=bgCNT=0;
 				 for(q=lastsize;q<POSLIST.size();q++)
 				 {
@@ -545,6 +548,7 @@ int nonConPos=0;
 					 POSLIST.erase(POSLIST.begin()+lastsize,POSLIST.end());
 					 continue;
 				 }
+					/*******filter the none signifcant ones********/
 				for(q=rcindex;q<POSLIST.size();q++)
 					POSLIST[q]=0-POSLIST[q];
 				lastsize=POSLIST.size();
@@ -762,47 +766,50 @@ vector<VAL> MotifModel::getMatchPos()
 
 	double bgocc=0;
 
-	double threshold=log(PWMThreshold);
-	 HashEngine* SearchEngine2=(HashEngine*)SearchEngine;
+	//double threshold=log(PWMThreshold);
+	// HashEngine* SearchEngine2=(HashEngine*)SearchEngine;
 
-	 {
-		 map<string,double> insts=GenerateInstanceFromPWMPQ(0.8);
-		 map<string,double>::iterator Iter;
-		double totalCount=0;
-		
-		for(Iter=insts.begin();Iter!=insts.end();Iter++)
-		{	
-			char instemp[64];
-			string randomIns=Iter->first;
+	// {
+	//	 map<string,double> insts=GenerateInstanceFromPWMPQ(0.8);
+	//	 map<string,double>::iterator Iter;
+	//	double totalCount=0;
+	//	
+	//	for(Iter=insts.begin();Iter!=insts.end();Iter++)
+	//	{	
+	//		char instemp[64];
+	//		string randomIns=Iter->first;
 
-			if(Iter->second<0.05)
-			{
-				continue;
-			}
+	//		if(Iter->second<0.05)
+	//		{
+	//			continue;
+	//		}
 
-			strcpy(instemp,randomIns.c_str());
-			SearchEngine->searchPattern(instemp,0,poslist);	
-		
-			if(!LargeDataFlag)
-			{
-				int len=Iter->first.size();
-				double temp=1;
-				FOR(j,len)
-				{
-					if(Iter->first[j]=='N')
-						continue;
-					int a=acgt(Iter->first[j]);
-					if(a>-1)
-					temp*=SearchEngine->BGProb[a];
+	//		strcpy(instemp,randomIns.c_str());
+	//		SearchEngine->searchPattern(instemp,0,poslist);	
+	//	
+	//		if(!LargeDataFlag)
+	//		{
+	//			int len=Iter->first.size();
+	//			double temp=1;
+	//			FOR(j,len)
+	//			{
+	//				if(Iter->first[j]=='N')
+	//					continue;
+	//				int a=acgt(Iter->first[j]);
+	//				if(a>-1)
+	//				temp*=SearchEngine->BGProb[a];
 
-				}
-				bgocc+=temp;
-			}
-		}
-	 }
+	//			}
+	//			bgocc+=temp;
+	//		}
+	//	}
+	// }
 
 
-	 POSLIST= poslist;
+	// POSLIST= poslist;
+	FOR(i,POSLIST.size())
+		if(POSLIST[i]<0)
+			POSLIST[i]=0-POSLIST[i];
 
 	 sort(POSLIST.begin(),POSLIST.end());
 	 int BINNUM2=SEQLEN/(BindingRegion/2);
@@ -1339,7 +1346,7 @@ void MotifModel::MergeList(vector<MotifModel*> simList)
 			temp->s(this->g(i,j),i,j);
 		//boost up by weight
 		FOR(j,4)
-			this->m(this->ORScore-1,i,j);
+			this->m(this->CDScore-1,i,j); //ORScore
 	}
 	temp->get_consensus(0);
 	//use temp to align all
@@ -1394,7 +1401,7 @@ void MotifModel::MergeList(vector<MotifModel*> simList)
 			         double sump = 0;
                     for (int p = 0; p < 4; p++)
                     {
-						this->a(p2RC->g(j-i+p2RC->head,p)*(p2->ORScore-1),j+this->head,p);
+						this->a(p2RC->g(j-i+p2RC->head,p)*(p2->CDScore-1),j+this->head,p);  //ORScore
                     }
              
 	            }
@@ -1431,7 +1438,7 @@ void MotifModel::MergeList(vector<MotifModel*> simList)
 			         double sump = 0;
                     for (int p = 0; p < 4; p++)
                     {
-						this->a(p2->g(j-i+p2->head,p)*(p2->ORScore-1),j+this->head,p);
+						this->a(p2->g(j-i+p2->head,p)*(p2->CDScore-1),j+this->head,p); //ORScore
                     }
              
 	            }
@@ -2453,6 +2460,7 @@ void MotifModel::PWMRefinement()
 	}
 	
 	InitializePWMofInstanceSet();
+	//ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
 
 }
 
