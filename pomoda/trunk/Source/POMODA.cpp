@@ -103,13 +103,13 @@ void test(PARAM * setting)
 		engine.searchPatternNRC(q,0,0,posl);
 		string g=engine.getSite(61,13);
 		MotifModel MM2(&engine,setting->max_motif_length,setting);
-		MM2.AddInstance("GGTCACNSTGAC");
+		MM2.AddInstance("GGTCACNSTGAC");//
 		MM2.InitializePWMofInstanceSet();
 		cout<<MM2.get_consensus()<<endl; 
 		MM2.ORScore=2;
 		MM2.get_consensus(0);
 		MotifModel MM3(&engine,setting->max_motif_length,setting);
-		MM3.AddInstance("GAGATANGNA");  //CAGGACANSNTGNC
+		MM3.AddInstance("ACAAAC");  //CAGGACANSNTGNC   GGCAAACAGNNA
 		//MM3.AddInstance("TGGTCA");
 		//MM3.AddInstance("ACCACGTGC");
 		MM3.InitializePWMofInstanceSet();
@@ -120,7 +120,7 @@ void test(PARAM * setting)
 		simlist.push_back(&MM3);
 
 	EM emOpt(setting);
-	emOpt.LoadSeqFile("./result/stber.fa_hotsites.fa");
+	emOpt.LoadSeqFile("./result/tber.fa_hotsites.fa");
 	simlist=emOpt.LoadSeedModels(simlist,setting->N_motif);
 
 		MotifModel MM(&engine,setting->max_motif_length,setting);
@@ -213,8 +213,8 @@ void runAll(PARAM * setting)
 	map<MotifModel*,vector<MotifModel*> > filterMaps;
 		double iterCnt=0;
 		double improveCount=0;
-		do{
-			markMotifs.clear();
+		
+			
 	FOR(i,SeedList.size())
 	{		
 		cout<<i<<endl;
@@ -229,7 +229,7 @@ void runAll(PARAM * setting)
 				double improve=MMinst->updateModel(j);
 				if(improve==-1)
 				{
-					if((iterCnt-improveCount>6))//(MMinst->GetMixedScore())
+					if((iterCnt-improveCount>3))//(MMinst->GetMixedScore())
 					break;
 				}
 				else if(improve!=MINSCORE)
@@ -333,7 +333,7 @@ void runAll(PARAM * setting)
 	cout<<"Elapse Time: "<<getElapsedTime(start)<<endl;
 	iterCnt=iterCnt/SeedList.size();
 	improveCount=improveCount/SeedList.size();
-	map<double,MotifModel*>::iterator ITER=sortlist.begin();
+
 	
 	
 
@@ -377,6 +377,10 @@ void runAll(PARAM * setting)
 	resultout2<<SequenSS.str()<<endl;
 	resultout2.close();
 	//return ;
+	map<double,MotifModel*>::iterator ITER;
+	do{
+		 ITER=sortlist.begin();
+		 markMotifs.clear();
 	i=0;
 	while(ITER!=sortlist.end())//&&i<setting->N_motif
 	{
@@ -559,106 +563,111 @@ void runAll(PARAM * setting)
 		filterMaps[MMinst]=vector<MotifModel*>();
 		}
 		SeedList.clear();
+		if(markMotifs.size()==sortlist.size())
+			break;
 		/***************Merge the filtered Motifs*************************/
-		//FOR(k,markMotifs.size())
-		//{
-		//		MotifModel* MMinst=markMotifs[k];
-		//		MMinst->MergeList(filterMaps[MMinst]);
-		//		SeedList.push_back(MMinst);
-		//		
-		//}
+		FOR(k,markMotifs.size())
+		{
+				MotifModel* MMinst=markMotifs[k];
+				MMinst->MergeList(filterMaps[MMinst]);
+				SeedList.push_back(MMinst);
+				MMinst->PWMRefinement();
+		}
 		/***************Merge the filtered Motifs*************************/
 		filterMaps.clear();
 		postLists.clear();
 		sortlist.clear();
-		}while(false);
+		
 	
-/***************Generalization Phase*****************/
-	EM emOpt(setting);
-	emOpt.LoadSeqFile(outfilename2);//("./result/stber300.fa");
-	markMotifs=emOpt.LoadSeedModels(markMotifs,setting->N_motif);
+///***************Generalization Phase*****************/
+	//EM emOpt(setting);
+	//emOpt.LoadSeqFile(outfilename2);//("./result/stber300.fa");
+	//markMotifs=emOpt.LoadSeedModels(markMotifs,setting->N_motif);
 	sortlist.clear();
-//	FOR(k,markMotifs.size())
-//	{
-//		MotifModel* MMinst=markMotifs[k];
-//		MMinst->SearchEngine=engine2;
-//		MMinst->ComputeScore(0.8,MMinst->CDScore,MMinst->ORScore,MMinst->BindingRegion,MMinst->CNSVScore,MMinst->DiffScore);
-//		double smallrandom=0.0000000001*sortlist.size();
-//		sortlist[0-MMinst->ORScore+smallrandom]=MMinst;
-//	}
-//		map<double,MotifModel*>::iterator ITER=sortlist.begin();
-//		k=0;
-//
-//		markMotifs.clear();
-//	while(ITER!=sortlist.end())
-//	{
-//		if(0-ITER->first<1)
-//			break;
-//		MotifModel* MMinst=ITER->second;
-//		vector<VAL> templist=MMinst->POSLIST;
-//		
-//		int j;
-//		double minscore=0;
-//        double maxalnscore=-MINSCORE;
-//		int filterId=-1;
-//		FOR(j,markMotifs.size())
-//		{
-//
-//			int comcount=0;
-//				try
-//				{
-//					double alnscore;
-//					double bestas;
-//					int alnn=MMinst->AlignmentPWMRC(MMinst,markMotifs[j],bestas);
-//					alnscore=(double)bestas;//min(MMinst->Consensus.size(),markMotifs[j]->Consensus.size());
-//					double alterP=1/(pow(4.0,MMinst->Length()*(1-alnscore)));
-//					double score=MMinst->SimilarityScore(postLists[j],templist,markMotifs[j]->Consensus.size(),MMinst->Consensus.size(),comcount,alterP);
-//				score=(double)comcount/min(templist.size(),postLists[j].size());////////
-//
-//					if(minscore<score)/////
-//					{
-//						minscore=score;
-//						if(minscore>setting->olThresh)//<0.0001
-//						{
-//							filterId=9000+minscore*100;
-//							MMinst->seed+="-"+markMotifs[j]->seed;
-//
-//							//merge
-//							filterMaps[markMotifs[j]].push_back(MMinst);
-//						}
-//					}
-//					if(maxalnscore>alnscore)
-//					{
-//						maxalnscore=alnscore;
-//						if(maxalnscore<setting->pdThresh)
-//						{
-//							filterId=8000+maxalnscore*100;
-//							MMinst->seed+="-"+markMotifs[j]->seed;
-//						}
-//					}
-//				}
-//				catch( char * str ) 
-//				{
-//					 cout << "Exception raised: " << str << '\n';
-//					 break;
-//				}
-//
-//		}
-//
-//
-//		if(minscore>setting->olThresh||maxalnscore<setting->pdThresh) //minscore<0.00000001
-//		{
-//			ITER++;
-//			filterList[MMinst]=filterId;
-//			int mainId=filterId%1000;	
-//			if(DEBUG)
-//			cout<<"filter:"<<MMinst->get_consensus(0)<<"\t"<<(0-ITER->first)<<endl;
-//			
-//			continue;
-//		}
-//		markMotifs.push_back(MMinst);
-//		ITER++;
-//	}
+	FOR(k,markMotifs.size())
+	{
+		MotifModel* MMinst=markMotifs[k];
+		MMinst->SearchEngine=engine2;
+		MMinst->ComputeScore(0.8,MMinst->CDScore,MMinst->ORScore,MMinst->BindingRegion,MMinst->CNSVScore,MMinst->DiffScore);
+		double smallrandom=0.0000000001*sortlist.size();
+		sortlist[0-MMinst->ORScore+smallrandom]=MMinst;
+	}
+		
+
+		markMotifs.clear();
+	}while(true);
+
+     ITER=sortlist.begin();
+		k=0;
+	while(ITER!=sortlist.end())
+	{
+		if(0-ITER->first<1)
+			break;
+		MotifModel* MMinst=ITER->second;
+		vector<VAL> templist=MMinst->POSLIST;
+		
+		int j;
+		double minscore=0;
+        double maxalnscore=-MINSCORE;
+		int filterId=-1;
+		FOR(j,markMotifs.size())
+		{
+
+			int comcount=0;
+				try
+				{
+					double alnscore;
+					double bestas;
+					int alnn=MMinst->AlignmentPWMRC(MMinst,markMotifs[j],bestas);
+					alnscore=(double)bestas;//min(MMinst->Consensus.size(),markMotifs[j]->Consensus.size());
+					double alterP=1/(pow(4.0,MMinst->Length()*(1-alnscore)));
+					double score=MMinst->SimilarityScore(postLists[j],templist,markMotifs[j]->Consensus.size(),MMinst->Consensus.size(),comcount,alterP);
+				score=(double)comcount/min(templist.size(),postLists[j].size());////////
+
+					if(minscore<score)/////
+					{
+						minscore=score;
+						if(minscore>setting->olThresh)//<0.0001
+						{
+							filterId=9000+minscore*100;
+							MMinst->seed+="-"+markMotifs[j]->seed;
+
+							//merge
+							filterMaps[markMotifs[j]].push_back(MMinst);
+						}
+					}
+					if(maxalnscore>alnscore)
+					{
+						maxalnscore=alnscore;
+						if(maxalnscore<setting->pdThresh)
+						{
+							filterId=8000+maxalnscore*100;
+							MMinst->seed+="-"+markMotifs[j]->seed;
+						}
+					}
+				}
+				catch( char * str ) 
+				{
+					 cout << "Exception raised: " << str << '\n';
+					 break;
+				}
+
+		}
+
+
+		if(minscore>setting->olThresh||maxalnscore<setting->pdThresh) //minscore<0.00000001
+		{
+			ITER++;
+			filterList[MMinst]=filterId;
+			int mainId=filterId%1000;	
+			if(DEBUG)
+			cout<<"filter:"<<MMinst->get_consensus(0)<<"\t"<<(0-ITER->first)<<endl;
+			
+			continue;
+		}
+		markMotifs.push_back(MMinst);
+		ITER++;
+	}
 ///***************Generalization Phase*****************/
 
 		FOR(k,markMotifs.size())
