@@ -103,14 +103,15 @@ void test(PARAM * setting)
 		engine.searchPatternNRC(q,0,0,posl);
 		string g=engine.getSite(61,13);
 		MotifModel MM2(&engine,setting->max_motif_length,setting);
-		MM2.AddInstance("GGTCACNSTGAC");//
+		//MM2.AddInstance("GGTCACNSTGAC");//
+		MM2.AddInstance("GGGCAAAA");
 		MM2.InitializePWMofInstanceSet();
 		cout<<MM2.get_consensus()<<endl; 
 		MM2.ORScore=2;
 		MM2.get_consensus(0);
 		MotifModel MM3(&engine,setting->max_motif_length,setting);
-		MM3.AddInstance("ACAAAC");  //CAGGACANSNTGNC   GGCAAACAGNNA
-		//MM3.AddInstance("TGGTCA");
+		//MM3.AddInstance("ACAAAC");  //CAGGACANSNTGNC   GGCAAACAGNNA
+		MM3.AddInstance("TGGTCA");
 		//MM3.AddInstance("ACCACGTGC");
 		MM3.InitializePWMofInstanceSet();
 		MM3.ORScore=2;
@@ -119,9 +120,9 @@ void test(PARAM * setting)
 		simlist.push_back(&MM2);
 		simlist.push_back(&MM3);
 
-	EM emOpt(setting);
-	emOpt.LoadSeqFile("./result/tber.fa_hotsites.fa");
-	simlist=emOpt.LoadSeedModels(simlist,setting->N_motif);
+	//EM emOpt(setting);
+	//emOpt.LoadSeqFile("./result/tber.fa_hotsites.fa");
+	//simlist=emOpt.LoadSeedModels(simlist,setting->N_motif);
 
 		MotifModel MM(&engine,setting->max_motif_length,setting);
 		MM.seed="GGGCAT"; //ATGCCC
@@ -229,7 +230,7 @@ void runAll(PARAM * setting)
 				double improve=MMinst->updateModel(j);
 				if(improve==-1)
 				{
-					if((iterCnt-improveCount>3))//(MMinst->GetMixedScore())
+					if((iterCnt-improveCount>6))//(MMinst->GetMixedScore())
 					break;
 				}
 				else if(improve!=MINSCORE)
@@ -263,7 +264,7 @@ void runAll(PARAM * setting)
 			{				
 				MMinst->SearchEngine=engine2;
 				MMinst->divergeSeedPart(&hotsites);
-				MMinst->SearchEngine=&engine;
+				MMinst->SearchEngine=&engine;// need to mark
 				if(MMinst->GetMixedScore()>markThreshold&&MMinst->get_consensus().size()>setting->seedlength+1)
 				{
 					cout<<"Mark!"<<endl;
@@ -378,6 +379,7 @@ void runAll(PARAM * setting)
 	resultout2.close();
 	//return ;
 	map<double,MotifModel*>::iterator ITER;
+
 	do{
 		 ITER=sortlist.begin();
 		 markMotifs.clear();
@@ -388,10 +390,11 @@ void runAll(PARAM * setting)
 
 		int SEQLEN=engine2->SeqLen;
 		MMinst->SearchEngine=engine2;
-		MMinst->getMatchPos();
+		
+		
 
 		
-		vector<VAL> templist=MMinst->POSLIST;
+		vector<VAL> templist=MMinst->getMatchPos();
 		
 		int j;
 		double minscore=0;
@@ -402,14 +405,14 @@ void runAll(PARAM * setting)
 
 		minscore=0;//////
 		double threshold=(double)engine.SeqLen/engine.TotalLength;
-		if(MMinst->SeqPvalue>setting->FDRthresh ||MMinst->get_consensus(0).size()<setting->seedlength)// 0.000000001  0.000001  0.00000001
+		if( (MMinst->SeqPvalue>setting->FDRthresh ||MMinst->get_consensus(0).size()<setting->seedlength))// 0.000000001  0.000001  0.00000001 
 		{
 			ITER++;
 			filterList[MMinst]=6000;
 			continue;
 		}
 
-
+		int mergeid=0;
 		FOR(j,postLists.size())
 		{
 
@@ -423,17 +426,18 @@ void runAll(PARAM * setting)
 					double alterP=1/(pow(4.0,MMinst->Length()*(1-alnscore)));
 					double score=MMinst->SimilarityScore(postLists[j],templist,markMotifs[j]->Consensus.size(),MMinst->Consensus.size(),comcount,alterP);
 				score=(double)comcount/min(templist.size(),postLists[j].size());////////
-					if(markMotifs[j]->ORScore>markThreshold)
-					{
-						if(maxalnscore<0.24)
-						{
-							filterId=1000+maxalnscore*100;
-							maxalnscore=0.11;					
-							MMinst->seed+="-"+markMotifs[j]->seed;
-							//merge
-							filterMaps[markMotifs[j]].push_back(MMinst);
-						}
-					}
+					//if(markMotifs[j]->ORScore>markThreshold)
+					//{
+					//	if(maxalnscore<0.18)
+					//	{
+					//		filterId=1000+maxalnscore*100;
+					//		maxalnscore=0.01;					
+					//		MMinst->seed+="-"+markMotifs[j]->seed;
+					//		//merge
+					//		mergeid=j;
+					//		//filterMaps[markMotifs[j]].push_back(MMinst);
+					//	}
+					//}
 					if(minscore<score)/////
 					{
 						minscore=score;
@@ -443,7 +447,8 @@ void runAll(PARAM * setting)
 							MMinst->seed+="-"+markMotifs[j]->seed;
 
 							//merge
-							filterMaps[markMotifs[j]].push_back(MMinst);
+							mergeid=j;
+							//filterMaps[markMotifs[j]].push_back(MMinst);
 						}
 					}
 					if(maxalnscore>alnscore)
@@ -455,7 +460,8 @@ void runAll(PARAM * setting)
 							MMinst->seed+="-"+markMotifs[j]->seed;
 
 							//merge
-							filterMaps[markMotifs[j]].push_back(MMinst);
+							mergeid=j;
+							//filterMaps[markMotifs[j]].push_back(MMinst);
 						}
 					}
 				}
@@ -473,6 +479,7 @@ void runAll(PARAM * setting)
 			ITER++;
 			filterList[MMinst]=filterId;
 			int mainId=filterId%1000;	
+			filterMaps[markMotifs[mergeid]].push_back(MMinst);
 			if(DEBUG)
 			cout<<"filter:"<<MMinst->get_consensus(0)<<"\t"<<(0-ITER->first)<<endl;
 			
@@ -589,85 +596,93 @@ void runAll(PARAM * setting)
 		MotifModel* MMinst=markMotifs[k];
 		MMinst->SearchEngine=engine2;
 		MMinst->ComputeScore(0.8,MMinst->CDScore,MMinst->ORScore,MMinst->BindingRegion,MMinst->CNSVScore,MMinst->DiffScore);
+		if(MMinst->ORScore==MINSCORE)
+			MMinst->ComputeScore(0.99,MMinst->CDScore,MMinst->ORScore,MMinst->BindingRegion,MMinst->CNSVScore,MMinst->DiffScore);
+		if(MMinst->ORScore<1)
+		{
+			cout<<"oop! "<<MMinst->Consensus<<MMinst->ORScore<<endl;
+			continue;
+		}
 		double smallrandom=0.0000000001*sortlist.size();
 		sortlist[0-MMinst->ORScore+smallrandom]=MMinst;
 	}
 		
 
 		markMotifs.clear();
+		
 	}while(true);
 
-     ITER=sortlist.begin();
-		k=0;
-	while(ITER!=sortlist.end())
-	{
-		if(0-ITER->first<1)
-			break;
-		MotifModel* MMinst=ITER->second;
-		vector<VAL> templist=MMinst->POSLIST;
-		
-		int j;
-		double minscore=0;
-        double maxalnscore=-MINSCORE;
-		int filterId=-1;
-		FOR(j,markMotifs.size())
-		{
+ //    ITER=sortlist.begin();
+	//	k=0;
+	//while(ITER!=sortlist.end())
+	//{
+	//	if(0-ITER->first<1)
+	//		break;
+	//	MotifModel* MMinst=ITER->second;
+	//	vector<VAL> templist=MMinst->POSLIST;
+	//	
+	//	int j;
+	//	double minscore=0;
+ //       double maxalnscore=-MINSCORE;
+	//	int filterId=-1;
+	//	FOR(j,markMotifs.size())
+	//	{
 
-			int comcount=0;
-				try
-				{
-					double alnscore;
-					double bestas;
-					int alnn=MMinst->AlignmentPWMRC(MMinst,markMotifs[j],bestas);
-					alnscore=(double)bestas;//min(MMinst->Consensus.size(),markMotifs[j]->Consensus.size());
-					double alterP=1/(pow(4.0,MMinst->Length()*(1-alnscore)));
-					double score=MMinst->SimilarityScore(postLists[j],templist,markMotifs[j]->Consensus.size(),MMinst->Consensus.size(),comcount,alterP);
-				score=(double)comcount/min(templist.size(),postLists[j].size());////////
+	//		int comcount=0;
+	//			try
+	//			{
+	//				double alnscore;
+	//				double bestas;
+	//				int alnn=MMinst->AlignmentPWMRC(MMinst,markMotifs[j],bestas);
+	//				alnscore=(double)bestas;//min(MMinst->Consensus.size(),markMotifs[j]->Consensus.size());
+	//				double alterP=1/(pow(4.0,MMinst->Length()*(1-alnscore)));
+	//				double score=MMinst->SimilarityScore(postLists[j],templist,markMotifs[j]->Consensus.size(),MMinst->Consensus.size(),comcount,alterP);
+	//			score=(double)comcount/min(templist.size(),postLists[j].size());////////
 
-					if(minscore<score)/////
-					{
-						minscore=score;
-						if(minscore>setting->olThresh)//<0.0001
-						{
-							filterId=9000+minscore*100;
-							MMinst->seed+="-"+markMotifs[j]->seed;
+	//				if(minscore<score)/////
+	//				{
+	//					minscore=score;
+	//					if(minscore>setting->olThresh)//<0.0001
+	//					{
+	//						filterId=9000+minscore*100;
+	//						MMinst->seed+="-"+markMotifs[j]->seed;
 
-							//merge
-							filterMaps[markMotifs[j]].push_back(MMinst);
-						}
-					}
-					if(maxalnscore>alnscore)
-					{
-						maxalnscore=alnscore;
-						if(maxalnscore<setting->pdThresh)
-						{
-							filterId=8000+maxalnscore*100;
-							MMinst->seed+="-"+markMotifs[j]->seed;
-						}
-					}
-				}
-				catch( char * str ) 
-				{
-					 cout << "Exception raised: " << str << '\n';
-					 break;
-				}
+	//						//merge
+	//						filterMaps[markMotifs[j]].push_back(MMinst);
+	//					}
+	//				}
+	//				if(maxalnscore>alnscore)
+	//				{
+	//					maxalnscore=alnscore;
+	//					if(maxalnscore<setting->pdThresh)
+	//					{
+	//						filterId=8000+maxalnscore*100;
+	//						MMinst->seed+="-"+markMotifs[j]->seed;
+	//					}
+	//				}
+	//			}
+	//			catch( char * str ) 
+	//			{
+	//				 cout << "Exception raised: " << str << '\n';
+	//				 break;
+	//			}
 
-		}
+	//	}
 
 
-		if(minscore>setting->olThresh||maxalnscore<setting->pdThresh) //minscore<0.00000001
-		{
-			ITER++;
-			filterList[MMinst]=filterId;
-			int mainId=filterId%1000;	
-			if(DEBUG)
-			cout<<"filter:"<<MMinst->get_consensus(0)<<"\t"<<(0-ITER->first)<<endl;
-			
-			continue;
-		}
-		markMotifs.push_back(MMinst);
-		ITER++;
-	}
+	//	if(minscore>setting->olThresh||maxalnscore<setting->pdThresh) //minscore<0.00000001
+	//	{
+	//		ITER++;
+	//		filterList[MMinst]=filterId;
+	//		int mainId=filterId%1000;	
+	//		if(DEBUG)
+	//		cout<<"filter:"<<MMinst->get_consensus(0)<<"\t"<<(0-ITER->first)<<endl;
+	//		
+	//		continue;
+	//	}
+	//	markMotifs.push_back(MMinst);
+	//	ITER++;
+	//}
 ///***************Generalization Phase*****************/
 
 		FOR(k,markMotifs.size())
