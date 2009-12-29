@@ -340,6 +340,8 @@ inline VAL  C( int  a,  int  b)
 		//for(int i=0;i<k+1;i++)
 		//	prob+=binominal(p,i,n);
 		//k=n-k;		
+			if(k==0||n==0)
+			return -1;
 		prob=1.0-binomialcdistribution(k,n,p); //betai( k, n-k+1,p);
 		return prob;
 }
@@ -349,7 +351,9 @@ inline VAL  C( int  a,  int  b)
 		long double prob=0;
 		//for(int i=0;i<k+1;i++)
 		//	prob+=binominal(p,i,n);
-		//k=n-k;		
+		//k=n-k;
+		if(k==0||n==0||p==1)
+			return -1;
 		prob=binomialcdistribution(k,n,p); //betai( k, n-k+1,p);
 		return prob;
 }

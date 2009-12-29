@@ -499,7 +499,7 @@ int nonConPos=0;
 			   	double cdd=(double)(centCNT/BindingRegion);
 				 double bgg=(double)(bgCNT/(SEQLEN-BindingRegion));
 				 double pvalue=binominalTail(BindingRegion/SEQLEN,centCNT,bgCNT+centCNT);
-				 if(pvalue>0.05)// reject if not significant
+				 if(pvalue>0.05||pvalue==-1)// reject if not significant
 				 {
 					 // erase the position list
 					 POSLIST.erase(POSLIST.begin()+lastsize,POSLIST.end());
@@ -543,7 +543,7 @@ int nonConPos=0;
 				 double bgg=(double)(bgCNT/(SEQLEN-BindingRegion));
 				  double pvalue=binominalTail(BindingRegion/SEQLEN,centCNT,bgCNT+centCNT);
 				  double st=cdd/bgg;
-				  if(pvalue>0.05||(st<ORScore))// reject if not significant or have smaller uncorrected score
+				  if(pvalue>0.05||pvalue==-1||(st<ORScore))// reject if not significant or have smaller uncorrected score
 				 {
 					 POSLIST.erase(POSLIST.begin()+lastsize,POSLIST.end());
 					 continue;
@@ -805,8 +805,12 @@ vector<VAL> MotifModel::getMatchPos()
 	//	}
 	// }
 
-
+	
 	// POSLIST= poslist;
+	if(POSLIST.size()==0)
+	{
+		ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
+	}
 	FOR(i,POSLIST.size())
 		if(POSLIST[i]<0)
 			POSLIST[i]=0-POSLIST[i];
@@ -820,7 +824,8 @@ vector<VAL> MotifModel::getMatchPos()
 	 int lastseqL=-1;
 	 if(POSLIST.size()==0)
 	 {
-		 SeqPvalue=-MINSCORE;
+
+		 SeqPvalue=1;
 		 return POSLIST;
 	 }
 	 FOR(i,POSLIST.size())
@@ -835,7 +840,11 @@ vector<VAL> MotifModel::getMatchPos()
 		 int bias=abs(pos-SEQLEN/2);
 		 int seqnum=pos/(BindingRegion/2);
 		 if(seqnum==lastseq)
+		 {
+			 if(bias<BindingRegion/2)
+				 poslist.push_back(POSLIST[i]);
 			 continue;
+		 }
 		 lastseq=seqnum;
 		 double step=1;
 		if(SearchEngine->EnableWeight)
@@ -843,6 +852,7 @@ vector<VAL> MotifModel::getMatchPos()
 		 if(bias<BindingRegion/2)
 		 {
 			 centerCnt+=step;
+			  poslist.push_back(POSLIST[i]);
 		 }
 		 else if(bias<maxRange/2&&bias>=BindingRegion)
 			 bgCnt+=step;
@@ -870,7 +880,14 @@ vector<VAL> MotifModel::getMatchPos()
 	 }
 	 SeqPvalue=(double)(centerCnt/2)/((double)bgCnt/(BINNUM2-4));//
 	  SeqPvalue=binominalTail(ratio, centerCnt,realMAXSEQNUM*2);	
-	 // CDScore=centerCnt;
+	  if(SeqPvalue==-1)
+	  {
+		  		 cout<<"1pos:"<<Consensus<<endl;
+		  SeqPvalue=0;
+	  }
+	 // CDScore=centerCnt
+	  POSLIST.clear();
+	  POSLIST=poslist;
 	  return poslist;
 
 }
@@ -1346,7 +1363,7 @@ void MotifModel::MergeList(vector<MotifModel*> simList)
 			temp->s(this->g(i,j),i,j);
 		//boost up by weight
 		FOR(j,4)
-			this->m(this->CDScore-1,i,j); //ORScore
+			this->m(this->ORScore-1,i,j); //ORScore
 	}
 	temp->get_consensus(0);
 	//use temp to align all
@@ -1401,7 +1418,7 @@ void MotifModel::MergeList(vector<MotifModel*> simList)
 			         double sump = 0;
                     for (int p = 0; p < 4; p++)
                     {
-						this->a(p2RC->g(j-i+p2RC->head,p)*(p2->CDScore-1),j+this->head,p);  //ORScore
+						this->a(p2RC->g(j-i+p2RC->head,p)*(p2->ORScore-1),j+this->head,p);  //ORScore
                     }
              
 	            }
@@ -1438,7 +1455,7 @@ void MotifModel::MergeList(vector<MotifModel*> simList)
 			         double sump = 0;
                     for (int p = 0; p < 4; p++)
                     {
-						this->a(p2->g(j-i+p2->head,p)*(p2->CDScore-1),j+this->head,p); //ORScore
+						this->a(p2->g(j-i+p2->head,p)*(p2->ORScore-1),j+this->head,p); //ORScore
                     }
              
 	            }
@@ -1984,6 +2001,8 @@ map<string,double> MotifModel::GenerateInstanceFromPWMPQ(double sampleratio,bool
 		}
 	}
 	int effLen=effIndex.size();
+	if(effLen==0)
+		return retSet;
 	head=effIndex[0];
 
 	tail=X()-effIndex[effLen-1]-1;
@@ -2420,6 +2439,12 @@ void MotifModel::PWMRefinement()
 	}
 	ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
 	int len=Length();
+	int move=0;
+	//if(len<10)
+	//{
+	//	move=2;
+	//}
+	len+=2*move;
 	int ct=len/2;
 	InstanceSet.clear();
 	FOR(i,POSLIST.size())
@@ -2435,7 +2460,7 @@ void MotifModel::PWMRefinement()
 		}
 		int seqnum=upos/SEQLEN;
 		int pos=upos%SEQLEN;
-		if(SearchEngine->CharText[upos+ct]=='X')
+		if(SearchEngine->CharText[upos-move+ct]=='X')
 					continue;
 			int windowsize=BindingRegion;
 			double bias=abs(pos-SEQLEN/2);
@@ -2444,13 +2469,13 @@ void MotifModel::PWMRefinement()
 					string pa;
 					if(rc)
 					{
-						pa=SearchEngine->getSite(upos,len);
+						pa=SearchEngine->getSite(upos-move,len);
 			
 						pa=reverseString(pa);
 					}
 					else
 					{
-						pa=SearchEngine->getSite(upos,len);
+						pa=SearchEngine->getSite(upos-move,len);
 				
 					}
 				
@@ -2706,7 +2731,7 @@ else
 
 			double Pvalue=binominalTail(SearchEngine->CDProb[j],tempmodel.InstanceSet.size()*tempmodel.g(i,j),tempmodel.InstanceSet.size());
 		
-				if(Pvalue>1.e-3)
+				if(Pvalue>1.e-3||Pvalue==-1)
 					continue;
 
 				if(badmove.find(i*100+j)!=badmove.end())
@@ -2984,7 +3009,7 @@ double MotifModel::entropy(int col)
                int      alnScore=10;
 			   
 		            int minsize=min(refmotif->Length(),newmotif->Length());
-					int minoverlap=5;
+					int minoverlap=max(5,minsize-2);
 					//move newmotif from left to rigth referred to refmotif
 		            for(int i=0-size+minoverlap;i<size2-minoverlap+1;i++)
 		            {
@@ -3016,7 +3041,7 @@ double MotifModel::entropy(int col)
                             overlap = j - i;
 						
                         curScore /= overlap * (float)sqrt(2.0);
-						if(bestscore>curScore&&(overlap>=6||(overlap>=minoverlap )))////7
+						if(bestscore>curScore&&((overlap>=minoverlap )))////7 overlap>=6||
 			            {
 				            bestscore=curScore;
 				            bestaln=i;
