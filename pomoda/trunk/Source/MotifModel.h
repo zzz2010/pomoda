@@ -99,7 +99,7 @@ static	double ComputeINTScore(double* Histogram);
 
 	static int AlignmentPWM(MotifModel* refmotif,MotifModel* newmotif,double& bestScore,int & bestoverlap);
 	static int AlignmentPWMRC(MotifModel* refmotif,MotifModel* newmotif,double& bestScore);
-	MotifModel RC();
+	MotifModel* RC();
 	double FittingCurve(double &snr,double& prbE,double& prbN);
 	void printMatchPos(string name,vector<VAL>& list);
 	void printRealPos(string name);
