@@ -1382,10 +1382,12 @@ void MotifModel::MergeList(vector<MotifModel*> simList)
             divg = temp;
 			bestaln=aln;
 			bestol=overlap;
-			MotifModel* p2RC=&p2->RC();
+			MotifModel* p2RC=p2->RC();
+		
             aln = AlignmentPWM(p1, p2RC, temp,overlap);
             if (temp < divg)
 			{
+				// match the reverse complement
                 divg = temp;
 				bestaln=aln;
 				bestol=overlap;
@@ -1394,22 +1396,20 @@ void MotifModel::MergeList(vector<MotifModel*> simList)
                 int j;
 				if (i > 0)
 				{	pp = i;
-				    if(p2->Length()>bestol)
+				    if(p2RC->Length()>bestol)
 					{
-						//bestol=p2->Length();
+						// p2 exceed the right end of p1 consensus
 						bestol=p1->X()-p1->head-pp;//to right end of wide pwm p1
 					}
 				}
 				else
 				{
-					//pp=i;
-					//bestol=p2->Length();
-					pp= -p1->head;
-					bestol=p1->head+i+p2->Length(); //to the left end of wide pwm p1
-					if((i-pp)>p2->head)
+					pp= -p1->head; // p2 exceed the left end of p1 consensus
+					bestol=p1->head+i+p2RC->Length(); //to the left end of wide pwm p1, take all the p2 consensus
+					if((i-pp)>p2RC->head)
 					{
-						pp=i-p2->head;
-						bestol=p2->head+p2->Length();
+						pp=i-p2RC->head;
+						bestol=p2RC->head+p2RC->Length();
 					}
 				}
                 
@@ -1418,7 +1418,7 @@ void MotifModel::MergeList(vector<MotifModel*> simList)
 			         double sump = 0;
                     for (int p = 0; p < 4; p++)
                     {
-						this->a(p2RC->g(j-i+p2RC->head,p)*(p2->ORScore-1),j+this->head,p);  //ORScore
+						this->a(p2RC->g(j-i+p2RC->head,p)*(p2->ORScore-1),j+this->head,p);  //ORScore	
                     }
              
 	            }
@@ -1460,7 +1460,9 @@ void MotifModel::MergeList(vector<MotifModel*> simList)
              
 	            }
 
-			}    
+			}   
+
+			delete p2RC;
 	}
 
 	//normalized
@@ -1474,7 +1476,7 @@ void MotifModel::MergeList(vector<MotifModel*> simList)
 
 	this->get_consensus(0);
 
-
+	
 }
 
 // merge two PWM using PWM algniment
@@ -1495,7 +1497,7 @@ void MotifModel::Merge(MotifModel* P)
             divg = temp;
 			bestaln=aln;
 			bestol=overlap;
-			MotifModel* p2RC=&p2->RC();
+			MotifModel* p2RC=p2->RC();
             aln = AlignmentPWM(p1, p2RC, temp,overlap);
             if (temp < divg)
 			{
@@ -1552,7 +1554,9 @@ void MotifModel::Merge(MotifModel* P)
              
 	            }
 
-			}    
+			} 
+
+			delete p2RC;
            
 }
 
@@ -2355,8 +2359,15 @@ string MotifModel::get_consensus(double pseudo_weight , double genome_fra , doub
 	    if((matrix_weight > 0) && (j == 2)) { consensus_pattern = consensus_pattern + "G"; }
 	    if((matrix_weight > 0) && (j == 3)) { consensus_pattern = consensus_pattern + "T"; }		    
 	}
-
-	if(entropy2(i)>ENTROPY_Threshold)
+	//bool nflag=true;
+	//FOR(l,4)
+	//	if(g(i,l)>0.3)
+	//	{
+	//		nflag=false;
+	//		break;
+	//	}
+	//if(nflag)//
+		if(entropy2(i)>ENTROPY_Threshold)
 		{ consensus = consensus + "N"; }	
 	else if (consensus_pattern == "A" ) { consensus = consensus + "A"; }
 	else if (consensus_pattern == "C" )	{ consensus = consensus + "C"; }
@@ -3065,8 +3076,8 @@ double MotifModel::entropy(int col)
             int aln=AlignmentPWM(p1, p2, temp,overlap);
             divg = temp;
 			bestaln=aln;
-			MotifModel p1RC=p1->RC();
-            aln = AlignmentPWM(&p1RC, p2, temp,overlap);
+			MotifModel* p1RC=p1->RC();
+            aln = AlignmentPWM(p1RC, p2, temp,overlap);
             if (temp < divg)
 			{
                 divg = temp;
@@ -3074,25 +3085,26 @@ double MotifModel::entropy(int col)
 			}
           
            bestScore= divg;
+		   delete p1RC;
 			return bestaln;
 	
 	}
-	MotifModel MotifModel::RC()
+	MotifModel* MotifModel::RC()
 	{
 		int width=X();
-		MotifModel rc(SearchEngine,width,Setting);
-		rc.head=tail;
-		rc.ORScore=this->ORScore;
-		rc.tail=head;
+		MotifModel* rc=new MotifModel(SearchEngine,width,Setting);
+		rc->head=tail;
+		rc->ORScore=this->ORScore;
+		rc->tail=head;
             for (int i = 0; i < width; i++)
             {
-                rc.s( g(i, 3),width - i - 1, 0) ;
-                rc.s( g(i, 2),width - i - 1, 1)  ;
-                rc.s(g(i, 1),width - i - 1, 2)   ;
-                rc.s(g(i, 0),width - i - 1, 3)  ;
+                rc->s( g(i, 3),width - i - 1, 0) ;
+                rc->s( g(i, 2),width - i - 1, 1)  ;
+                rc->s(g(i, 1),width - i - 1, 2)   ;
+                rc->s(g(i, 0),width - i - 1, 3)  ;
             }
 
-			rc.get_consensus(0);
+			rc->get_consensus(0);
             return rc;
 	
 	}
