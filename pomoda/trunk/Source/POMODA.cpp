@@ -576,8 +576,13 @@ void runAll(PARAM * setting)
 		}
 		SeedList.clear();
 
+
+		if(markMotifs.size()==sortlist.size())
+
+
 		//if(markMotifs.size()==sortlist.size())
-			break;
+
+			
 		/***************Merge the filtered Motifs*************************/
 		FOR(k,markMotifs.size())
 		{
@@ -613,7 +618,7 @@ void runAll(PARAM * setting)
 		sortlist[0-MMinst->ORScore+smallrandom]=MMinst;
 	}
 		
-
+		break;
 		markMotifs.clear();
 		
 	}while(true);
