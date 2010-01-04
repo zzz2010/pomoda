@@ -104,14 +104,14 @@ void test(PARAM * setting)
 		string g=engine.getSite(61,13);
 		MotifModel MM2(&engine,setting->max_motif_length,setting);
 		//MM2.AddInstance("GGTCACNSTGAC");//
-		MM2.AddInstance("GGGCAAAA");
+		MM2.AddInstance("CTTGGCNNNNNNNCA"); //
 		MM2.InitializePWMofInstanceSet();
 		cout<<MM2.get_consensus()<<endl; 
-		MM2.ORScore=2;
+		MM2.ORScore=1.4;
 		MM2.get_consensus(0);
 		MotifModel MM3(&engine,setting->max_motif_length,setting);
 		//MM3.AddInstance("ACAAAC");  //CAGGACANSNTGNC   GGCAAACAGNNA
-		MM3.AddInstance("TGGTCA");
+		MM3.AddInstance("TGGCACCC");
 		//MM3.AddInstance("ACCACGTGC");
 		MM3.InitializePWMofInstanceSet();
 		MM3.ORScore=2;
@@ -125,10 +125,11 @@ void test(PARAM * setting)
 	//simlist=emOpt.LoadSeedModels(simlist,setting->N_motif);
 
 		MotifModel MM(&engine,setting->max_motif_length,setting);
-		MM.seed="GGGCAT"; //ATGCCC
+		MM.seed="TGCCAAG"; //ATGCCC
 		MM.AddInstance(MM.seed);
 		MM.InitializePWMofInstanceSet();
-		MM.ORScore=2;
+		cout<<MM.get_consensus(0)<<endl;
+		MM.ORScore=2.49284;
 		 double temp;
           int bestaln=0;
 		  int overlap;
@@ -203,7 +204,7 @@ void runAll(PARAM * setting)
 ////////////////////////////////////////////////
 	MM.switchFlag=true;
 	
-	vector<MotifModel*> SeedList=MM.getSeedMotifs(100*setting->N_motif,setting->seedlength,setting->min_supp_ratio);
+	vector<MotifModel*> SeedList=MM.getSeedMotifs(8*setting->N_motif*setting->N_motif,setting->seedlength,setting->min_supp_ratio);
 	double markThreshold=SeedList[0]->GetMixedScore();
 	cout<<"markThreshold: "<<markThreshold<<endl;
 	map<double,MotifModel*> sortlist;
@@ -283,6 +284,7 @@ void runAll(PARAM * setting)
 			else
 			{
 				int i;
+				#ifdef hotsite
 				if(MMinst->GetMixedScore()>1)
 				FOR(i,MMinst->POSLIST.size())
 				{
@@ -311,6 +313,7 @@ void runAll(PARAM * setting)
 					}
 
 				}
+				#endif
 				MMinst->InstanceSet.clear();
 				
 			}
@@ -337,7 +340,7 @@ void runAll(PARAM * setting)
 
 	
 	
-
+#ifdef hotsite
 	//handle hotsites
 	sort(hotsites.begin(),hotsites.end());
 	stringstream headerSS(stringstream::in | stringstream::out);
@@ -377,6 +380,8 @@ void runAll(PARAM * setting)
 	resultout2<<">"<<headerSS.str()<<endl;
 	resultout2<<SequenSS.str()<<endl;
 	resultout2.close();
+#endif
+
 	//return ;
 	map<double,MotifModel*>::iterator ITER;
 
@@ -563,14 +568,15 @@ void runAll(PARAM * setting)
 		string name="Motif"+Int2String(i);
 
 		 //MMinst->printPWM(name);
-		 MMinst->printRealPos(name);
+		// MMinst->printRealPos(name);
 		ITER++;
 		i++;
 
 		filterMaps[MMinst]=vector<MotifModel*>();
 		}
 		SeedList.clear();
-		if(markMotifs.size()==sortlist.size())
+
+		//if(markMotifs.size()==sortlist.size())
 			break;
 		/***************Merge the filtered Motifs*************************/
 		FOR(k,markMotifs.size())
@@ -685,6 +691,36 @@ void runAll(PARAM * setting)
 	//}
 ///***************Generalization Phase*****************/
 
+/***************output distance array*************************/
+	string outfilename4=setting->outputDIR+"/"+setting->inputFile.substr(split+1)+".dist";
+	string outfilename5=setting->outputDIR+"/"+setting->inputFile.substr(split+1)+".name";
+	ofstream resultout4(outfilename4.c_str());
+	ofstream resultout5(outfilename5.c_str());
+	FOR(k,markMotifs.size()-1)
+	{
+		MotifModel* MMinst1=markMotifs[k];
+		for(j=k+1;j<markMotifs.size();j++)
+		{
+			MotifModel* MMinst2=markMotifs[j];
+				int comcount=0;
+					double alnscore;
+					double bestas;
+					int alnn=MMinst1->AlignmentPWMRC(MMinst1,MMinst2,bestas);
+					alnscore=(double)bestas;//min(MMinst->Consensus.size(),markMotifs[j]->Consensus.size());
+					double alterP=1/(pow(4.0,MMinst1->Length()*(1-alnscore)));
+					double score=MMinst1->SimilarityScore(MMinst1->POSLIST,MMinst2->POSLIST,MMinst1->Consensus.size(),MMinst2->Consensus.size(),comcount,alterP);
+				    score=(double)comcount/min(MMinst1->POSLIST.size(),MMinst2->POSLIST.size());////////
+					resultout4<<1-score<<"\t"<<alnscore<<endl;
+		}
+		resultout5<<MMinst1->Consensus<<"\t"<<MMinst1->ORScore<<endl;
+	
+	}
+	resultout5<<markMotifs[k]->Consensus<<"\t"<<markMotifs[k]->ORScore<<endl;
+	resultout4.close();
+	resultout5.close();
+/***************output distance array*************************/
+
+
 		FOR(k,markMotifs.size())
 		{
 				MotifModel* MMinst=markMotifs[k];
@@ -693,6 +729,7 @@ void runAll(PARAM * setting)
 				//cout<<"top "<<k<<":\t"<<MMinst->get_consensus(0)<<endl;
 			//	MMinst->MergeList(filterMaps[MMinst]);
 			stringstream bindingsites(stringstream::in | stringstream::out);
+#ifdef hotsite
 			FOR(j,MMinst->POSLIST.size())
 			{
 				int SEQLEN=10000;
@@ -721,7 +758,8 @@ void runAll(PARAM * setting)
 					//bindingsites<<MMinst->SearchEngine->getSite(upos,MMinst->Length())<<endl;								
 				}
 			}
-
+#endif
+			
 			resultout<<"DE	Motif_"<<k<<"\t";
 			resultout<<MMinst->BindingRegion<<"\t";
 			resultout<<MMinst->ORScore<<"\t";
@@ -743,10 +781,8 @@ void runAll(PARAM * setting)
 			resultout3<<bindingsites.str();
 			resultout<<endl;
 
-
-
-		
 	}
+
 	map<MotifModel*,int>::iterator ITER2=filterList.begin();
 	cout<<"Filter List:"<<endl;
 	while(ITER2!=filterList.end())
