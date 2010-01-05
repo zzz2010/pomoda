@@ -198,13 +198,17 @@ void runAll(PARAM * setting)
 	HashEngine engine(setting->inputFile.c_str(),8,setting->weightFile);
 	
 	HashEngine* engine2=engine.Clone();
+	int seqnum=engine.getTotalLength()/engine.SeqLen+1;
+	if((setting->min_supp_ratio*seqnum)<50)
+		setting->min_supp_ratio=(double)50.0/seqnum;
+	cout<<setting->min_supp_ratio<<endl;
 	
 	MotifModel MM(&engine,setting->max_motif_length,setting);
 
 ////////////////////////////////////////////////
 	MM.switchFlag=true;
 	
-	vector<MotifModel*> SeedList=MM.getSeedMotifs(8*setting->N_motif*setting->N_motif,setting->seedlength,setting->min_supp_ratio);
+	vector<MotifModel*> SeedList=MM.getSeedMotifs(6*setting->N_motif*setting->N_motif,setting->seedlength,setting->min_supp_ratio);
 	double markThreshold=SeedList[0]->GetMixedScore();
 	cout<<"markThreshold: "<<markThreshold<<endl;
 	map<double,MotifModel*> sortlist;
@@ -554,8 +558,10 @@ void runAll(PARAM * setting)
 
 		double snr,prbE,prbN;
 
-
+		if(MMinst->ORScore>1)
+		{
 		postLists.push_back(MMinst->POSLIST);
+		
 		markMotifs.push_back(MMinst);
 			cout<<"Motif "<<i<<":";
 			
@@ -566,11 +572,12 @@ void runAll(PARAM * setting)
 		cout<<MMinst->SeqPvalue<<"\t";
 		cout<<MMinst->ORScore<<endl;
 		string name="Motif"+Int2String(i);
-
+		i++;
+		}
 		 //MMinst->printPWM(name);
 		// MMinst->printRealPos(name);
 		ITER++;
-		i++;
+		
 
 		filterMaps[MMinst]=vector<MotifModel*>();
 		}
