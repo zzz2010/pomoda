@@ -231,7 +231,7 @@ void runAll(PARAM * setting)
 				double improve=MMinst->updateModel(j);
 				if(improve==-1)
 				{
-					if((iterCnt-improveCount>6))//(MMinst->GetMixedScore())
+					if((iterCnt-improveCount>3))//(MMinst->GetMixedScore())
 					break;
 				}
 				else if(improve!=MINSCORE)
@@ -577,9 +577,9 @@ void runAll(PARAM * setting)
 		SeedList.clear();
 
 
-		if(markMotifs.size()==sortlist.size())
+		
 
-
+		break;
 		//if(markMotifs.size()==sortlist.size())
 
 			
@@ -618,7 +618,7 @@ void runAll(PARAM * setting)
 		sortlist[0-MMinst->ORScore+smallrandom]=MMinst;
 	}
 		
-		break;
+		
 		markMotifs.clear();
 		
 	}while(true);

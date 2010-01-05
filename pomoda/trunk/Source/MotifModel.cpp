@@ -1042,6 +1042,7 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 		{
 			pattern=Hash2ACGT(hash,len);
 			pattern.insert(3,string("NN"));
+			//continue;
 		}
 		else
 		pattern=Hash2ACGT(hash,len);
@@ -2511,8 +2512,8 @@ double MotifModel::updateModel(int runid)
 	{
 		DiffScore=Setting->seedlength;
 		CNSVScore=Setting->seedlength;
-		if(this->Length()>8)
-			this->print();
+		//if(this->Length()>8)
+		//	this->print();
 		ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
 		bgfold=5; //zzz
 		return 0;
