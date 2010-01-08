@@ -91,6 +91,11 @@ if(p->min_supp_ratio >1){ printf("WARNING: Minimum ratio should be <1. Using def
 return(p);
 }
 
+bool compare_motifscore (MotifModel* first, MotifModel* second)
+{
+	return first->ORScore>second->ORScore;
+}
+
 void test(PARAM * setting)
 {
 		//setting->inputFile="p53_4k.fa";
@@ -260,7 +265,7 @@ void runAll(PARAM * setting)
 			MMinst->PWMRefinement();
 
 
-		double smallrandom=0.0000000001*sortlist.size();
+		double smallrandom=0.00000000000001*sortlist.size();
 		if(!isnan(MMinst->GetMixedScore()))
 		{
 		
@@ -323,12 +328,9 @@ void runAll(PARAM * setting)
 			}
 
 
-			if(MMinst->GetMixedScore()>1)
-			{
-				
-				sortlist[0-MMinst->GetMixedScore()+ smallrandom]=MMinst;
-		
-
+			if(MMinst->ORScore>1)
+			{		
+				sortlist[0-MMinst->ORScore+ smallrandom]=MMinst;
 						cout<<MMinst->get_consensus()<<endl;
 				cout<<MMinst->GetMixedScore()<<" windowsize:"<<MMinst->BindingRegion<<endl;
 						cout<<MMinst->CDScore<<"\t";
@@ -629,7 +631,12 @@ void runAll(PARAM * setting)
 		markMotifs.clear();
 		
 	}while(true);
+//
 
+
+
+
+sort(markMotifs.begin(),markMotifs.end(),compare_motifscore );
  //    ITER=sortlist.begin();
 	//	k=0;
 	//while(ITER!=sortlist.end())
@@ -720,7 +727,7 @@ void runAll(PARAM * setting)
 					int alnn=MMinst1->AlignmentPWMRC(MMinst1,MMinst2,bestas);
 					alnscore=(double)bestas;//min(MMinst->Consensus.size(),markMotifs[j]->Consensus.size());
 					double alterP=1/(pow(4.0,MMinst1->Length()*(1-alnscore)));
-					double score=MMinst1->SimilarityScore(MMinst1->POSLIST,MMinst2->POSLIST,MMinst1->Consensus.size(),MMinst2->Consensus.size(),comcount,alterP);
+					double score=1;//MMinst1->SimilarityScore(MMinst1->POSLIST,MMinst2->POSLIST,MMinst1->Consensus.size(),MMinst2->Consensus.size(),comcount,alterP);
 				    score=(double)comcount/min(MMinst1->POSLIST.size(),MMinst2->POSLIST.size());////////
 					resultout4<<1-score<<"\t"<<alnscore<<endl;
 		}
