@@ -365,7 +365,7 @@ VAL HashEngine::buildIndex(const char* textfile)
 			CDProb[i]=0;
 		}
 		const int seqlen=10000; //assume max seqlen 10000
-		int seqlen2=100;
+		int seqlen2=-1;
 		SeqLen=0;
 		while(!openfile.eof())
 		{
@@ -376,6 +376,8 @@ VAL HashEngine::buildIndex(const char* textfile)
 			//char * cont = ss.c_str();
 			//strcpy(content,ss.c_str());
 			openfile.getline(content,seqlen+1);
+			
+
 			int len=strlen(content);
 			if(len==0){
 				continue;
@@ -387,6 +389,9 @@ VAL HashEngine::buildIndex(const char* textfile)
 				SeqLen=0;
 				continue;
 			}
+			else if
+				(seqlen2==-1)
+					seqlen2=len;
 			
 			SeqLen+=len;
 
