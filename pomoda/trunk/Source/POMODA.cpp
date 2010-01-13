@@ -60,7 +60,7 @@ p->outputDIR=string(".");
 p->max_motif_length=26;
 p->N_motif=20;
 p->resolution=100;
-p->startwSize=100;
+p->startwSize=p->resolution;
 
 while(iarg < nargs){
 	if(!strcmp(argv[iarg],"-i") && iarg < nargs-1){ p->inputFile=argv[++iarg]; }
@@ -88,6 +88,7 @@ if(!p->inputFile[0]){ printf("ERROR: %s\n",syntax); exit(0); }
 
 if(p->N_motif<1){ printf("WARNING: Wrong number of output motifs. Using default N=20\n"); p->N_motif=20; }
 if(p->min_supp_ratio >1){ printf("WARNING: Minimum ratio should be <1. Using default=0.05\n"); p->min_supp_ratio=0.05; }
+p->startwSize=p->resolution;
 return(p);
 }
 
@@ -109,7 +110,7 @@ void test(PARAM * setting)
 		string g=engine.getSite(61,13);
 		MotifModel MM2(&engine,setting->max_motif_length,setting);
 		//MM2.AddInstance("GGTCACNSTGAC");//
-		MM2.AddInstance("CTTGGCNNNNNNNCA"); //
+		MM2.AddInstance("TTGGCNNNNNNNC"); //N
 		MM2.InitializePWMofInstanceSet();
 		cout<<MM2.get_consensus()<<endl; 
 		MM2.ORScore=1.4;
@@ -130,28 +131,30 @@ void test(PARAM * setting)
 	//simlist=emOpt.LoadSeedModels(simlist,setting->N_motif);
 
 		MotifModel MM(&engine,setting->max_motif_length,setting);
-		MM.seed="TGCCAAG"; //ATGCCC
+		MM.seed="GCCAA"; //ATGCCC
 		MM.AddInstance(MM.seed);
 		MM.InitializePWMofInstanceSet();
-		cout<<MM.get_consensus(0)<<endl;
-		MM.ORScore=2.49284;
-		 double temp;
-          int bestaln=0;
-		  int overlap;
-            int aln=MM.AlignmentPWM(&MM, &MM2, temp,overlap);
-			MM.MergeList(simlist);
+		//cout<<MM.get_consensus(0)<<endl;
+		//MM.ORScore=2.49284;
+		// double temp;
+  //        int bestaln=0;
+		//  int overlap;
+  //          int aln=MM.AlignmentPWM(&MM, &MM2, temp,overlap);
+		//	MM.MergeList(simlist);
 
-		cout<<	MM.get_consensus(0);
-		MM.print();
+		//cout<<	MM.get_consensus(0);
+		//MM.print();
 
-
-
+		
 
 		double iterCnt=0;
 		double improveCount=0;
 		iterCnt=improveCount=0;
 		double cns=0;
-	MM.ComputeScore(0.8,cns,cns,cns,cns,cns);
+		MM.ComputeScore(0.8,MM.CDScore,MM.ORScore,MM.BindingRegion,cns,cns);
+	cout<<MM.ORScore<<" "<<MM.CDScore<<" "<<MM.BindingRegion<<endl;
+	MM2.ComputeScore(0.8,MM2.CDScore,MM2.ORScore,MM2.BindingRegion,cns,cns);
+	cout<<MM2.ORScore<<" "<<MM2.CDScore<<" "<<MM2.BindingRegion<<endl;
 		for(int j=0;j<MM.X();j++)
 		{			
 			iterCnt++;
@@ -160,7 +163,7 @@ void test(PARAM * setting)
 				double improve=MM.updateModel(j);
 				if(improve==-1)
 				{
-					if((iterCnt-improveCount>6))//(MMinst->GetMixedScore())
+					if((iterCnt-improveCount>60))//(MMinst->GetMixedScore())
 					break;
 				}
 				else if(improve!=MINSCORE)
@@ -176,6 +179,7 @@ void test(PARAM * setting)
 			}
 
 		}
+		MM.PWMRefinement();
 		MM.divergeSeedPart();
 			cout<<MM.get_consensus(0)<<"\t"<<MM.GetMixedScore()<<endl;
 		getchar();
@@ -240,10 +244,11 @@ void runAll(PARAM * setting)
 				double improve=MMinst->updateModel(j);
 				if(improve==-1)
 				{
-					if((iterCnt-improveCount>3))//(MMinst->GetMixedScore())
+					if((iterCnt-improveCount>6))//(MMinst->GetMixedScore())
 					break;
 				}
-				else if(improve!=MINSCORE)
+				else 
+				if(improve!=MINSCORE)
 					improveCount++;
 				else
 					break;
@@ -281,14 +286,17 @@ void runAll(PARAM * setting)
 					MMinst->MarkPos();
 				}
 					MMinst->SearchEngine=engine2;
-				
 			}
 			else if(MMinst->get_consensus().size()>setting->seedlength+1&&!MMinst->switchFlag)
 			{
 				MMinst->SearchEngine=&engine;
 				MMinst->divergeSeedPart(&hotsites);
+				if(MMinst->GetMixedScore()>markThreshold&&MMinst->get_consensus().size()>setting->seedlength+1)
+				{
+					cout<<"Mark!"<<endl;
+					MMinst->MarkPos();
+				}
 				MMinst->SearchEngine=engine2;
-			
 			}
 			else
 			{
@@ -416,12 +424,12 @@ void runAll(PARAM * setting)
 
 		minscore=0;//////
 		double threshold=(double)engine.SeqLen/engine.TotalLength;
-		if( (MMinst->SeqPvalue>setting->FDRthresh ||MMinst->get_consensus(0).size()<setting->seedlength))// 0.000000001  0.000001  0.00000001 
-		{
-			ITER++;
-			filterList[MMinst]=6000;
-			continue;
-		}
+		//if( (MMinst->SeqPvalue>setting->FDRthresh ||MMinst->get_consensus(0).size()<setting->seedlength))// 0.000000001  0.000001  0.00000001 
+		//{
+		//	ITER++;
+		//	filterList[MMinst]=6000;
+		//	continue;
+		//}
 
 		int mergeid=0;
 		FOR(j,postLists.size())
@@ -499,65 +507,6 @@ void runAll(PARAM * setting)
 
 
 
-/**************************second pass filtering ****************************/
-			//map<MotifModel*,int>::iterator ITER22=filterList.begin();
-			//maxalnscore=-MINSCORE;minscore=0;
-			//while(ITER22!=filterList.end())
-			//{
-			//	if(ITER22->first->ORScore<1.5||ITER22->second>=6000)//
-			//	{
-			//		ITER22++;
-			//		continue;				
-			//	}
-
-			//	double alnscore;
-			//		double bestas;
-			//		
-			//		int alnn=MMinst->AlignmentPWMRC(MMinst,ITER22->first,bestas);
-			//		alnscore=(double)bestas;
-			//	int comcount=0;
-			//	double score=MMinst->SimilarityScore(ITER22->first->POSLIST,templist,ITER22->first->Consensus.size(),MMinst->Consensus.size(),comcount);
-			//	score=(double)comcount/min(templist.size(),ITER22->first->POSLIST.size());////////
-
-			//	if(minscore<score)/////
-			//		{
-			//			minscore=score;
-			//			if(minscore>0.4)//<0.0001
-			//			{
-			//				filterId=4000+minscore*100;
-			//				MMinst->seed+="-"+ITER22->first->seed;
-			//				//merge
-			//				filterMaps[ITER22->first].push_back(MMinst);
-			//				break;
-			//			}
-			//		}
-			//		if(maxalnscore>alnscore)
-			//		{
-			//			maxalnscore=alnscore;
-			//			if(maxalnscore<0.14)
-			//			{
-			//				filterId=5000+maxalnscore*100;
-			//				MMinst->seed+="-"+ITER22->first->seed;
-			//				//merge
-			//				filterMaps[ITER22->first].push_back(MMinst);
-			//				break;
-			//			}
-			//		}
-			//	ITER22++;
-			//}
-
-			//if(minscore>0.4||maxalnscore<0.17) //minscore<0.00000001
-			//{
-			//	ITER++;
-			//	filterList[MMinst]=filterId;
-			//	if(DEBUG)
-			//	cout<<"filter:"<<MMinst->get_consensus(0)<<"\t"<<(0-ITER->first)<<endl;
-			//	//delete MMinst;
-			//	continue;
-			//}
-
-/**************************second pass filtering ****************************/
-
 		double snr,prbE,prbN;
 
 		if(MMinst->ORScore>1)
@@ -588,23 +537,23 @@ void runAll(PARAM * setting)
 
 		
 
-		break;
+		
 		//if(markMotifs.size()==sortlist.size())
 
 			
 		/***************Merge the filtered Motifs*************************/
-		FOR(k,markMotifs.size())
-		{
-				MotifModel* MMinst=markMotifs[k];
-				MMinst->MergeList(filterMaps[MMinst]);
-				SeedList.push_back(MMinst);
-				MMinst->PWMRefinement();
-		}
+		//FOR(k,markMotifs.size())
+		//{
+		//		MotifModel* MMinst=markMotifs[k];
+		//		MMinst->MergeList(filterMaps[MMinst]);
+		//		SeedList.push_back(MMinst);
+		//		MMinst->PWMRefinement();
+		//}
 		/***************Merge the filtered Motifs*************************/
 		filterMaps.clear();
 		postLists.clear();
 		sortlist.clear();
-		
+		break;
 	
 ///***************Generalization Phase*****************/
 	//EM emOpt(setting);
