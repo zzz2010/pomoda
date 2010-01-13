@@ -58,16 +58,13 @@ static	double ComputeINTScore(double* Histogram);
 	//double Ratio1;
 	//double Ratio2;
 	double SeqPvalue;
-
-
+		double deltaScore;
+		bool switchFlag;
+	int head,tail;
 
 
 	
-		//statistics var
-	double cdavg,cdvar,intavg,intvar,oravg,orvar;
-	bool switchFlag;
-	int head,tail;
-	double deltaScore;
+
 
 	int scoreIndex;
 	map<int,double> badmove;
@@ -164,4 +161,8 @@ static	double ComputeINTScore(double* Histogram);
 		};
 private:
 	double entropy(int col);
+			//statistics var
+	double cdavg,cdvar,intavg,intvar,oravg,orvar;
+
+
 };

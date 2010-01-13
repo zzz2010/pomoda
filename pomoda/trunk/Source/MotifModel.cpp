@@ -19,7 +19,7 @@ double CDThreshold=0;
 	double wininc=1.1;
 	
 VAL LIBSIZE;
-double ENTROPY_Threshold=1.9;
+double ENTROPY_Threshold=1.95;
 double tolerance=0.1;
 
 
@@ -65,7 +65,7 @@ MotifModel::MotifModel(HashEngine* engine, int motiflen,PARAM* setting)
 	LIBSIZE=engine->getTotalLength();
 	
 	SEQLEN=engine->SeqLen;
-	MAXSEQNUM=LIBSIZE/SEQLEN;
+	MAXSEQNUM=1+LIBSIZE/SEQLEN;
 	BinPvalue=0;
 	if(SEQLEN<2000)
 	{
@@ -460,12 +460,18 @@ void MotifModel::divergeSeedPart(vector<int>* hotsites_p)
 	switchFlag=true;
 	POSLIST.clear();
 	get_consensus(0);
-	int seedpos=Consensus.find(seed);
+	int seedpos=-1;
+	if(seed[seed.size()/2]!='N')
+	seedpos=Consensus.find(seed);
+	else
+		seedpos=Consensus.find(seed.substr(0,Setting->seedlength/2));
+
+
 	if(seedpos==-1)
 		return;
 
-	double* divCnt=new double[Setting->seedlength];
-	FOR(i,Setting->seedlength)
+	double* divCnt=new double[seed.size()];
+	FOR(i,seed.size())
 		divCnt[i]=0;
 	InstanceSet.clear();
 	InstanceSet.reserve(POSLIST.capacity());
@@ -498,8 +504,8 @@ int nonConPos=0;
 				 }
 			   	double cdd=(double)(centCNT/BindingRegion);
 				 double bgg=(double)(bgCNT/(SEQLEN-BindingRegion));
-				 double pvalue=binominalTail(BindingRegion/SEQLEN,centCNT,bgCNT+centCNT);
-				 if(pvalue>0.05||pvalue==-1)// reject if not significant
+				
+				 if(bgg>cdd)// reject if not significant
 				 {
 					 // erase the position list
 					 POSLIST.erase(POSLIST.begin()+lastsize,POSLIST.end());
@@ -513,11 +519,16 @@ int nonConPos=0;
 			POSLIST[q]=0-POSLIST[q];
 		lastsize=POSLIST.size();
 		InstanceSet.push_back(instemp2);
-		FOR(i,Setting->seedlength)
+		FOR(i,seed.size())
 		{
 			int col=(X()-Setting->seedlength)/2+i;
 			bool ncFlag=false;
 			col=seedpos+i;
+			while(seed[i]=='N')
+			{
+				col++;
+				i++;
+			}
 			FOR(j,4)
 			{
 				char instemp[64];
@@ -542,8 +553,8 @@ int nonConPos=0;
 				 double cdd=(double)(centCNT/BindingRegion);
 				 double bgg=(double)(bgCNT/(SEQLEN-BindingRegion));
 				  double pvalue=binominalTail(BindingRegion/SEQLEN,centCNT,bgCNT+centCNT);
-				  double st=cdd/bgg;
-				  if(pvalue>0.05||pvalue==-1||(st<ORScore))// reject if not significant or have smaller uncorrected score
+				 
+				  if(bgg>cdd)// reject if not significant or have smaller uncorrected score
 				 {
 					 POSLIST.erase(POSLIST.begin()+lastsize,POSLIST.end());
 					 continue;
@@ -572,7 +583,7 @@ int nonConPos=0;
 	if(nonConPos<1)
 		nonConPos=1;
 	//a heuristics to determine the degree of divergence
-	FOR(i,Setting->seedlength)
+	FOR(i,seed.size())
 		divCnt[i]/=inst.size();
 	
 
@@ -647,9 +658,14 @@ int lastpos=-1;
 		
 				tempmodel.get_consensus(0);
 
-					FOR(i,Setting->seedlength)
+				FOR(i,seed.size())
 					{
 						int col=seedpos+i;
+							while(seed[i]=='N')
+							{
+								col++;
+								i++;
+							}
 						int id=acgt(Consensus[col]);
 						col=tempmodel.head+seedpos+i;
 						if(id>3||id<0)
@@ -658,10 +674,10 @@ int lastpos=-1;
 					
 						double sum=0;
 						double sum2=0;
-						FOR(j,4)
-						{
-							tempmodel.d(SearchEngine->CDProb[j],col,j);
-						}
+						//FOR(j,4)
+						//{
+						//	tempmodel.d(SearchEngine->CDProb[j],col,j);
+						//}
 
 
 						FOR(j,4)
@@ -684,19 +700,19 @@ int lastpos=-1;
 				int nCnt=0;
 				Consensus=tempmodel.get_consensus(0);
 
-				// check the result PWM, if so few nongap position, then reject this PWM
-				FOR(i,Setting->seedlength)
-				{  
-					if(Consensus[seedpos+i]=='A'||Consensus[seedpos+i]=='C'||Consensus[seedpos+i]=='G'||Consensus[seedpos+i]=='T')
-						effLen++;
-					if(Consensus[seedpos+i]=='N')
-						nCnt++;
-				}
-				if(effLen-nCnt<Setting->seedlength-3||nCnt>1)//
-				{
-					ORScore=1;
-					return;
-				}
+				//// check the result PWM, if so few nongap position, then reject this PWM
+				//FOR(i,seed.size())
+				//{  
+				//	if(Consensus[seedpos+i]=='A'||Consensus[seedpos+i]=='C'||Consensus[seedpos+i]=='G'||Consensus[seedpos+i]=='T')
+				//		effLen++;
+				//	if(Consensus[seedpos+i]=='N')
+				//		nCnt++;
+				//}
+				//if(effLen-nCnt<Setting->seedlength-3||nCnt>1)//
+				//{
+				//	ORScore=1;
+				//	return;
+				//}
 
 			//write back to this
 		FOR(i,X())
@@ -704,6 +720,7 @@ int lastpos=-1;
 			FOR(j,4)
 				s(tempmodel.g(i,j),i,j);
 		}
+
 			tempmodel.InstanceSet.clear();
 				double ors;
 			//compute the score again for the final PWM
@@ -767,46 +784,25 @@ vector<VAL> MotifModel::getMatchPos()
 	double bgocc=0;
 
 	//double threshold=log(PWMThreshold);
-	// HashEngine* SearchEngine2=(HashEngine*)SearchEngine;
+	 HashEngine* SearchEngine2=(HashEngine*)SearchEngine;
 
-	// {
-	//	 map<string,double> insts=GenerateInstanceFromPWMPQ(0.8);
-	//	 map<string,double>::iterator Iter;
-	//	double totalCount=0;
-	//	
-	//	for(Iter=insts.begin();Iter!=insts.end();Iter++)
-	//	{	
-	//		char instemp[64];
-	//		string randomIns=Iter->first;
+	 {
+		 map<string,double> insts=GenerateInstanceFromPWMPQ(0.8);
+		 map<string,double>::iterator Iter;
+		double totalCount=0;
+		
+		for(Iter=insts.begin();Iter!=insts.end();Iter++)
+		{	
+			char instemp[64];
+			string randomIns=Iter->first;
 
-	//		if(Iter->second<0.05)
-	//		{
-	//			continue;
-	//		}
-
-	//		strcpy(instemp,randomIns.c_str());
-	//		SearchEngine->searchPattern(instemp,0,poslist);	
-	//	
-	//		if(!LargeDataFlag)
-	//		{
-	//			int len=Iter->first.size();
-	//			double temp=1;
-	//			FOR(j,len)
-	//			{
-	//				if(Iter->first[j]=='N')
-	//					continue;
-	//				int a=acgt(Iter->first[j]);
-	//				if(a>-1)
-	//				temp*=SearchEngine->BGProb[a];
-
-	//			}
-	//			bgocc+=temp;
-	//		}
-	//	}
-	// }
+			strcpy(instemp,randomIns.c_str());
+			SearchEngine->searchPattern(instemp,0,poslist);	
+		}
+	 }
 
 	
-	// POSLIST= poslist;
+	 POSLIST= poslist;
 	if(POSLIST.size()==0)
 	{
 		ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
@@ -1088,7 +1084,7 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 			{
 				int pos=positions[j]%SEQLEN;
 				int seq=positions[j]/SEQLEN;
-				if(abs(positions[j]-lastpos)<Setting->seedlength) //zzz
+				if(abs(positions[j]-lastpos)<X()) //zzz
 				{
 					lastpos=positions[j];
 					continue;
@@ -1138,6 +1134,16 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 					double sum=0;
 					FOR(ii,BINNUMBER)
 						sum+=CDHist[ii];
+
+			double ssr=0;
+
+			double *CDDiff=new double[BINNUMBER-1]; 
+			for(j=0;j<BINNUMBER-1;j++)
+			{
+				CDDiff[j]=abs(CDHist[j+1]-CDHist[j]);
+				ssr+=CDDiff[j];
+			}
+		
 					FOR(ii,BINNUMBER)
 						CDHist[ii]=CDHist[ii]/sum;
 
@@ -1147,29 +1153,40 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 						{
 							double cdcnter=0;
 							double bgcnter=0;
-							
+							double cddiff=0;
+							double bgdiff=0;
 							double score=0;
 							FOR(j,ii+1)
+							{
+								cddiff+=CDDiff[j];
 								cdcnter+=CDHist[j];
-							for(j=ii+1;j< realBINNUMBER;j++)
+							}
+							for(j=ii+1;j< realBINNUMBER;j++)								
+							{
+								if(j<realBINNUMBER-1)
+								bgdiff+=CDDiff[j];
+
 								bgcnter+=CDHist[j];
+							}
 							double avgvalue=(double)(bgcnter/( realBINNUMBER-ii-1));
-							double ssr=0;
-							//for(j=ii+1;j<realBINNUMBER;j++)
-							//		ssr+=(CDHist[j]-avgvalue)*(CDHist[j]-avgvalue);
-							//ssr=sqrt( (double)(ssr/(realBINNUMBER-ii-1)));
-							bgcnter=ssr+avgvalue; // 
+			
 							score=(double)((cdcnter/(ii+1))/bgcnter);
+							double n=(cdcnter+bgcnter)*sum;
+							double n2=cddiff+bgdiff;
+							double ratio=(double)(ii+1)/realBINNUMBER;
+							double ratio2=(double)(ii+1)/(realBINNUMBER-1);
+							score=(cdcnter*sum-n*ratio)/sqrt(n*ratio*(1-ratio))+(cddiff-n2*ratio2)/sqrt(n2*ratio2*(1-ratio2));//+ssr*ssr
 							if(score>=bestscore&&cdcnter*sum>Setting->min_supp_ratio*MAXSEQNUM&&bgcnter*sum>bgfold)
 							{
 								bestwindowId=ii;		
 								bestscore=score;
 								bestscore2=cdcnter*sum;
+
 							}
 						
 						}
 						windowsize=(bestwindowId+1)*(SEQLEN/BINNUMBER);
-
+						delete[] CDDiff;
 				}
 				else
 				{
@@ -1445,12 +1462,13 @@ void MotifModel::MergeList(vector<MotifModel*> simList)
 					
 					pp= -p1->head;
 					bestol=p1->head+i+p2->Length(); //to the left end of wide pwm p1
-					if((i-pp)>p2->head)
+					if((i-pp)>p2->head)// if p2-head too short
 					{
 						pp=i-p2->head;
-						bestol=p2->head+p2->Length();
+						bestol=p2->head+p2->Length()-1;
 					}
 				}
+				//cout<<pp<<" "<<bestol<<" "<<this->head<<" "<<p2->Length()<<endl;
 				for(j=pp;j-pp<bestol;j++)
 	            {
 			         double sump = 0;
@@ -1605,7 +1623,7 @@ void MotifModel::ComputeScore(double sampleratio, double & CDScore, double & ORS
 	double* CDHist=new double[BINNUMBER];
 	FOR(i,BINNUMBER)
 		CDHist[i]=0;
-	int BINSIZE=SEQLEN/BINNUMBER+1;
+	int BINSIZE=ceil((double)SEQLEN/BINNUMBER);
 	
 
 	int maxRange=1<<(2*Length());
@@ -1613,9 +1631,13 @@ void MotifModel::ComputeScore(double sampleratio, double & CDScore, double & ORS
 		maxRange=2000;
 	if(maxRange>SEQLEN)
 	maxRange=SEQLEN;
-int BINSIZE2=SEQLEN/2/(BINNUMBER)+1;
+int BINSIZE2=ceil((double)SEQLEN/2/(BINNUMBER));
 	int maxCover=0;
 	int countNonX=0;
+	bool* seqOccFlag=new bool[MAXSEQNUM];
+
+	FOR(i,MAXSEQNUM)
+		seqOccFlag[i]=0;
 	for(Iter=insts.begin();Iter!=insts.end();Iter++)
 	{	
 		//coverSeq=0; 
@@ -1629,7 +1651,7 @@ int BINSIZE2=SEQLEN/2/(BINNUMBER)+1;
 		
 		double probw=(double)(positions.size()-lastposSize+1)/(LIBSIZE);
 
-		
+	
 			
 		
 		int totalsize=positions.size();
@@ -1645,13 +1667,14 @@ int BINSIZE2=SEQLEN/2/(BINNUMBER)+1;
 				
 				int seqnum=wpos/SEQLEN;
 				int pos=wpos%SEQLEN;
+					double bias=abs(pos-SEQLEN/2);	
 				if(seqnum!=lastseq)
 				{
 					lastseq=seqnum;
 					coverSeq+=1;	
 					lastpos=-1;
 				}
-				if(SearchEngine->CharText[wpos+ct]=='X'||wpos-lastpos<ct*3)//zzz
+				if(SearchEngine->CharText[wpos+ct]=='X'||wpos-lastpos<X())//zzz
 				{
 					lastpos=wpos;
 					continue;
@@ -1663,20 +1686,29 @@ int BINSIZE2=SEQLEN/2/(BINNUMBER)+1;
 
 				if(LargeDataFlag)
 				{
-					int tt=abs(pos-SEQLEN/2);
-						
-						  CDHist[tt/BINSIZE2]+=step*seqweight;
+					int tt=bias;
+						tt=tt/BINSIZE2;
+						if(tt>=BINNUMBER)
+						tt=BINNUMBER-1;
+						  CDHist[tt]+=step*seqweight;
+						  if(tt>=4)
+							  countNonX++;
+
+							 
 				}
 				/////////
 				//posflag[pos]=1;
 				sumNorm+=step*seqweight;		
 
 
-				countNonX++;
+			
+			 
 
-				double bias=abs(pos-SEQLEN/2);	
-				if(bias>maxRange/2)
-					continue;
+					seqOccFlag[seqnum]=1;
+				//if(bias>maxRange/2)
+				//	continue;
+				
+				
 				if(i<rcindex)
 				{
 				   POSLIST.push_back(wpos);
@@ -1697,11 +1729,7 @@ int BINSIZE2=SEQLEN/2/(BINNUMBER)+1;
 					
 					}
 
-				}
-
-				
-				
-				
+				}		
 				
 			}
 			if(maxCover<coverSeq)
@@ -1712,19 +1740,22 @@ int BINSIZE2=SEQLEN/2/(BINNUMBER)+1;
 	}
 
 	double nonblkRatio=1;//(double)(nonBLK)/SEQLEN;
-
+	maxCover=0;
+	FOR(i,MAXSEQNUM)
+		maxCover+=seqOccFlag[i];
+	delete[] seqOccFlag;
 	int bestwindowId=-1;
 	double bestscore=MINSCORE;
 	int windowsize=0;
 	if(positions.size()!=0)
-		sumNorm=sumNorm/(double)positions.size();
+		sumNorm=sumNorm/(double)maxCover;//positions.size();
 	else
 		sumNorm=1;
 	
 	double maxbgcnt=(double)positions.size()/SEQLEN;
 
-	double expbgcnt=pow(0.25,Efflen)*2*LIBSIZE/BINNUMBER/Length()*insts.size();
-
+	//cout<<countNonX;
+	//cout<<maxCover<<endl;
 	if(maxCover>Setting->min_supp_ratio *MAXSEQNUM)//zzz
 	{
 		
@@ -1735,41 +1766,67 @@ int BINSIZE2=SEQLEN/2/(BINNUMBER)+1;
 			//	sum+=CDHist[i];
 			FOR(i,BINNUMBER)
 				CDHist[i]=CDHist[i]/sumNorm;
+
 			double bglen=min(SEQLEN,maxRange);
 			double bestcdcnt,bestbgcnt;
 			int realBINNUMBER=(int)((double)(bglen/SEQLEN)*BINNUMBER);
+			double ssr=0;
+
+			double *CDDiff=new double[realBINNUMBER-1]; 
+			for(j=0;j<realBINNUMBER-1;j++)
+			{
+				CDDiff[j]=abs(CDHist[j+1]-CDHist[j]);
+				ssr+=CDDiff[j];
+			}
+			
+
 			FOR(i,realBINNUMBER/bgfold)
 			{
 				double cdcnter=0;
 				double bgcnter=0;
-				
+				double cddiff=0;
+				double bgdiff=0;
 				double score=0;
 				FOR(j,i+1)
+				{
 					cdcnter+=CDHist[j];
+					cddiff+=CDDiff[j];
+				}
 				for(j=i+1;j<realBINNUMBER;j++)
+				{
 					bgcnter+=CDHist[j];
+					if(j<realBINNUMBER-1)
+					bgdiff+=CDDiff[j];
+				}
 				//only average on bg
 				double avgvalue=(double)(bgcnter/(realBINNUMBER-i-1));
-				double ssr=0;
-				for(j=i+1;j<realBINNUMBER-1;j++)
-						ssr+=(CDHist[j+1]-CDHist[j])*(CDHist[j+1]-CDHist[j]);
-				ssr=sqrt( (double)(ssr/(realBINNUMBER-i-2)));
-				bgcnter=ssr+avgvalue; //1.95996*
-				if(cdcnter<Setting->min_supp_ratio*MAXSEQNUM||bgcnter<expbgcnt)//zzz
+				//cout<<realBINNUMBER;
+				//bgcnter=ssr+avgvalue; //1.95996*
+				if(cdcnter<Setting->min_supp_ratio*MAXSEQNUM)//zzz
 					continue;
 				score=(double)((cdcnter/(i+1))/bgcnter);
-				bgcnter-=ssr;  //1.95996*
-				bgcnter*=(realBINNUMBER-i-1);
+				//bgcnter-=ssr;  //1.95996*
+				//bgcnter*=(realBINNUMBER-i-1);
 				windowsize=(i+1)*(SEQLEN/BINNUMBER);
 				double bgfold=(double)bglen/windowsize;
 				if(ORScore<1)
 					ORScore=1;
 				 double ratio=(double)(ORScore)/(ORScore+bgfold-1);//(double)(bgfold-1)/bgfold;//
+				ratio=(double)(i+1)/realBINNUMBER;
+				double ratio2=(double)(i+1)/(realBINNUMBER-1);
+				double n=bgcnter+cdcnter;
+				//cout<<n<<cdcnter;
+				double n2=bgdiff+cddiff;
+				double Z0=(cdcnter-n*ratio)/sqrt(n*ratio*(1-ratio));
+				double Z1=(cddiff-n2*ratio2)/sqrt(n2*ratio2*(1-ratio2));
+				score=Z0+Z1; //+ssr*ssr
 		//zzz	//double pvalue=binominalTail(ratio,cdcnter,(bgcnter+cdcnter))*(CNSVScore-DiffScore);//*pow((double)4,Length()-Setting->seedlength);
 				// if(pvalue>0.01)//BGCounters[i]<0.05*(CDCounters[i]+BGCounters[i])||
 				//	 continue;
 				if(score>=bestscore)
 				{
+					//cout<<Z0<<" "<<Z1<<endl;
+					//cout<<cdcnter<<endl;
 					bestwindowId=i;		
 					bestscore=score;
 					CDScore=cdcnter;
@@ -1778,6 +1835,7 @@ int BINSIZE2=SEQLEN/2/(BINNUMBER)+1;
 				}
 			
 			}
+			delete[] CDDiff;
 			if(bestscore!=MINSCORE)
 			{
 			windowsize=(bestwindowId+1)*(SEQLEN/BINNUMBER);
@@ -1997,7 +2055,7 @@ map<string,double> MotifModel::GenerateInstanceFromPWMPQ(double sampleratio,bool
 	{
 		double entropy=0;
 		
-		entropy=this->entropy2(j);
+		entropy=this->entropy(j);
 
 		if(entropy<ENTROPY_Threshold)
 		{
@@ -2507,7 +2565,7 @@ double MotifModel::updateModel(int runid)
 
 	//_CrtDumpMemoryLeaks();
 	bool reviseFlag=false;
-
+	
 	if(runid==0)
 	{
 		DiffScore=Setting->seedlength;
@@ -2535,7 +2593,16 @@ Consensus=get_consensus(0);
 int rcbias=Length()/2+head;
 double binomailP=(double)POSLIST.size()/LIBSIZE;
 double expX=(double)POSLIST.size()/Length();
+
+int NCnt=0;
 int Xcount=0;
+int * seqOccFlag=new int[MAXSEQNUM];
+int * seqCDOccFlag=new int[MAXSEQNUM];
+FOR(i,MAXSEQNUM)
+{
+	seqOccFlag[i]=0;
+	seqCDOccFlag[i]=0;
+}
 if(badmove.size()>0)
 {
 	tempmodel.InstanceSet=InstanceSet;
@@ -2544,7 +2611,7 @@ if(badmove.size()>0)
 }
 else
 {
-
+	
 	FOR(i,POSLIST.size())
 	{
 		long int wpos=POSLIST[i];
@@ -2558,15 +2625,15 @@ else
 		}
 		int seqnum=upos/SEQLEN;
 		int pos=upos%SEQLEN;
-		
+		seqOccFlag[seqnum]+=1;		
 			int windowsize=BindingRegion;
 			double bias=abs(pos-SEQLEN/2);
 			
-			if(bias>SEQLEN/bgfold&&LargeDataFlag)//if(bias>windowsize/2)
+			if(bias>windowsize/2)//SEQLEN/bgfold&&LargeDataFlag)//if(bias>windowsize/2)
 			{
-				//if(bias<(bgfold/2+1)*windowsize||LargeDataFlag)//(bgfold/2)*windowsize)
-				if(tempBGmodel.InstanceSet.size()>bgfold*tempmodel.InstanceSet.size())
-					continue;
+			
+				//if(tempBGmodel.InstanceSet.size()>bgfold*tempmodel.InstanceSet.size())
+				//	continue;
 				{
 					string pa;
 					if(rc)
@@ -2585,8 +2652,9 @@ else
 					tempBGmodel.instSeq.push_back(seqnum);
 				}
 			}
-			else if(bias<windowsize/2)
+			else //if(bias<windowsize/2)
 			{
+				seqCDOccFlag[seqnum]+=1;
 					string pa;
 					if(rc)
 					{
@@ -2609,6 +2677,34 @@ else
 	InstanceSet=tempmodel.InstanceSet;
 		BGInstanceSet=tempBGmodel.InstanceSet;
 }
+double CenterCnt=0;//tempmodel.InstanceSet.size();
+double ratio=BindingRegion/SEQLEN;
+double sumnorm=0;
+if(badmove.size()>0)
+{
+	NCnt=oravg;
+	CenterCnt=cdavg;
+}
+else
+{
+	FOR(i,MAXSEQNUM)
+	{
+		NCnt+=(int)(seqOccFlag[i]>0);
+		if(seqCDOccFlag[i]>0)
+		CenterCnt+=(double)(seqCDOccFlag[i]);//seqOccFlag[i]);
+		sumnorm+=seqOccFlag[i];
+	}
+
+	CenterCnt=CenterCnt*NCnt/sumnorm;
+	oravg=NCnt;
+	cdavg=CenterCnt;
+
+}
+delete [] seqOccFlag;
+delete [] seqCDOccFlag;
+
+double refScore=(CenterCnt-NCnt*ratio)/sqrt(NCnt*ratio*(1-ratio));
+
 	if(LargeDataFlag)
 		if(tempBGmodel.InstanceSet.size()==0||tempmodel.InstanceSet.size()==0)
 		{
@@ -2631,14 +2727,14 @@ else
 	FOR(i,X())
 	{
 		double sumbg=0;
-		//FOR(j,4)
-		//{
-		//	tempmodel.d(SearchEngine->CDProb[j],i,j);
-		//	sumbg+=tempmodel.g(i,j);
-		//}
-		//FOR(j,4)
-		//	tempmodel.d(sumbg,i,j);
-
+		FOR(j,4)
+		{
+			tempmodel.d(SearchEngine->CDProb[j],i,j);///SearchEngine->BGProb[j]
+			sumbg+=tempmodel.g(i,j);
+		}
+		FOR(j,4)
+			tempmodel.d(sumbg,i,j);
+		continue;
 		FOR(j,4)
 		{
 			double maxprob=max(SearchEngine->BGProb[j],SearchEngine->CDProb[j]);
@@ -2685,8 +2781,9 @@ else
 	{
 		if(entropy2(i)<ENTROPY_Threshold)
 		{
-			//continue;
+			
 			effectIndex.push_back(i);
+			continue;
 			double sum1=0;
 			double sum2=0;
 			double sum3=0;
@@ -2738,24 +2835,42 @@ else
 			if(i==lastupdateCol)
 				continue;
 			double infogain=0;//tempBGmodel.entropy2(i)-tempmodel.entropy2(i);
-			FOR(j,4)
-			{
-
-			double Pvalue=binominalTail(SearchEngine->CDProb[j],tempmodel.InstanceSet.size()*tempmodel.g(i,j),tempmodel.InstanceSet.size());
 		
-				if(Pvalue>1.e-3||Pvalue==-1)
-					continue;
-
+			FOR(j,14)
+			{
 				if(badmove.find(i*100+j)!=badmove.end())
 					continue;
-				double temp=tempmodel.g(i,j)/tempBGmodel.g(i,j);
-				temp*=SearchEngine->BGProb[j]/SearchEngine->CDProb[j];
-				//if(i==19)
-				//	cout<<tempmodel.g(i,j)<<","<<tempBGmodel.g(i,j)<<endl;;
-				infogain=temp;
+				double CenterCnt2=0;
+				double NCnt2=0;
+				double BGCnt2=0;
+				bool sel[4];
+				
+				FOR(k,4)
+				{
+					sel[k]=((j+1)>>k)%2;
+				}
+
+				FOR(k,4)
+				{
+					if(sel[k])
+					{
+					CenterCnt2+=tempmodel.g(i,k);
+					BGCnt2+=tempBGmodel.g(i,k);
+					}
+				}
+				CenterCnt2=CenterCnt2*CenterCnt;
+				BGCnt2=BGCnt2*(NCnt-CenterCnt);
+				NCnt2=CenterCnt2+BGCnt2;
+				double temp=(CenterCnt2-NCnt2*ratio)/sqrt(NCnt2*ratio*(1-ratio));
+			
+
+				infogain=temp/refScore;
 				//if(tempmodel.InstanceSet.size()*tempmodel.g(i,j)>minCDSupport*MAXSEQNUM)
 					if(maxGain<infogain)//&&tempmodel.g(i,j)>0.5
 					{
+						//cout<<"......................."<<i<<" "<<j<<".........................."<<endl;
+						//cout<<CenterCnt2<<" "<<BGCnt2<<endl;
+						//cout<<CenterCnt<<" "<<NCnt<<endl;
 						maxGain=infogain;
 						maxIndex=i;
 						maxIndexJ=j;
@@ -2774,7 +2889,7 @@ else
 	double gainlimit=4;
 
 	
-	if(abs(maxIndex)>X()||abs(maxIndexJ)>4)
+	if(abs(maxIndex)>X()||abs(maxIndexJ)>15)
 		return MINSCORE;
 					
 				
@@ -2789,39 +2904,24 @@ else
 
 			sort(effectIndex.begin(),effectIndex.end());
 			k=0;
+				bool sel[4];
+				
+				FOR(k,4)
+				{
+					sel[k]=((maxIndexJ+1)>>k)%2;
+				}
 			
 			FOR(j,4)
 			{
-				double temp=tempmodel.g(maxIndex,j)/tempBGmodel.g(maxIndex,j);
-				//temp*=SearchEngine->BGProb[j]/SearchEngine->CDProb[j];
-				map<int,double>::iterator iiter=badmove.find(maxIndex*100+j);
-				//if(temp<1)
-				//{
-				//	
-				//}else
-				if(temp<1)//temp<1|| ||iiter!=badmove.end()
-				{
+
+				double temp=PWMThreshold;
+					if(sel[j])
+						temp=tempmodel.g(maxIndex,j);
+					sum+=temp;
 					
-					if(iiter==badmove.end())
-					{
-						double smallvalue=PWMThreshold;
-					tempmodel.s(smallvalue,maxIndex,j);
-						sum+=smallvalue;
-					}
-					else
-						//sum+=tempmodel.g(maxIndex,j);
-						sum+=1;
-				}
-				else
-				{
-					if(temp>gainlimit)
-						temp=gainlimit;
-					//sum+=tempmodel.g(maxIndex,j)*temp;
-					//tempmodel.m(temp,maxIndex,j);
-					sum+=temp-1;
-					tempmodel.s(temp-1,maxIndex,j);
+					tempmodel.s(temp,maxIndex,j);
 					
-				}
+				
 			}
 		}
 		else //old column
@@ -2923,6 +3023,7 @@ else
 	{
 
 		//cout<<maxIndex<<","<<Pvalue<<endl;
+		cout<<tempmodel.get_consensus(0)<<endl;
 		if(reviseFlag)
 			cout<<maxGain<<","<<maxIndex<<","<<maxIndexJ<<endl;
 		FOR(i,effectIndex.size())
