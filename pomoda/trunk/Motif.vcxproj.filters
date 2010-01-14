@@ -58,7 +58,7 @@
       <Filter>Source Files\MATLIGN</Filter>
     </ClCompile>
     <ClCompile Include="Source\ISearchEngine.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\lbfgs.cpp">
       <Filter>Source Files\ABLAS</Filter>

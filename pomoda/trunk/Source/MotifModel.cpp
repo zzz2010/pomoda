@@ -6,7 +6,7 @@
 
 
 #define PWMThreshold 0.001
-
+#define SignificantLevel1 1.96
 
 	int SEQLEN=4000;
 	bool LargeDataFlag=true;
@@ -469,6 +469,11 @@ void MotifModel::divergeSeedPart(vector<int>* hotsites_p)
 
 	if(seedpos==-1)
 		return;
+	FlMatrix backup(this->X(),4);
+	FOR(i,X())
+		FOR(j,4)
+			backup.s(this->g(i,j),i,j);
+	double bkScore=ORScore;
 
 	double* divCnt=new double[seed.size()];
 	FOR(i,seed.size())
@@ -727,6 +732,15 @@ int lastpos=-1;
 			tempmodel.ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
 	
 			delete []divCnt;
+	if(ORScore<bkScore)
+	{
+		//restore
+		FOR(i,X())
+			FOR(j,4)
+			this->s(backup.g(i,j),i,j);
+		ORScore=bkScore;
+		this->get_consensus(0);
+	}
 	
 }
 
@@ -783,26 +797,26 @@ vector<VAL> MotifModel::getMatchPos()
 
 	double bgocc=0;
 
-	//double threshold=log(PWMThreshold);
-	 HashEngine* SearchEngine2=(HashEngine*)SearchEngine;
+	////double threshold=log(PWMThreshold);
+	// HashEngine* SearchEngine2=(HashEngine*)SearchEngine;
 
-	 {
-		 map<string,double> insts=GenerateInstanceFromPWMPQ(0.8);
-		 map<string,double>::iterator Iter;
-		double totalCount=0;
-		
-		for(Iter=insts.begin();Iter!=insts.end();Iter++)
-		{	
-			char instemp[64];
-			string randomIns=Iter->first;
+	// {
+	//	 map<string,double> insts=GenerateInstanceFromPWMPQ(0.8);
+	//	 map<string,double>::iterator Iter;
+	//	double totalCount=0;
+	//	
+	//	for(Iter=insts.begin();Iter!=insts.end();Iter++)
+	//	{	
+	//		char instemp[64];
+	//		string randomIns=Iter->first;
 
-			strcpy(instemp,randomIns.c_str());
-			SearchEngine->searchPattern(instemp,0,poslist);	
-		}
-	 }
+	//		strcpy(instemp,randomIns.c_str());
+	//		SearchEngine->searchPattern(instemp,0,poslist);	
+	//	}
+	// }
 
-	
-	 POSLIST= poslist;
+	//
+	// POSLIST= poslist;
 	if(POSLIST.size()==0)
 	{
 		ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
@@ -1037,7 +1051,7 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 		if(getReverseComplementHashing(hash,len)<i)
 		{
 			pattern=Hash2ACGT(hash,len);
-			pattern.insert(3,string("NN"));
+			pattern.insert(3,string("NNN"));
 			//continue;
 		}
 		else
@@ -1080,6 +1094,7 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 			sort(positions.begin(),positions.end());
 		int jj;
 		int lastpos=-1;
+
 			FOR(j,positions.size())
 			{
 				int pos=positions[j]%SEQLEN;
@@ -1138,14 +1153,15 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 			double ssr=0;
 
 			double *CDDiff=new double[BINNUMBER-1]; 
+
+		
+					FOR(ii,BINNUMBER)
+						CDHist[ii]=CDHist[ii]*coverSeq/sum; //normalized to number of sequences
 			for(j=0;j<BINNUMBER-1;j++)
 			{
 				CDDiff[j]=abs(CDHist[j+1]-CDHist[j]);
 				ssr+=CDDiff[j];
 			}
-		
-					FOR(ii,BINNUMBER)
-						CDHist[ii]=CDHist[ii]/sum;
 
 								double bglen=min(SEQLEN,maxRange);
 						int realBINNUMBER=(int)((double)(bglen/SEQLEN)*BINNUMBER);
@@ -1171,16 +1187,16 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 							double avgvalue=(double)(bgcnter/( realBINNUMBER-ii-1));
 			
 							score=(double)((cdcnter/(ii+1))/bgcnter);
-							double n=(cdcnter+bgcnter)*sum;
+							double n=(cdcnter+bgcnter);
 							double n2=cddiff+bgdiff;
 							double ratio=(double)(ii+1)/realBINNUMBER;
 							double ratio2=(double)(ii+1)/(realBINNUMBER-1);
-							score=(cdcnter*sum-n*ratio)/sqrt(n*ratio*(1-ratio))+(cddiff-n2*ratio2)/sqrt(n2*ratio2*(1-ratio2));//+ssr*ssr
-							if(score>=bestscore&&cdcnter*sum>Setting->min_supp_ratio*MAXSEQNUM&&bgcnter*sum>bgfold)
+							score=(cdcnter-n*ratio)/sqrt(n*ratio*(1-ratio))+(cddiff-n2*ratio2)/sqrt(n2*ratio2*(1-ratio2));//+ssr*ssr
+							if(score>=bestscore&&cdcnter>Setting->min_supp_ratio*MAXSEQNUM&&bgcnter>bgfold)
 							{
 								bestwindowId=ii;		
 								bestscore=score;
-								bestscore2=cdcnter*sum;
+								bestscore2=cdcnter;
 
 							}
 						
@@ -1226,7 +1242,7 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 
 				}
 				//the number of seed depend on the output number
-			    if(bestscore<1)
+				if(bestscore<SignificantLevel1)
 					continue;
 				ScoreObj tempobj;
 				if(!LargeDataFlag)
@@ -1297,7 +1313,7 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 		int hash=patternlist[ maxScoreIndex];
 		if(getReverseComplementHashing(hash,len)<hash)
 		{
-			topPattern.insert(3,string("NN"));
+			topPattern.insert(3,string("NNN"));
 		}
 		cout<<"top:"<<motifid-1<<"\t"<<topPattern<<":"<<cdscoreList[maxScoreIndex]<<"\t"<<scoreList[maxScoreIndex].cdscore<<"\t"<<scoreList[maxScoreIndex].BindingRegion<<"\t"<<scoreList[maxScoreIndex].orscore<<endl;
 
@@ -1809,8 +1825,8 @@ int BINSIZE2=ceil((double)SEQLEN/2/(BINNUMBER));
 				//bgcnter*=(realBINNUMBER-i-1);
 				windowsize=(i+1)*(SEQLEN/BINNUMBER);
 				double bgfold=(double)bglen/windowsize;
-				if(ORScore<1)
-					ORScore=1;
+				//if(ORScore<1)
+				//	ORScore=1;
 				 double ratio=(double)(ORScore)/(ORScore+bgfold-1);//(double)(bgfold-1)/bgfold;//
 				ratio=(double)(i+1)/realBINNUMBER;
 				double ratio2=(double)(i+1)/(realBINNUMBER-1);
@@ -1819,14 +1835,16 @@ int BINSIZE2=ceil((double)SEQLEN/2/(BINNUMBER));
 				double n2=bgdiff+cddiff;
 				double Z0=(cdcnter-n*ratio)/sqrt(n*ratio*(1-ratio));
 				double Z1=(cddiff-n2*ratio2)/sqrt(n2*ratio2*(1-ratio2));
-				score=Z0+Z1; //+ssr*ssr
+				score=Z0*Z0+Z1*Z1; //+ssr*ssr
+				/*if(Z0<0)
+					score=0;*/
 		//zzz	//double pvalue=binominalTail(ratio,cdcnter,(bgcnter+cdcnter))*(CNSVScore-DiffScore);//*pow((double)4,Length()-Setting->seedlength);
 				// if(pvalue>0.01)//BGCounters[i]<0.05*(CDCounters[i]+BGCounters[i])||
 				//	 continue;
 				if(score>=bestscore)
 				{
 					//cout<<Z0<<" "<<Z1<<endl;
-					//cout<<cdcnter<<endl;
+					//cout<<cdcnter<<" "<<n<<endl;
 					bestwindowId=i;		
 					bestscore=score;
 					CDScore=cdcnter;
@@ -2157,7 +2175,8 @@ map<string,double> MotifModel::GenerateInstanceFromPWMPQ(double sampleratio,bool
 								tempprobv*=ti;
 						}
 					}
-					if(hashtable.find(temphashcode)!=hashtable.end()||nonsenseFlag)
+					unsigned long revcode=getReverseComplementHashing(temphashcode,effLen);
+					if(hashtable.find(temphashcode)!=hashtable.end()||nonsenseFlag||hashtable.find(revcode)!=hashtable.end())
 						continue;
 					hashtable.insert(temphashcode);
 					PQ[hashtable.size()*smallscale-tempprobv]=temphashcode;
@@ -2474,40 +2493,45 @@ void MotifModel::PWMRefinement()
 	string temp=get_consensus(0);
 	int t=3;
 	int i,j;
-	for(i=1;i<temp.size();i++)
-	{
-		if(temp[i]!='N')
-			break;
-	}
-	
-	for(j=1;j<temp.size();j++)
-	{
-		if(temp[temp.size()-j-1]!='N')
-			break;
-	}
+	FlMatrix backup(this->X(),4);
+	FOR(i,X())
+		FOR(j,4)
+			backup.s(this->g(i,j),i,j);
+	double bkScore=ORScore;
+	//for(i=1;i<temp.size();i++)
+	//{
+	//	if(temp[i]!='N')
+	//		break;
+	//}
+	//
+	//for(j=1;j<temp.size();j++)
+	//{
+	//	if(temp[temp.size()-j-1]!='N')
+	//		break;
+	//}
 
-	if(j>t)
-		tail+=j;
-	
-	if(i>t)
-		head+=i;
-	if(j>t||i>t)
-	{
-		FOR(i,X())
-		{
-			if(i<head||i>(X()-tail) )
-			{
-				FOR(j,4)
-				{
-					s(0.25,i,j);
-				}
-			}
-		}
-		DiffScore=Setting->seedlength;
-		CNSVScore=Setting->seedlength;
-		
-	}
-	ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
+	//if(j>t)
+	//	tail+=j;
+	//
+	//if(i>t)
+	//	head+=i;
+	//if(j>t||i>t)
+	//{
+	//	FOR(i,X())
+	//	{
+	//		if(i<head||i>(X()-tail) )
+	//		{
+	//			FOR(j,4)
+	//			{
+	//				s(0.25,i,j);
+	//			}
+	//		}
+	//	}
+	//	DiffScore=Setting->seedlength;
+	//	CNSVScore=Setting->seedlength;
+	//	
+	//}
+	//ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
 	int len=Length();
 	int move=0;
 	//if(len<10)
@@ -2555,7 +2579,16 @@ void MotifModel::PWMRefinement()
 	}
 	
 	InitializePWMofInstanceSet();
-	//ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
+	ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
+	if(ORScore<bkScore)
+	{
+		//restore
+		FOR(i,X())
+			FOR(j,4)
+			this->s(backup.g(i,j),i,j);
+		ORScore=bkScore;
+		this->get_consensus(0);
+	}
 
 }
 
@@ -2721,19 +2754,25 @@ double refScore=(CenterCnt-NCnt*ratio)/sqrt(NCnt*ratio*(1-ratio));
 	//tempBGmodel.initialise(0.25);//zzz
 	//tempmodel.print();
 	//tempBGmodel.print();
-
+	
 	//if(tempBGmodel.InstanceSet.size()<bgfold*4*minCDSupport*MAXSEQNUM)//  get_consensus().size()>Setting->seedlength)
 	if(LargeDataFlag)
 	FOR(i,X())
 	{
 		double sumbg=0;
+		double sumbg2=0;
 		FOR(j,4)
 		{
 			tempmodel.d(SearchEngine->CDProb[j],i,j);///SearchEngine->BGProb[j]
+			//tempBGmodel.d(SearchEngine->BGProb[j],i,j);
 			sumbg+=tempmodel.g(i,j);
+			sumbg2+=tempBGmodel.g(i,j);
 		}
 		FOR(j,4)
+		{
 			tempmodel.d(sumbg,i,j);
+			tempBGmodel.d(sumbg2,i,j);
+		}
 		continue;
 		FOR(j,4)
 		{
@@ -2868,7 +2907,7 @@ double refScore=(CenterCnt-NCnt*ratio)/sqrt(NCnt*ratio*(1-ratio));
 				//if(tempmodel.InstanceSet.size()*tempmodel.g(i,j)>minCDSupport*MAXSEQNUM)
 					if(maxGain<infogain)//&&tempmodel.g(i,j)>0.5
 					{
-						//cout<<"......................."<<i<<" "<<j<<".........................."<<endl;
+						//cout<<"......................."<<i<<" "<<j<<" "<<temp<<".........................."<<endl;
 						//cout<<CenterCnt2<<" "<<BGCnt2<<endl;
 						//cout<<CenterCnt<<" "<<NCnt<<endl;
 						maxGain=infogain;
@@ -3023,7 +3062,7 @@ double refScore=(CenterCnt-NCnt*ratio)/sqrt(NCnt*ratio*(1-ratio));
 	{
 
 		//cout<<maxIndex<<","<<Pvalue<<endl;
-		cout<<tempmodel.get_consensus(0)<<endl;
+		cout<<tempmodel.get_consensus(0)<<" "<<ors<<endl;
 		if(reviseFlag)
 			cout<<maxGain<<","<<maxIndex<<","<<maxIndexJ<<endl;
 		FOR(i,effectIndex.size())
@@ -3123,6 +3162,7 @@ double MotifModel::entropy(int col)
 			   
 		            int minsize=min(refmotif->Length(),newmotif->Length());
 					int minoverlap=max(5,minsize-2);
+					int skip=0;
 					//move newmotif from left to rigth referred to refmotif
 		            for(int i=0-size+minoverlap;i<size2-minoverlap+1;i++)
 		            {
@@ -3135,6 +3175,13 @@ double MotifModel::entropy(int col)
 			            {
 				            if(j>=size2||(j-i)>=size)
 					            break;
+							//skip the N_N similarity
+							if(newmotif->entropy(j-i+newmotif->head)>ENTROPY_Threshold&&refmotif->entropy(j+refmotif->head)>ENTROPY_Threshold)
+							{
+								skip++;
+								continue;
+							}
+
 				            if(j>=0)
 				            {
                                 double sump = 0;
@@ -3152,7 +3199,7 @@ double MotifModel::entropy(int col)
                         ////i>0
                         if (i > 0)
                             overlap = j - i;
-						
+						overlap-=skip;
                         curScore /= overlap * (float)sqrt(2.0);
 						if(bestscore>curScore&&((overlap>=minoverlap )))////7 overlap>=6||
 			            {
