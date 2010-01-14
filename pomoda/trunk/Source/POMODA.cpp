@@ -37,7 +37,7 @@
 #include <sstream>
 #include "HashEngine.h"
 #include "EM.h"
-
+#define SignificantLevel2 1
 //string seqFile="select_m_10k.fa";//"snber_1000_sorted.fasta";//"select_H_sapiens_UCSC_hg18_10000.fas";//"E2F_Q4V1200.fasta";//"iterSim/0U.fasta";//"testset/select_MAKEW14S1A2V200L10000N2000U.fasta";//"select_MAKEW7S1A1V1200L10000N3000U.fasta";//"P$CBT_01V200.fasta";//"testset/simdata1.fas";//"select_p300.fasta";//"select_ctcf.fasta";//"snber_1000_sorted.fasta";//"select_MAKEW8S1A1V50.fasta";//"select_m_10k.fa";//"select_i10k.fasta";//"seq_ctcf_sort_intensity.fa";//"select_m_Q1_2000.faW16S1A1V100.fa";//"select_cmyc.fasta";//"select_m_Q1_2000.fa";///"select_m_Q1_2000.faW8S1A1V400.fa";//"select_2fold_im_m.fa.SeqRev";//"select_i_Q1.fa.SeqRev";//"select_2fold_im_i.fa.SeqRev";//"select_m_Q1.fa.SeqRev";//"bg1000.SeqW12S3A4V200.Seq";//"bg1000.SeqW16S1A1V100.Seq";//"select_2fold_im_m.fa.SeqRev";//"MCF7E2.txt.SeqRev";//"seq500_mcf7e2_promoter.fa.SeqRev";//"bg1000.SeqW8S1A1V100.Seq";//
 
 /***********************************************/
@@ -51,17 +51,17 @@ static char* syntax = "Pomoda -i inputFasta  [-o outputDIR -w weightFile -ot ove
 
 if(nargs < 3){ printf("%s\n",syntax); exit(0); }
 p = new param_st();//(PARAM*)calloc(1,sizeof(PARAM));
-p->seedlength= 6;
+p->seedlength= 5;
 p->min_supp_ratio=0.05;
 p->FDRthresh=1.e-2;
 p->olThresh=0.02;
 p->pdThresh=0.18;
 p->outputDIR=string(".");
-p->max_motif_length=26;
+
 p->N_motif=20;
 p->resolution=100;
 p->startwSize=p->resolution;
-
+p->max_motif_length=25;
 while(iarg < nargs){
 	if(!strcmp(argv[iarg],"-i") && iarg < nargs-1){ p->inputFile=argv[++iarg]; }
 	else if(!strcmp(argv[iarg],"-o") && iarg < nargs-1) p->outputDIR=argv[++iarg];
@@ -110,7 +110,7 @@ void test(PARAM * setting)
 		string g=engine.getSite(61,13);
 		MotifModel MM2(&engine,setting->max_motif_length,setting);
 		//MM2.AddInstance("GGTCACNSTGAC");//
-		MM2.AddInstance("TTGGCNNNNNNNC"); //N
+		MM2.AddInstance("TTGGCNNNNNNCC"); //N
 		MM2.InitializePWMofInstanceSet();
 		cout<<MM2.get_consensus()<<endl; 
 		MM2.ORScore=1.4;
@@ -131,8 +131,9 @@ void test(PARAM * setting)
 	//simlist=emOpt.LoadSeedModels(simlist,setting->N_motif);
 
 		MotifModel MM(&engine,setting->max_motif_length,setting);
-		MM.seed="GCCAA"; //ATGCCC
+		MM.seed="AGATA"; //"GACTC";//ATGCCC
 		MM.AddInstance(MM.seed);
+		//MM.AddInstance("TAAAT");
 		MM.InitializePWMofInstanceSet();
 		//cout<<MM.get_consensus(0)<<endl;
 		//MM.ORScore=2.49284;
@@ -180,8 +181,10 @@ void test(PARAM * setting)
 
 		}
 		MM.PWMRefinement();
+			cout<<MM.get_consensus(0)<<"\t"<<MM.GetMixedScore()<<endl;
 		MM.divergeSeedPart();
 			cout<<MM.get_consensus(0)<<"\t"<<MM.GetMixedScore()<<endl;
+			MM.print();
 		getchar();
 }
 
@@ -217,7 +220,7 @@ void runAll(PARAM * setting)
 ////////////////////////////////////////////////
 	MM.switchFlag=true;
 	
-	vector<MotifModel*> SeedList=MM.getSeedMotifs(6*setting->N_motif*setting->N_motif,setting->seedlength,setting->min_supp_ratio);
+	vector<MotifModel*> SeedList=MM.getSeedMotifs(setting->seedlength*setting->N_motif*setting->N_motif,setting->seedlength,setting->min_supp_ratio);
 	double markThreshold=SeedList[0]->GetMixedScore();
 	cout<<"markThreshold: "<<markThreshold<<endl;
 	map<double,MotifModel*> sortlist;
@@ -244,7 +247,7 @@ void runAll(PARAM * setting)
 				double improve=MMinst->updateModel(j);
 				if(improve==-1)
 				{
-					if((iterCnt-improveCount>6))//(MMinst->GetMixedScore())
+					if((iterCnt-improveCount>26))//(MMinst->GetMixedScore())
 					break;
 				}
 				else 
@@ -261,8 +264,8 @@ void runAll(PARAM * setting)
 		}
 			
 		//	bool ksflag=!KSTest(MMinst->POSLIST,engine.SeqLen);
-
-			if(MMinst->ORScore<1) //||ksflag
+		//cout<<MMinst->ORScore<<endl;
+		if(MMinst->ORScore<SignificantLevel2) //||ksflag
 			{
 				MMinst->POSLIST.clear();
 				continue;
@@ -274,12 +277,13 @@ void runAll(PARAM * setting)
 		if(!isnan(MMinst->GetMixedScore()))
 		{
 		
-				cout<<MMinst->get_consensus()<<endl;
+			cout<<MMinst->get_consensus()<<"\t"<<MMinst->ORScore<<endl;
 			if(MMinst->GetMixedScore()>markThreshold)
 			{				
 				MMinst->SearchEngine=engine2;
 				MMinst->divergeSeedPart(&hotsites);
 				MMinst->SearchEngine=&engine;// need to mark
+				cout<<MMinst->get_consensus()<<"\t"<<MMinst->ORScore<<endl;
 				if(MMinst->GetMixedScore()>markThreshold&&MMinst->get_consensus().size()>setting->seedlength+1)
 				{
 					cout<<"Mark!"<<endl;
@@ -291,12 +295,15 @@ void runAll(PARAM * setting)
 			{
 				MMinst->SearchEngine=&engine;
 				MMinst->divergeSeedPart(&hotsites);
+				cout<<MMinst->get_consensus()<<"\t"<<MMinst->ORScore<<endl;
 				if(MMinst->GetMixedScore()>markThreshold&&MMinst->get_consensus().size()>setting->seedlength+1)
 				{
 					cout<<"Mark!"<<endl;
 					MMinst->MarkPos();
 				}
 				MMinst->SearchEngine=engine2;
+				//get a correct positionlist
+				MMinst->ComputeScore(0.8,MMinst->CDScore,MMinst->ORScore,MMinst->BindingRegion,MMinst->CNSVScore,MMinst->DiffScore);
 			}
 			else
 			{
@@ -336,7 +343,7 @@ void runAll(PARAM * setting)
 			}
 
 
-			if(MMinst->ORScore>1)
+			if(MMinst->ORScore>SignificantLevel2)
 			{		
 				sortlist[0-MMinst->ORScore+ smallrandom]=MMinst;
 						cout<<MMinst->get_consensus()<<endl;
@@ -412,7 +419,7 @@ void runAll(PARAM * setting)
 		
 		
 
-		
+		sort(MMinst->POSLIST.begin(),MMinst->POSLIST.end());
 		vector<VAL> templist=MMinst->getMatchPos();
 		
 		int j;
@@ -501,21 +508,19 @@ void runAll(PARAM * setting)
 			filterMaps[markMotifs[mergeid]].push_back(MMinst);
 			if(DEBUG)
 			cout<<"filter:"<<MMinst->get_consensus(0)<<"\t"<<(0-ITER->first)<<endl;
-			
 			continue;
 		}
 
 
-
+		
 		double snr,prbE,prbN;
 
-		if(MMinst->ORScore>1)
+		if(MMinst->ORScore>SignificantLevel2)
 		{
-		postLists.push_back(MMinst->POSLIST);
-		
-		markMotifs.push_back(MMinst);
-			cout<<"Motif "<<i<<":";
 			
+		postLists.push_back(MMinst->POSLIST);
+		markMotifs.push_back(MMinst);
+			cout<<"Motif "<<i<<":";		
 			cout<<MMinst->seed<<":"<<MMinst->get_consensus(0)<<endl;
 		cout<<(0-ITER->first) <<"\t";
 		cout<<MMinst->CDScore<<"\t";
@@ -773,19 +778,16 @@ sort(markMotifs.begin(),markMotifs.end(),compare_motifscore );
 int main(int argc, char* argv[])
 {
 	//std::ofstream log("result/log.txt");
- //   std::streambuf *oldbuf = std::cout.rdbuf(log.rdbuf());
+   //std::streambuf *oldbuf = std::cout.rdbuf(log.rdbuf());
 
 	PARAM * setting=read_parameters (argc, argv);
 	unsigned long int aa=1;
 	cout<<sizeof(aa)*8<<endl;
-
-
+	
+	
 	//test(setting);
 	runAll(setting);
-
 	string tag;
 	//cin>>tag;
 	return 1;
-	
-	
 }
