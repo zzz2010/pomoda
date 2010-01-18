@@ -19,7 +19,7 @@ double CDThreshold=0;
 	double wininc=1.1;
 	
 VAL LIBSIZE;
-double ENTROPY_Threshold=1.95;
+double ENTROPY_Threshold=1.9;
 double tolerance=0.1;
 
 
@@ -654,10 +654,8 @@ int lastpos=-1;
 
 				
 
-				if(tempmodel.InstanceSet.size()==0)
+				if(tempmodel.InstanceSet.size()!=0)
 				{
-					return ;
-				}
 				
 				tempmodel.InitializePWMofInstanceSet();
 		
@@ -699,7 +697,7 @@ int lastpos=-1;
 
 					}
 			
-
+			
 				POSLIST.clear();
 				int effLen=0;
 				int nCnt=0;
@@ -727,6 +725,7 @@ int lastpos=-1;
 		}
 
 			tempmodel.InstanceSet.clear();
+				}
 				double ors;
 			//compute the score again for the final PWM
 			tempmodel.ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
@@ -827,6 +826,7 @@ vector<VAL> MotifModel::getMatchPos()
 
 	 sort(POSLIST.begin(),POSLIST.end());
 	 int BINNUM2=SEQLEN/(BindingRegion/2);
+	 
 	 int centerCnt=0;
 	 int bgCnt=0;//new int[BINNUM2];
 
@@ -840,6 +840,7 @@ vector<VAL> MotifModel::getMatchPos()
 	 }
 	 FOR(i,POSLIST.size())
 	 {
+		POSLIST[i]=abs(POSLIST[i]);
 		 int pos=POSLIST[i]%SEQLEN;
 		 int seqnumL=POSLIST[i]/SEQLEN;
 		 if(seqnumL!=lastseqL)
@@ -847,8 +848,10 @@ vector<VAL> MotifModel::getMatchPos()
 			 lastseq=-1;
 			 lastseqL=seqnumL;
 		 }
+		 
 		 int bias=abs(pos-SEQLEN/2);
 		 int seqnum=pos/(BindingRegion/2);
+		 //fall into the same bin
 		 if(seqnum==lastseq)
 		 {
 			 if(bias<BindingRegion/2)
@@ -881,6 +884,7 @@ vector<VAL> MotifModel::getMatchPos()
 	 BINNUM2=BINNUM2*maxRange/SEQLEN;
 	
 	 double ratio=(double)( bgCnt)/((BINNUM2-4)*realMAXSEQNUM);  //+centerCnt
+	 
 	 if(ratio>1)
 		 ratio=1;
 	 if(!LargeDataFlag)
@@ -1191,7 +1195,9 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 							double n2=cddiff+bgdiff;
 							double ratio=(double)(ii+1)/realBINNUMBER;
 							double ratio2=(double)(ii+1)/(realBINNUMBER-1);
-							score=(cdcnter-n*ratio)/sqrt(n*ratio*(1-ratio))+(cddiff-n2*ratio2)/sqrt(n2*ratio2*(1-ratio2));//+ssr*ssr
+							double z0=(cdcnter-n*ratio)/sqrt(n*ratio*(1-ratio));
+							double z1=(cddiff-n2*ratio2)/sqrt(n2*ratio2*(1-ratio2));
+							score=z0*z0+z1*z1;//+ssr*ssr
 							if(score>=bestscore&&cdcnter>Setting->min_supp_ratio*MAXSEQNUM&&bgcnter>bgfold)
 							{
 								bestwindowId=ii;		
@@ -2498,6 +2504,7 @@ void MotifModel::PWMRefinement()
 		FOR(j,4)
 			backup.s(this->g(i,j),i,j);
 	double bkScore=ORScore;
+	/*****************cut the tail********************/
 	//for(i=1;i<temp.size();i++)
 	//{
 	//	if(temp[i]!='N')
@@ -2531,6 +2538,7 @@ void MotifModel::PWMRefinement()
 	//	CNSVScore=Setting->seedlength;
 	//	
 	//}
+	/*****************cut the tail********************/
 	//ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
 	int len=Length();
 	int move=0;
@@ -2644,7 +2652,7 @@ if(badmove.size()>0)
 }
 else
 {
-	
+	int mod=(int)SEQLEN/BindingRegion/bgfold;
 	FOR(i,POSLIST.size())
 	{
 		long int wpos=POSLIST[i];
@@ -2665,8 +2673,8 @@ else
 			if(bias>windowsize/2)//SEQLEN/bgfold&&LargeDataFlag)//if(bias>windowsize/2)
 			{
 			
-				//if(tempBGmodel.InstanceSet.size()>bgfold*tempmodel.InstanceSet.size())
-				//	continue;
+				if((int)bias%mod!=0)
+					continue;
 				{
 					string pa;
 					if(rc)
@@ -2752,9 +2760,10 @@ double refScore=(CenterCnt-NCnt*ratio)/sqrt(NCnt*ratio*(1-ratio));
 	if(LargeDataFlag)
 	tempBGmodel.InitializePWMofInstanceSet();
 	//tempBGmodel.initialise(0.25);//zzz
+
 	//tempmodel.print();
 	//tempBGmodel.print();
-	
+
 	//if(tempBGmodel.InstanceSet.size()<bgfold*4*minCDSupport*MAXSEQNUM)//  get_consensus().size()>Setting->seedlength)
 	if(LargeDataFlag)
 	FOR(i,X())
@@ -2883,11 +2892,15 @@ double refScore=(CenterCnt-NCnt*ratio)/sqrt(NCnt*ratio*(1-ratio));
 				double NCnt2=0;
 				double BGCnt2=0;
 				bool sel[4];
-				
+				int cn=0;
 				FOR(k,4)
 				{
 					sel[k]=((j+1)>>k)%2;
+					cn+=sel[k];
 				}
+				// skip tri-nuclutide
+				//if(cn==3)
+				//	continue;
 
 				FOR(k,4)
 				{
@@ -3153,15 +3166,15 @@ double MotifModel::entropy(int col)
 
 	int MotifModel::AlignmentPWM(MotifModel* refmotif,MotifModel* newmotif,double& bestscore,int &bestoverlap)
 	{
-				           bestscore=10;
+				           bestscore=1.4;
 		            int bestaln=0;
                 bestoverlap = 0;
 				int size=newmotif->Length();
 		            int size2=refmotif->Length();
-               int      alnScore=10;
+               int      alnScore=1.4;
 			   
 		            int minsize=min(refmotif->Length(),newmotif->Length());
-					int minoverlap=max(5,minsize-2);
+					int minoverlap=min(5,minsize-2);
 					int skip=0;
 					//move newmotif from left to rigth referred to refmotif
 		            for(int i=0-size+minoverlap;i<size2-minoverlap+1;i++)
@@ -3207,8 +3220,10 @@ double MotifModel::entropy(int col)
 				            bestaln=i;
                             bestoverlap = overlap;
 			            }
-		            }
+					}
 		            alnScore=bestscore;
+					//if(alnScore==10)
+					//	cout<<size<<" "<<size2<<" "<<minoverlap<<endl;
 		            return bestaln;
 	
 	}
