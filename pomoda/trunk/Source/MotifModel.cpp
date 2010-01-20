@@ -670,17 +670,20 @@ int lastpos=-1;
 								i++;
 							}
 						int id=acgt(Consensus[col]);
-						col=tempmodel.head+seedpos+i;
-						if(id>3||id<0)
-							continue;
+						//cout<<Consensus[col]<<" "<<col<<" "<<seedpos<<endl;
+						col=head+seedpos+i;
+					
+						//if(id>3||id<0)
+						//	continue;
+						
 						tempmodel.d(1+divCnt[i],col,id); // diverge the orignal seed element by the divergence degree
 					
 						double sum=0;
 						double sum2=0;
-						//FOR(j,4)
-						//{
-						//	tempmodel.d(SearchEngine->CDProb[j],col,j);
-						//}
+						FOR(j,4)
+						{
+							tempmodel.d(SearchEngine->CDProb[j],col,j);
+						}
 
 
 						FOR(j,4)
@@ -893,6 +896,9 @@ vector<VAL> MotifModel::getMatchPos()
 		 ratio=bgocc*BindingRegion/2;
 	 }
 	 SeqPvalue=(double)(centerCnt/2)/((double)bgCnt/(BINNUM2-4));//
+	 if(centerCnt>realMAXSEQNUM*2)
+	 	SeqPvalue=1;//filter it
+	 else
 	  SeqPvalue=binominalTail(ratio, centerCnt,realMAXSEQNUM*2);	
 	  if(SeqPvalue==-1)
 	  {
@@ -1056,7 +1062,7 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 		{
 			pattern=Hash2ACGT(hash,len);
 			pattern.insert(3,string("NNN"));
-			//continue;
+			continue;
 		}
 		else
 		pattern=Hash2ACGT(hash,len);
@@ -1197,7 +1203,7 @@ void MotifModel::printMatchPos(string name,vector<VAL>& list)
 							double ratio2=(double)(ii+1)/(realBINNUMBER-1);
 							double z0=(cdcnter-n*ratio)/sqrt(n*ratio*(1-ratio));
 							double z1=(cddiff-n2*ratio2)/sqrt(n2*ratio2*(1-ratio2));
-							score=z0*z0+z1*z1;//+ssr*ssr
+							score=z0+z1;//+ssr*ssr
 							if(score>=bestscore&&cdcnter>Setting->min_supp_ratio*MAXSEQNUM&&bgcnter>bgfold)
 							{
 								bestwindowId=ii;		
@@ -1841,7 +1847,7 @@ int BINSIZE2=ceil((double)SEQLEN/2/(BINNUMBER));
 				double n2=bgdiff+cddiff;
 				double Z0=(cdcnter-n*ratio)/sqrt(n*ratio*(1-ratio));
 				double Z1=(cddiff-n2*ratio2)/sqrt(n2*ratio2*(1-ratio2));
-				score=Z0*Z0+Z1*Z1; //+ssr*ssr
+				score=Z0+Z1; //+ssr*ssr
 				/*if(Z0<0)
 					score=0;*/
 		//zzz	//double pvalue=binominalTail(ratio,cdcnter,(bgcnter+cdcnter))*(CNSVScore-DiffScore);//*pow((double)4,Length()-Setting->seedlength);
@@ -2504,49 +2510,52 @@ void MotifModel::PWMRefinement()
 		FOR(j,4)
 			backup.s(this->g(i,j),i,j);
 	double bkScore=ORScore;
+	int mv1,mv2;
+	mv1=mv2=0;
 	/*****************cut the tail********************/
-	//for(i=1;i<temp.size();i++)
-	//{
-	//	if(temp[i]!='N')
-	//		break;
-	//}
-	//
-	//for(j=1;j<temp.size();j++)
-	//{
-	//	if(temp[temp.size()-j-1]!='N')
-	//		break;
-	//}
+	for(i=1;i<temp.size();i++)
+	{
+		if(temp[i]!='N')
+			break;
+	}
+	
+	for(j=1;j<temp.size();j++)
+	{
+		if(temp[temp.size()-j-1]!='N')
+			break;
+	}
 
-	//if(j>t)
-	//	tail+=j;
-	//
-	//if(i>t)
-	//	head+=i;
-	//if(j>t||i>t)
-	//{
-	//	FOR(i,X())
-	//	{
-	//		if(i<head||i>(X()-tail) )
-	//		{
-	//			FOR(j,4)
-	//			{
-	//				s(0.25,i,j);
-	//			}
-	//		}
-	//	}
-	//	DiffScore=Setting->seedlength;
-	//	CNSVScore=Setting->seedlength;
-	//	
-	//}
+	if(j>t)
+	{
+		tail+=j;
+		mv2=j;
+	}
+	
+	if(i>t)
+	{
+		head+=i;
+		mv1=i;
+	}
+	if(j>t||i>t)
+	{
+		FOR(i,X())
+		{
+			if(i<head||i>(X()-tail) )
+			{
+				FOR(j,4)
+				{
+					s(0.25,i,j);
+				}
+			}
+		}
+		DiffScore=Setting->seedlength;
+		CNSVScore=Setting->seedlength;
+		
+	}
 	/*****************cut the tail********************/
 	//ComputeScore(0.8,CDScore,ORScore,BindingRegion,CNSVScore,DiffScore);
 	int len=Length();
-	int move=0;
-	//if(len<10)
-	//{
-	//	move=2;
-	//}
-	len+=2*move;
+
 	int ct=len/2;
 	InstanceSet.clear();
 	FOR(i,POSLIST.size())
@@ -2562,7 +2571,7 @@ void MotifModel::PWMRefinement()
 		}
 		int seqnum=upos/SEQLEN;
 		int pos=upos%SEQLEN;
-		if(SearchEngine->CharText[upos-move+ct]=='X')
+		if(SearchEngine->CharText[upos+ct]=='X')
 					continue;
 			int windowsize=BindingRegion;
 			double bias=abs(pos-SEQLEN/2);
@@ -2571,13 +2580,13 @@ void MotifModel::PWMRefinement()
 					string pa;
 					if(rc)
 					{
-						pa=SearchEngine->getSite(upos-move,len);
+						pa=SearchEngine->getSite(upos+mv2,len);
 			
 						pa=reverseString(pa);
 					}
 					else
 					{
-						pa=SearchEngine->getSite(upos-move,len);
+						pa=SearchEngine->getSite(upos+mv1,len);
 				
 					}
 				
@@ -2597,6 +2606,8 @@ void MotifModel::PWMRefinement()
 		ORScore=bkScore;
 		this->get_consensus(0);
 	}
+	else
+		cout<<"refine done"<<endl;
 
 }
 
@@ -2673,8 +2684,8 @@ else
 			if(bias>windowsize/2)//SEQLEN/bgfold&&LargeDataFlag)//if(bias>windowsize/2)
 			{
 			
-				if((int)bias%mod!=0)
-					continue;
+				//if((int)bias%mod!=0)
+				//	continue;
 				{
 					string pa;
 					if(rc)

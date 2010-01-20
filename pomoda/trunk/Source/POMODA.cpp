@@ -37,7 +37,7 @@
 #include <sstream>
 #include "HashEngine.h"
 #include "EM.h"
-#define SignificantLevel2 13.271552
+#define SignificantLevel2 2.57
 
 //string seqFile="select_m_10k.fa";//"snber_1000_sorted.fasta";//"select_H_sapiens_UCSC_hg18_10000.fas";//"E2F_Q4V1200.fasta";//"iterSim/0U.fasta";//"testset/select_MAKEW14S1A2V200L10000N2000U.fasta";//"select_MAKEW7S1A1V1200L10000N3000U.fasta";//"P$CBT_01V200.fasta";//"testset/simdata1.fas";//"select_p300.fasta";//"select_ctcf.fasta";//"snber_1000_sorted.fasta";//"select_MAKEW8S1A1V50.fasta";//"select_m_10k.fa";//"select_i10k.fasta";//"seq_ctcf_sort_intensity.fa";//"select_m_Q1_2000.faW16S1A1V100.fa";//"select_cmyc.fasta";//"select_m_Q1_2000.fa";///"select_m_Q1_2000.faW8S1A1V400.fa";//"select_2fold_im_m.fa.SeqRev";//"select_i_Q1.fa.SeqRev";//"select_2fold_im_i.fa.SeqRev";//"select_m_Q1.fa.SeqRev";//"bg1000.SeqW12S3A4V200.Seq";//"bg1000.SeqW16S1A1V100.Seq";//"select_2fold_im_m.fa.SeqRev";//"MCF7E2.txt.SeqRev";//"seq500_mcf7e2_promoter.fa.SeqRev";//"bg1000.SeqW8S1A1V100.Seq";//
 
@@ -46,7 +46,7 @@ PARAM *read_parameters (int nargs, char **argv)
 /***********************************************/
 {
 PARAM *p;
-int iarg=1, score=0, i;
+int iarg=1, score=0;
 static char* syntax = "Pomoda -i inputFasta  [-o outputDIR -w weightFile -ot overlapThreshold -pdt PWM_Divergence_Threshold -ratio minSupportRatio, -FDR p-valueCutoff, -maxlen maxMotifLength, -seedlen SeedLength,-rs Resolution_bp, -mbr min_binding_range, -n numberOfMotifs]";
 
 
@@ -55,8 +55,8 @@ p = new param_st();//(PARAM*)calloc(1,sizeof(PARAM));
 p->seedlength= 5;
 p->min_supp_ratio=0.05;
 p->FDRthresh=0.05;//1.e-2;
-p->olThresh=0.02;
-p->pdThresh=0.18;
+p->olThresh=0.5;
+p->pdThresh=0.09;
 p->outputDIR=string(".");
 
 p->N_motif=20;
@@ -132,9 +132,9 @@ void test(PARAM * setting)
 	//simlist=emOpt.LoadSeedModels(simlist,setting->N_motif);
 
 		MotifModel MM(&engine,setting->max_motif_length,setting);
-		MM.seed="TTGGC"; //"GACTC";//ATGCCC
+		MM.seed="GCCAA"; //"GACTC";//ATGCCC
 		MM.AddInstance(MM.seed);
-		//MM.AddInstance("TAAAT");
+		//MM.AddInstance("AAANTCATTNAC");
 		MM.InitializePWMofInstanceSet();
 		//cout<<MM.get_consensus(0)<<endl;
 		//MM.ORScore=2.49284;
@@ -213,7 +213,7 @@ void runAll(PARAM * setting)
 	HashEngine* engine2=engine.Clone();
 	int seqnum=engine.getTotalLength()/engine.SeqLen+1;
 	if((setting->min_supp_ratio*seqnum)<50)
-		setting->min_supp_ratio=(double)50.0/seqnum;
+		setting->min_supp_ratio=(float)50.0/seqnum;
 	cout<<setting->min_supp_ratio<<endl;
 	
 	MotifModel MM(&engine,setting->max_motif_length,setting);
@@ -221,7 +221,7 @@ void runAll(PARAM * setting)
 ////////////////////////////////////////////////
 	MM.switchFlag=true;
 	
-	vector<MotifModel*> SeedList=MM.getSeedMotifs(setting->N_motif*setting->N_motif,setting->seedlength,setting->min_supp_ratio);
+	vector<MotifModel*> SeedList=MM.getSeedMotifs(setting->N_motif*setting->N_motif,setting->seedlength,0);
 	double markThreshold=SeedList[0]->GetMixedScore();
 	cout<<"markThreshold: "<<markThreshold<<endl;
 	map<double,MotifModel*> sortlist;
@@ -516,7 +516,7 @@ void runAll(PARAM * setting)
 
 
 		
-		double snr,prbE,prbN;
+	//	double snr,prbE,prbN;
 
 		if(MMinst->ORScore>SignificantLevel2)
 		{
@@ -788,7 +788,7 @@ int main(int argc, char* argv[])
 	cout<<sizeof(aa)*8<<endl;
 	
 	
-	//test(setting);
+	test(setting);
 
 	runAll(setting);
 	string tag;
