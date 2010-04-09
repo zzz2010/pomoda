@@ -132,7 +132,7 @@ void test(PARAM * setting)
 	//simlist=emOpt.LoadSeedModels(simlist,setting->N_motif);
 
 		MotifModel MM(&engine,setting->max_motif_length,setting);
-		MM.seed="GCCAA"; //"GACTC";//ATGCCC
+		MM.seed="CAAAC"; //"GACTC";//ATGCCC
 		MM.AddInstance(MM.seed);
 		//MM.AddInstance("AAANTCATTNAC");
 		MM.InitializePWMofInstanceSet();
@@ -793,5 +793,5 @@ int main(int argc, char* argv[])
 	runAll(setting);
 	string tag;
 	//cin>>tag;
-	return 1;
+	return 0;
 }
