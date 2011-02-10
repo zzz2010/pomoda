@@ -1,0 +1,418 @@
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+
+
+public class HashEngine implements ISearchEngine {
+
+	public HashEngine(int hashlen) {
+		super();
+		this.Hashlen = hashlen;
+		
+		int addrange=1<<(hashlen*2);
+		HashIndex= new ArrayList< LinkedList<Integer>>(addrange);
+		for(int i=0;i<addrange;i++)
+			HashIndex.add(new LinkedList<Integer>());
+		
+		BGProb=new double[4];
+		CDProb=new double[4];
+	}
+
+	private int Hashlen;
+	private ArrayList< LinkedList<Integer>> HashIndex;
+	private String CharText; 
+	public int SeqNum;
+	public int TotalLen;
+	public ArrayList<Integer> accSeqLen;
+	public double[] BGProb;
+	public double[] CDProb;
+	@Override
+	public void build_index(String inputfile) {
+		int maxHash=1<<(2*Hashlen);
+		CharText="";
+		int i,j,k;
+		SeqNum=0;
+		TotalLen=0;
+		accSeqLen=new ArrayList<Integer>(10000);
+		 try {
+			BufferedReader input =  new BufferedReader(new FileReader(inputfile));
+			String line = null;
+	        while (( line = input.readLine()) != null){
+	            if(line.startsWith(">"))
+	            {
+	            	SeqNum++;
+	            	accSeqLen.add(TotalLen);
+	            }
+	            else
+	            {
+	            	
+	            	
+	            	for(i=0;i<line.length()-Hashlen;i++)
+	            	{
+	            		int hash=getHashing(line,i,Hashlen);
+	    				if(hash>=0&&hash<(maxHash))
+	    				{
+	    					HashIndex.get(hash).add(TotalLen+i);
+	    					
+	    				}
+	            	
+	            	}
+	            	TotalLen+=line.length();
+	            	CharText.concat(line);
+	            	
+	            }
+	            
+	          
+	          }
+			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	private String gPattern;
+	LinkedList<Integer> SmartShift(String pattern)
+	{
+		LinkedList<Integer> ret=new LinkedList<Integer>();
+		int len= pattern.length();
+		int i,j,k,q;
+		int maxaln=0;
+		int bestScore=Hashlen;
+		int curScore=0;
+		LinkedList<Integer> anchors = new LinkedList<Integer>() ;
+		//find out the conservativest part
+		for(i=0;i<Hashlen;i++)
+		{
+			if((pattern.charAt(i))=='N'||(pattern.charAt(i))=='n')
+			{
+				bestScore--;
+			}
+		}
+		for(i=0;i<len-Hashlen;i++)
+		{
+			if(i==0)
+				curScore=bestScore;
+			else
+			{
+				if((pattern.charAt(i))=='N'||(pattern.charAt(i))=='n')
+				{
+					curScore++; //one go out
+				}
+				if((pattern.charAt(i+Hashlen-1))=='N'||(pattern.charAt(i+Hashlen-1))=='n')
+				{
+					curScore--; //one go out
+				}
+				if(curScore>bestScore)
+				{
+					maxaln=i+1;
+					bestScore=curScore;
+				}
+
+			}
+		}
+		
+		String temp=pattern.substring(maxaln, maxaln+Math.min(len-maxaln,Hashlen));
+		
+		
+		anchors.addAll(searchPatternNRC(temp,0,0));
+		
+		LinkedList<Integer> mask = new LinkedList<Integer>();
+		
+		for(i=0;i<len;i++)
+		{
+
+			if(i>=maxaln&&i<(maxaln+Hashlen))
+				continue;
+			if((pattern.charAt(i))=='N'||(pattern.charAt(i))=='n')
+				continue;
+			
+			mask.add(i);
+		}
+
+		int size=anchors.size();
+		Iterator<Integer> iter=anchors.iterator();
+		for(i=0;i<size;i++)
+		{
+			int pos=iter.next();
+			boolean flag=true;
+			Iterator<Integer> iter2=mask.iterator();
+			for(j=0;j<mask.size();j++)
+			{
+				int markiter=iter2.next();
+				int pos2=pos-(maxaln-markiter);
+				if(common.acgt(CharText.charAt(pos2))!=common.acgt(pattern.charAt(markiter)))
+				{
+					flag=false;
+					break;
+				}
+			}
+
+			if(flag)
+				ret.add(pos-maxaln);
+		}
+		
+		return ret;
+	
+	}
+	
+	LinkedList<String> NCloseSet(String pattern)
+	{
+		String ACGT="ACGT";
+		int i,j,k;
+		LinkedList<Integer> pos = new LinkedList<Integer>();
+		LinkedList<String> retSet = new LinkedList<String>();
+		for(i=0;i<pattern.length();i++)
+		{
+			if(pattern.charAt(i)=='N')
+			{
+				pos.add(i);
+			}
+		}
+
+		if(pos.size()==0)
+		{
+			retSet.add(pattern);
+			return retSet;
+		}
+		int loop=1<<(2*pos.size());
+
+		for(i=0;i<loop;i++)
+		{
+			String temp=pattern;
+			Iterator<Integer> iterator = pos.iterator(); 
+			for(j=0;j<pos.size();j++)
+			{
+				
+				int code=(i>>(j*2))%4;
+				temp=common.replaceCharAt(temp, iterator.next(), ACGT.charAt(code));
+				
+
+			}
+			retSet.add(temp);
+		}
+
+		
+
+		return retSet;
+	
+	}
+	
+	LinkedList<Integer> searchPatternNRC( String pattern, int pos, int mismatches)
+	{
+		LinkedList<Integer> ret=new LinkedList<Integer>();
+		int len=pattern.length();
+		if(mismatches>0)
+		{
+			String ACGT="ACGT";
+			int i,j;		
+			for(i=pos;i<len;i++)
+			{		
+				if(pattern.charAt(i)=='N')
+					continue;
+				for(j=0;j<3;i++)
+				{
+					String temp=new String(pattern);
+					temp=common.replaceCharAt(temp, i, ACGT.charAt((common.acgt(temp.charAt(i))+j+1)%4));
+					
+					ret.addAll(searchPatternNRC(temp,pos+1,mismatches-1));
+					
+				}
+			}
+			ret.addAll(searchPatternNRC(pattern,pos+1,0));
+		}
+		else //0 mismatch
+		{
+			//handle 'N'
+			if(pattern.length()>Hashlen)
+			{
+				ret.addAll(SmartShift(pattern));
+
+				return ret;
+			}
+			LinkedList<String> searchSet=NCloseSet(pattern);
+			if(searchSet.size()==1)
+			{
+				int left,range;
+				int[] hash=new int[3];
+				int i;
+				for(i=0;i<3;i++)
+					hash[i]=-1;	
+				String pa=searchSet.getFirst();
+				if(pa.length()>3*Hashlen)
+					pa=pa.substring(0,3*Hashlen);
+				
+				for(i=0;i<3;i++)
+				{
+					
+					if(pa.length()<=(i+1)*Hashlen)
+						break;
+					hash[i]=getHashing(pa,i*Hashlen,Hashlen);
+					
+				}	
+				int restlen=pa.length()%Hashlen;
+				if(restlen==0)
+					restlen=Hashlen;
+				hash[i]=getHashing(pa,i*Hashlen,restlen);
+				left=(Hashlen-pa.length()%Hashlen)%Hashlen;
+
+				range=1<<(2*left);
+				hash[i]<<=(2*left);
+				ret.addAll( JoinMerge(range,hash[0],hash[1],hash[2]));
+
+				return ret;
+			}
+			int i;
+			Iterator<String> iterator=searchSet.iterator();
+			for(i=0;i<searchSet.size();i++)
+			{
+				String temp=iterator.next();
+			
+				ret.addAll(searchPatternNRC(temp,pos+1,0));
+				
+			}
+		}
+		return ret;
+		
+	}
+		
+		
+		LinkedList<Integer> JoinMerge(int Range, int hash1, int hash2, int hash3)
+		{
+			LinkedList<Integer> ret=new LinkedList<Integer>();
+			int i;
+			if(hash3!=-1)
+			{
+				for(i=0;i<Range;i++)
+				{
+					
+					int pos1,pos2,pos3;
+					Iterator<Integer> iter1=HashIndex.get(hash1).iterator();
+					Iterator<Integer> iter2=HashIndex.get(hash2).iterator();
+					Iterator<Integer> iter3=HashIndex.get(hash3+i).iterator();
+					pos1=iter1.next();
+					pos2=iter2.next();
+					pos3=iter3.next();
+					while(iter1.hasNext()&&iter2.hasNext()&&iter3.hasNext())
+					{
+
+
+						if(pos1==(pos2-Hashlen)&&pos2==(pos3-Hashlen))
+						{
+							ret.add(pos1);
+							pos1=iter1.next();
+							pos2=iter2.next();
+							pos3=iter3.next();
+						}
+						if(pos1<(pos2-Hashlen))
+							pos1=iter1.next();
+						if(pos2<(pos3-Hashlen))
+							pos2=iter2.next();
+						if(pos3<(pos2+Hashlen))
+							pos3=iter3.next();
+					}
+				}
+			}
+			else if(hash2!=-1)
+			{
+				for(i=0;i<Range;i++)
+				{
+					
+					int pos1,pos2;
+					Iterator<Integer> iter1=HashIndex.get(hash1).iterator();
+					Iterator<Integer> iter2=HashIndex.get(hash2+i).iterator();
+					pos1=iter1.next();
+					pos2=iter2.next();
+					while(iter1.hasNext()&&iter2.hasNext())
+					{
+					
+						if(pos1==(pos2-Hashlen))
+						{
+							ret.add(pos1);
+							pos1=iter1.next();
+							pos2=iter2.next();
+						
+						}
+						if(pos1<(pos2-Hashlen))
+							pos1=iter1.next();
+						if(pos2<(pos1+Hashlen))
+							pos2=iter2.next();
+					}
+				}
+			}
+			else
+			{
+				//if(hash1>65536||hash1<0)
+				//	return;
+				for(i=0;i<Range;i++)
+				{
+					
+				
+					
+					int pos1;
+					Iterator<Integer> iter1=HashIndex.get(hash1+i).iterator();
+					pos1=iter1.next();
+					while(iter1.hasNext())
+					{
+						
+						ret.add(pos1);
+						pos1=iter1.next();
+						
+					}
+				}
+			}
+		
+			return ret;
+		}
+	@Override
+	public LinkedList<Integer> searchPattern(String pattern, int mismatch) {
+		LinkedList<Integer> ret=new LinkedList<Integer>();
+		gPattern=pattern;
+		ret.addAll( searchPatternNRC(pattern,0,mismatch));
+		
+			//reverse searching
+		String temp=common.reverseString(pattern);
+		if(temp.equals(pattern))
+			return ret;
+		gPattern=temp;
+		ret.addAll( searchPatternNRC(temp,0,mismatch));
+		return ret;
+	}
+
+	@Override
+	public String getSite(int location, int len) {
+		  
+		return CharText.substring(location, location+len);
+	}
+	
+	
+	Integer getHashing(String source, int start, int len)
+	{
+			int i=0;
+			int ret=0;
+			
+			ret = common.acgt( source.charAt(start));
+			if(ret<0)
+				return -1;
+			for (i = start + 1; i < start + len; i++)
+			{ 
+				ret<<=2;
+				int temp=common.acgt(source.charAt(start));
+				if(temp<0||temp>3)
+					return -1;
+				ret+=temp;			
+			}
+				return ret;
+
+	}
+
+}
