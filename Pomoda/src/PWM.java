@@ -8,29 +8,28 @@ import java.util.Map.Entry;
 
 import java.util.Iterator;
 
+import org.biojava.bio.alignment.*;
 import org.biojava.bio.dist.Distribution;
 import org.biojava.bio.dist.DistributionTools;
 import org.biojava.bio.dp.DP;
 import org.biojava.bio.dp.ScoreType;
 import org.biojava.bio.dp.SimpleWeightMatrix;
 import org.biojava.bio.seq.DNATools;
-import org.biojava.bio.symbol.Alignment;
-import org.biojava.bio.symbol.IllegalAlphabetException;
-import org.biojava.bio.symbol.IllegalSymbolException;
-import org.biojava.bio.symbol.SimpleAlignment;
-import org.biojava.bio.symbol.SymbolList;
+import org.biojava.bio.symbol.*;
 
 public class PWM extends SimpleWeightMatrix {
 
 	double[][]  m_matrix;
 	public int head;
 	public int tail;
+	public double Score;
 	public PWM(Distribution[] arg0) throws IllegalAlphabetException {
 		super(arg0);
 		// TODO Auto-generated constructor stub
 		
 		head=-1;
 		tail=-1;
+		Score=Double.MIN_VALUE;
 	}
 	
 	
@@ -137,7 +136,7 @@ public class PWM extends SimpleWeightMatrix {
 	public double scoreWeightMatrix( String seq, ScoreType scoreType)
 	{
 		try {
-			return DP.scoreWeightMatrix(this, DNATools.createDNA(seq), scoreType, 0);
+			return DP.scoreWeightMatrix(this, DNATools.createDNA(seq), scoreType, 1);
 		} catch (IllegalSymbolException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -163,7 +162,7 @@ public class PWM extends SimpleWeightMatrix {
 			}
 			
 		}
-		logprob=model.Get_LOGPROB(sb.toString())+Math.log(Ncount*4);
+		logprob=model.Get_LOGPROB(sb.toString())+Ncount*Math.log(4);
 		
 		
 		return logprob;
@@ -177,7 +176,7 @@ public class PWM extends SimpleWeightMatrix {
 		TreeMap<Double,Integer> column=new TreeMap<Double,Integer>();
 		
 
-			double smallvalue=0.000000000001;
+			double smallvalue=Double.MIN_NORMAL;
 			for (int j = 1; j<= 4; j++)
 			{  
 				double weight=m_matrix[col][j-1];
@@ -237,7 +236,7 @@ public class PWM extends SimpleWeightMatrix {
 				int gapsize=effIndex.get(i+1)-effIndex.get(i)-1;
 				for (int j = 0; j < gapsize; j++) {
 					sb.append('N');	
-					logprob+=log025;
+					//logprob+=log025;
 				}
 			}
 		}
@@ -265,9 +264,12 @@ public class PWM extends SimpleWeightMatrix {
 					     if(orders[i]==orig_symid)
 					    	 break;
 					}
-					if(i==orders.length-1)
+					if(i==(orders.length-1))
 						continue;
 					symid=orders[i+1];
+					if(getWeight(changingIndex, symid)<0.05)
+						continue;
+						
 											
 					sb.setCharAt(changingIndex-head,(ACGT[symid]));
 					logprob+=Math.log(getWeight(changingIndex,symid));

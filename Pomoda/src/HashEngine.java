@@ -38,6 +38,10 @@ public class HashEngine implements ISearchEngine {
 	public double[] BGProb;
 	public double[] CDProb;
 	public int forwardCount; //the first n entry in the searchPattern is forward.
+	
+	
+	
+
 	@Override
 	public void build_index(String inputfile) {
 		int maxHash=1<<(2*Hashlen);
@@ -61,7 +65,7 @@ public class HashEngine implements ISearchEngine {
 	            	
 	            	for(i=0;i<line.length()-Hashlen;i++)
 	            	{
-	            		int hash=getHashing(line,i,Hashlen);
+	            		int hash=common.getHashing(line,i,Hashlen);
 	    				if(hash>=0&&hash<(maxHash))
 	    				{
 	    					HashIndex.get(hash).add(TotalLen+i);
@@ -266,13 +270,13 @@ public class HashEngine implements ISearchEngine {
 					
 					if(pa.length()<=(i+1)*Hashlen)
 						break;
-					hash[i]=getHashing(pa,i*Hashlen,Hashlen);
+					hash[i]=common.getHashing(pa,i*Hashlen,Hashlen);
 					
 				}	
 				int restlen=pa.length()%Hashlen;
 				if(restlen==0)
 					restlen=Hashlen;
-				hash[i]=getHashing(pa,i*Hashlen,restlen);
+				hash[i]=common.getHashing(pa,i*Hashlen,restlen);
 				left=(Hashlen-pa.length()%Hashlen)%Hashlen;
 
 				range=1<<(2*left);
@@ -404,14 +408,17 @@ public class HashEngine implements ISearchEngine {
 	{
 		LinkedList<FastaLocation> ret=new LinkedList<FastaLocation>();
 		Iterator<Integer> iter=input.iterator();
-		int seqNum=0;
+		
 		while(iter.hasNext())
 		{
+			int seqNum=0;
 			int pos=iter.next();
 			while(pos>accSeqLen.get(seqNum+1))
 				seqNum++;
 			int seqLen=accSeqLen.get(seqNum+1)-accSeqLen.get(seqNum);
+			
 			FastaLocation a=new FastaLocation(pos, seqNum, pos-accSeqLen.get(seqNum), seqLen);
+
 			ret.add(a);
 			
 		}
@@ -422,30 +429,13 @@ public class HashEngine implements ISearchEngine {
 
 	@Override
 	public String getSite(int location, int len) {
-		  
+		  if(location<0)
+			  return "";
 		return CharText.substring(location, location+len);
 	}
 	
 	
-	Integer getHashing(String source, int start, int len)
-	{
-			int i=0;
-			int ret=0;
-			
-			ret = common.acgt( source.charAt(start));
-			if(ret<0)
-				return -1;
-			for (i = start + 1; i < start + len; i++)
-			{ 
-				ret<<=2;
-				int temp=common.acgt(source.charAt(i));
-				if(temp<0||temp>3)
-					return -1;
-				ret+=temp;			
-			}
-				return ret;
 
-	}
 
 	@Override
 	public int getTotalLength() {

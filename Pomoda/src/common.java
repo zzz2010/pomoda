@@ -108,6 +108,26 @@ public class common {
 		}
 
 	}
+	
+	static Integer getHashing(String source, int start, int len)
+	{
+			int i=0;
+			int ret=0;
+			
+			ret = common.acgt( source.charAt(start));
+			if(ret<0)
+				return -1;
+			for (i = start + 1; i < start + len; i++)
+			{ 
+				ret<<=2;
+				int temp=common.acgt(source.charAt(i));
+				if(temp<0||temp>3)
+					return -1;
+				ret+=temp;			
+			}
+				return ret;
+
+	}
 
 }
 
