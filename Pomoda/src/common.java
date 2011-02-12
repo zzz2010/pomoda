@@ -1,7 +1,41 @@
+import java.util.Comparator;
+import java.util.Map;
 
+/**
+ * @author zhizhuo zhang
+ * zzz2010@gmail.com
+ */
 public class common {
 	
+	static String Hash2ACGT(int hash,int len)
+	{
+		String ACGT="ACGT";
+		int k;
+		StringBuffer pa=new StringBuffer("");
+			for(k=0;k<len;k++)
+			{
+				pa.append( ACGT.charAt(hash%4));
+				hash>>=2;
+			}	
+			return pa.toString();
+	};
+
 	
+	static int getReverseComplementHashing(int hash, int len)
+	{
+		int ret=0;
+		for(int i = 0; i < len; ++i)
+		{
+			ret<<=2;
+			int temp=hash%4;
+			hash>>=2;
+			ret+=3-temp;
+			
+			
+		}
+
+		return ret;
+	}
 	
 	static char reverseC(char w)
 	{
@@ -31,11 +65,11 @@ public class common {
 		}
 		return 'N';
 	}
-	static String reverseString(String Tag)
+	static String getReverseCompletementString(String Tag)
 	{
 			String temp="";
 			for(int i=0;i<Tag.length();i++)
-			temp.concat(String.valueOf((reverseC(Tag.charAt(Tag.length()-1-i)))));
+				temp=temp.concat(String.valueOf((reverseC(Tag.charAt(Tag.length()-1-i)))));
 			//temp.push_back(reverseC(Tag[i]));
 			return temp;
 	}
@@ -76,3 +110,19 @@ public class common {
 	}
 
 }
+
+class ValueComparator implements Comparator<Map.Entry<Integer,Double>> {
+
+	
+	  public int compare(Map.Entry<Integer,Double> e1, Map.Entry<Integer,Double> e2) {
+	        if (e1.getValue() < e2.getValue()){
+	            return 1;
+	        } else if (e1.getValue() == e2.getValue()) {
+	            return 0;
+	        } else {
+	            return -1;
+	        }
+	    }
+
+
+	}
