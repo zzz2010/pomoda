@@ -1,4 +1,5 @@
 import java.io.*;
+import java.util.HashMap;
 
 import org.biojava.bio.BioException;
 import org.biojava.bio.dp.*;
@@ -19,83 +20,105 @@ import org.biojavax.bio.seq.RichSequence;
 public class BGModel {
 	
 	DP dp;
+	HashMap<String, Double> conditionProb;
+	public int order;
 	public double Get_LOGPROB(String seq)
 	{
-	    //decode the most likely state path and produce an 'odds' score
-	    StatePath path = null;
-		try {
-			SymbolList test = DNATools.createDNA(seq);
-			
-		    /*
-		     * put the test sequence in an array, an array is used because for pairwise
-		     * alignments using an HMM there would need to be two SymbolLists in the 
-		     * array
-		     */
-		 
-		    SymbolList[] sla = {test};
-			path = dp.viterbi(sla, ScoreType.PROBABILITY);
-		} catch (IllegalSymbolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAlphabetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalTransitionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		double logprob=0;
+		for (int i = 0; i < order; i++) {
+			logprob+=Math.log( conditionProb.get(seq.substring(0,order)));
 		}
-		double prob=path.getScore();
-	    return prob;
+		for (int i = 1; i < seq.length()-order+1; i++) {
+			logprob+=Math.log( conditionProb.get(seq.substring(i,i+order)));
+		}
+		//prob=path.getScore();
+	    return logprob;
 		
 	}
 	
+	
+
+	public void BuildModel(String[] Seqs, int order)
+	{
+		this.order=order;
+		initializeConditionProb();
+		 for (int i = 0; i < Seqs.length; i++) {
+			addCount(Seqs[i]);
+		}
+		 
+		 normalizeConditionProb();
+		
+	}
+	
+	private void addCount(String seq)
+	{
+		seq=seq.toUpperCase();
+		for (int i = 0; i < seq.length()-order+1; i++) {
+			for (int j = 0; j < order; j++) {
+				String segment=seq.substring(i, i+j+1);
+//			   if(conditionProb.containsKey(segment))
+//			   {
+				   conditionProb.put(segment, conditionProb.get(segment)+1);
+//			   }
+//			   else
+//			   {
+//				   conditionProb.put(segment, 1.0);
+//			   }
+			}
+			
+		}
+		
+	}
+	
+	private void normalizeConditionProb()
+	{
+		double totalsample=conditionProb.get("A")+conditionProb.get("C")+conditionProb.get("G")+conditionProb.get("T");
+		
+		for (int i = 0; i < order; i++) {
+			int total=1<<(2*(order-i));;
+			for (int j = 0; j < total; j++) {
+				String pattern=common.Hash2ACGT(j,order-i);
+				if(i==order-1)
+					conditionProb.put(pattern, conditionProb.get(pattern)/totalsample); 
+				else
+				conditionProb.put(pattern, conditionProb.get(pattern)/conditionProb.get(pattern.substring(0, pattern.length()-1)));
+			}
+			
+		}
+		
+	}
+	
+	private void initializeConditionProb()
+	{
+		conditionProb=new HashMap<String, Double>();
+		for (int i = 0; i < order; i++) {
+			int total=1<<(2*(i+1));;
+			for (int j = 0; j < total; j++) {
+				String pattern=common.Hash2ACGT(j,i+1);
+				conditionProb.put(pattern, 1.0/(total)); //pseudo count 1/total
+			}
+			
+		}
+		
+	}
+	
+
 	
 	
 	public void BuildModel(String inputFasta, int order)
 	{
 		 try {
-			ProfileHMM hmm = new ProfileHMM(DNATools.getDNA(),
-			         order,
-			         DistributionFactory.DEFAULT,
-			         DistributionFactory.DEFAULT,
-			         "DNA Markov Model");
-			dp = DPFactory.DEFAULT.createDP(hmm);
-			ModelTrainer mt = new SimpleModelTrainer();
-			mt.registerModel(hmm);
-			mt.setNullModelWeight(1.0);
-			mt.train();
-			BaumWelchTrainer bwt = new BaumWelchTrainer(dp);
-			    //anonymous implementation of the stopping criteria interface to stop after 20 iterations
-			StoppingCriteria stopper = new StoppingCriteria(){
-			      public boolean isTrainingComplete(TrainingAlgorithm ta){
-			    	  System.out.println(ta.getCurrentScore());
-			        return (ta.getCycle() > 1);
-			      }
-			    };
-			    
-			    /*
-			     * optimize the dp matrix to reflect the training set in db using a null model
-			     * weight of 1.0 and the Stopping criteria defined above.
-			     */
-			    
+			 this.order=order;
+			 initializeConditionProb();
 			 //Database to hold the training set
 			      BufferedReader br = new BufferedReader(new FileReader(inputFasta));
-			      //get a SequenceDB of all sequences in the file
-			      SequenceDB db = new HashSequenceDB();
    		          SymbolTokenization toke = AlphabetManager.alphabetForName("DNA").getTokenization("token");
    		          SequenceIterator seqi = RichSequence.IOTools.readFasta(br, toke,null);
    			      while (seqi.hasNext()) {
-   				      db.addSequence(seqi.nextSequence());
+   				     addCount(seqi.nextSequence().seqString());
    			      }
-			    
-			    
-			 bwt.train(db,1.0,stopper);
-			 
-
-			 
+   			  normalizeConditionProb();
+			     
 			
 		} catch (IllegalSymbolException e) {
 			// TODO Auto-generated catch block
@@ -130,7 +153,7 @@ public class BGModel {
 			FileOutputStream fo=new FileOutputStream(filename);
 	        ObjectOutputStream oos;
 			oos = new ObjectOutputStream(fo);
-			oos.writeObject(dp.getModel());
+			oos.writeObject(conditionProb);
 			oos.close();			
 			
 		} catch (IOException e) {
@@ -145,7 +168,7 @@ public class BGModel {
 		try {
 			FileInputStream fi=new FileInputStream(filename);
 			ObjectInputStream si=new ObjectInputStream(fi);
-			dp=DPFactory.DEFAULT.createDP((MarkovModel)si.readObject());
+			conditionProb=(HashMap<String, Double>)si.readObject();
 			si.close();
 			
 		} catch (FileNotFoundException e) {
@@ -158,9 +181,6 @@ public class BGModel {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (BioException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
