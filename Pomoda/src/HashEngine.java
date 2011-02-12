@@ -1,3 +1,7 @@
+/**
+ * @author zhizhuo zhang
+ * zzz2010@gmail.com
+ */
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -6,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+
+import org.biojava.bio.symbol.Location;
 
 
 public class HashEngine implements ISearchEngine {
@@ -31,6 +37,7 @@ public class HashEngine implements ISearchEngine {
 	public ArrayList<Integer> accSeqLen;
 	public double[] BGProb;
 	public double[] CDProb;
+	public int forwardCount; //the first n entry in the searchPattern is forward.
 	@Override
 	public void build_index(String inputfile) {
 		int maxHash=1<<(2*Hashlen);
@@ -62,13 +69,16 @@ public class HashEngine implements ISearchEngine {
 	    				}
 	            	
 	            	}
+	            	line=line.toUpperCase().replace("N", "");
 	            	TotalLen+=line.length();
-	            	CharText.concat(line);
+	            	CharText=CharText.concat(line).concat("N");
+	            	TotalLen+=1;
 	            	
 	            }
 	            
 	          
 	          }
+	        accSeqLen.add(TotalLen);
 			
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -150,7 +160,7 @@ public class HashEngine implements ISearchEngine {
 			{
 				int markiter=iter2.next();
 				int pos2=pos-(maxaln-markiter);
-				if(common.acgt(CharText.charAt(pos2))!=common.acgt(pattern.charAt(markiter)))
+				if(pos2<0||common.acgt(CharText.charAt(pos2))!=common.acgt(pattern.charAt(markiter)))
 				{
 					flag=false;
 					break;
@@ -380,11 +390,33 @@ public class HashEngine implements ISearchEngine {
 		ret.addAll( searchPatternNRC(pattern,0,mismatch));
 		
 			//reverse searching
-		String temp=common.reverseString(pattern);
+		String temp=common.getReverseCompletementString(pattern);
+		forwardCount=ret.size();
 		if(temp.equals(pattern))
 			return ret;
 		gPattern=temp;
+		
 		ret.addAll( searchPatternNRC(temp,0,mismatch));
+		return ret;
+	}
+	
+	public LinkedList<FastaLocation> Int2Location(LinkedList<Integer> input)
+	{
+		LinkedList<FastaLocation> ret=new LinkedList<FastaLocation>();
+		Iterator<Integer> iter=input.iterator();
+		int seqNum=0;
+		while(iter.hasNext())
+		{
+			int pos=iter.next();
+			while(pos>accSeqLen.get(seqNum+1))
+				seqNum++;
+			int seqLen=accSeqLen.get(seqNum+1)-accSeqLen.get(seqNum);
+			FastaLocation a=new FastaLocation(pos, seqNum, pos-accSeqLen.get(seqNum), seqLen);
+			ret.add(a);
+			
+		}
+		
+		
 		return ret;
 	}
 
@@ -406,13 +438,25 @@ public class HashEngine implements ISearchEngine {
 			for (i = start + 1; i < start + len; i++)
 			{ 
 				ret<<=2;
-				int temp=common.acgt(source.charAt(start));
+				int temp=common.acgt(source.charAt(i));
 				if(temp<0||temp>3)
 					return -1;
 				ret+=temp;			
 			}
 				return ret;
 
+	}
+
+	@Override
+	public int getTotalLength() {
+		// TODO Auto-generated method stub
+		return TotalLen;
+	}
+
+	@Override
+	public int getSeqNum() {
+		// TODO Auto-generated method stub
+		return SeqNum;
 	}
 
 }

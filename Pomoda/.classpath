@@ -7,5 +7,7 @@
 			<attribute name="javadoc_location" value="jar:file:/C:/Documents and Settings/g0800188/My Documents/Downloads/commons-cli-1.2/commons-cli-1.2-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="C:/Documents and Settings/g0800188/My Documents/Downloads/biojava.jar"/>
+	<classpathentry kind="lib" path="C:/Documents and Settings/g0800188/My Documents/Downloads/bytecode.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

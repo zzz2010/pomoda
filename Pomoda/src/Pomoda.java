@@ -1,7 +1,21 @@
+/**
+ * @author zhizhuo zhang
+ * zzz2010@gmail.com
+ */
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.commons.cli.*;
+import org.biojava.bio.symbol.IllegalAlphabetException;
+import org.biojava.bio.symbol.IllegalSymbolException;
+import org.biojava.bio.symbol.Location;
 
 
 
@@ -14,7 +28,7 @@ public class Pomoda {
 	public String outputPrefix="./";
 	public String inputFasta;
 	public int seedlen=5;
-	public int resolution=40;
+	public int resolution=20;
 	public int starting_windowsize=200;
 	public int ending_windowsize=600;
 	public double FDR=0.01;
@@ -23,19 +37,58 @@ public class Pomoda {
 	public double sampling_ratio=0.8;
 	public double min_support_ratio=0.05;
 	public boolean markflag=true;
-	public ISearchEngine SearchEngine;
+	public HashEngine SearchEngine;
+	public BGModel background;
+	public ArrayList<Double> pos_prior;
 	
 	public void initialize()
 	{
 		//build hash index
 		SearchEngine=new HashEngine(5);
 		SearchEngine.build_index(this.inputFasta);
-		SearchEngine_Test();
+//		if(SearchEngine_Test())
+//			System.out.println("SearchEngine_Test : pass");
+			
+		
+		background=new BGModel();
+		File file = new File(inputFasta+".bgobj");
+		if(file.exists())
+			background.LoadModel(inputFasta+".bgobj");
+		else
+		{
+		     background.BuildModel(inputFasta, seedlen);
+		     background.SaveModel(inputFasta+".bgobj");
+		}
+//		if(BGModel_Test())
+//			System.out.println("BGModel_Test : pass");
+		pos_prior=new ArrayList<Double>(SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution);
+	}
+	
+	private boolean BGModel_Test()
+	{
+		boolean pass=true;
+		double score1=0;
+		String testpattern="ACGTAC";
+		score1=background.Get_LOGPROB(testpattern);
+		System.out.println(score1);
+		background.SaveModel("bg.obj");
+		BGModel bgtest=new BGModel();
+		bgtest.LoadModel("bg.obj");
+		double score2=bgtest.Get_LOGPROB(testpattern);
+		if(score2!=score1)
+		{
+			pass=false;
+			System.out.println(score2);
+		}
+		
+		
+		return pass;
 	}
 	
 	private boolean SearchEngine_Test()
 	{
 		boolean pass=true;
+		//Exact Test
 		String testpattern="ACGTAC";
 		String Ctestpattern="GTACGT";
 		LinkedList<Integer> poslist=SearchEngine.searchPattern(testpattern, 0);
@@ -48,13 +101,240 @@ public class Pomoda {
 			else
 			{
 				pass=false;
-				System.out.print(sitestring);
+				System.out.println("Exact Match Test Fail...");
+				System.out.println(sitestring);
+				break;
+			}
+			
+		}
+		//Mismatch Test
+		testpattern="ACGNTAC";
+		Ctestpattern="GTANCGT";
+		poslist=SearchEngine.searchPattern(testpattern, 0);
+		 iter=poslist.iterator();
+		while(iter.hasNext())
+		{
+			String sitestring=SearchEngine.getSite(iter.next(), 7);
+			if(sitestring.matches(testpattern.replace("N", "\\w"))||sitestring.matches(Ctestpattern.replace("N", "\\w")))
+				continue;
+			else
+			{
+				pass=false;
+				System.out.println("Mismatch Match Test Fail...");
+				System.out.println(sitestring);
 				break;
 			}
 			
 		}
 		
 		return pass;
+	}
+	
+	
+	public ArrayList<PWM>	 getSeedMotifs() {
+		
+		ArrayList<PWM>	SeedMotifs=new	ArrayList<PWM>(num_motif*num_motif);
+		int LIBSIZE=SearchEngine.getTotalLength();
+		String ACGT="ACGT";
+		int loopnum=1<<(2*seedlen);
+		int maxRange=1<<(2*seedlen);
+		 ValueComparator bvc =  new ValueComparator();
+		TreeMap<Integer,Double> seedScores=new TreeMap<Integer,Double>();
+		for (int i = 0; i < loopnum; i++) {
+			String pattern="";
+			int hash=i;
+			//ignore the reverseComplement
+			if(common.getReverseComplementHashing(hash,seedlen)<i)
+			{
+				continue;
+			}
+			else
+			pattern=common.Hash2ACGT(hash,seedlen);
+			
+			LinkedList<Integer> positionlist=SearchEngine.searchPattern(pattern,0);
+			LinkedList<FastaLocation> LocList=SearchEngine.Int2Location(positionlist);
+			double bgprob=Math.exp(Math.max(background.Get_LOGPROB(pattern), background.Get_LOGPROB(common.getReverseCompletementString(pattern) )) );
+			int bgcount=(int) (bgprob*(SearchEngine.getTotalLength()-  SearchEngine.getSeqNum()*pattern.length()));
+			double score=CenterDistributionScore(LocList,bgcount);
+			seedScores.put(hash, score);
+		}
+		//sort by score
+		List<Map.Entry<Integer,Double>> mappingList=new ArrayList<Map.Entry<Integer,Double>>(seedScores.entrySet());
+		Collections.sort(mappingList, bvc);
+		int max_num_Seeds=num_motif*num_motif;
+		//just take top ones
+		    for (Map.Entry<Integer,Double> pair : mappingList) {
+		    	if(SeedMotifs.size()==max_num_Seeds)
+		    		break;
+			    String toppattern=common.Hash2ACGT(pair.getKey(),seedlen);
+			    //System.out.println(pair.getValue());
+			    StringBuffer sb=new StringBuffer(toppattern);
+			    for (int j = 0; j < (max_motiflen-seedlen)/2; j++) {
+			    	sb.insert(0, '-');
+			    	sb.append('-');					
+				}
+			    
+			    String[] seqs={sb.toString()};
+			    try {
+					PWM a=new PWM(seqs);
+					SeedMotifs.add(a);
+					//System.out.println(a.Censensus());
+				} catch (IllegalAlphabetException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalSymbolException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+		    }
+		 
+		
+		return	SeedMotifs;
+	}
+	
+	public PWM Column_Replacement(PWM motif)
+	{
+		double log025=Math.log(0.25);
+		double bestscore=Double.MIN_VALUE;
+		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
+		do
+		{
+		System.out.println(motif.Censensus(true));	
+		double[] temp_prior=new double[num_priorbin];
+		LinkedList<Map.Entry<Double,String>> inst=motif.GenerateInstanceFromPWMPQ(this.sampling_ratio, this.FDR, this.background);
+		if(inst.size()==0)
+			return motif;
+		
+		Iterator<Map.Entry<Double,String>> iter=inst.iterator();
+		double [][] loglik_matrix=new double[motif.columns()][4];
+		String consensus=motif.Censensus(false);
+		double logN025=log025*(motif.head+motif.tail);
+		//update the loglik matrix
+		while(iter.hasNext())
+		{
+			Map.Entry<Double,String> patternEntry=iter.next();
+			double logprob_theta=patternEntry.getKey()+logN025;
+			LinkedList<Integer> locs=SearchEngine.searchPattern(patternEntry.getValue(), 0);
+
+				LinkedList<FastaLocation> Falocs=SearchEngine.Int2Location(locs);
+				Iterator<FastaLocation> iter2=Falocs.iterator();
+				int count=0;
+				while(iter2.hasNext())
+				{
+					FastaLocation currloc=iter2.next();
+					String site="";
+					//forward site
+					site=SearchEngine.getSite(currloc.getMin()-motif.head, motif.columns());
+					if(site.matches("N"))
+						continue;
+					double logprob_BG=background.Get_LOGPROB(site);
+					if(count>=SearchEngine.forwardCount)
+					{
+						//reverse site
+						site=common.getReverseCompletementString(site);
+						
+					}	
+					double logprior=0;
+					if(pos_prior.size()!=0)
+						logprior=pos_prior.get( pos_prior.size()*currloc.getSeqPos()/currloc.getSeqLen());
+					double loglik=logprob_theta+logprior-logprob_BG;
+					temp_prior[num_priorbin*currloc.getSeqPos()/currloc.getSeqLen()]+=loglik/10000;//make smaller
+					for (int i = 0; i < site.length(); i++) {
+						if(consensus.charAt(i)!='N')
+							continue;
+						int symid=common.acgt(site.charAt(i));
+						loglik_matrix[i][symid]+=loglik;
+					}
+			}
+	
+		}
+		
+		//select the best column replacement
+		double maxloglik=Double.MIN_VALUE;
+		int bestCol=-1;
+			for (int i = 0; i < motif.columns(); i++) {
+				if(consensus.charAt(i)!='N')
+					continue;
+				double temploglik=0;
+				for (int j = 0; j < 4; j++) {
+					double temp=loglik_matrix[i][j];
+					if(temp>0)
+						temploglik+=temp;
+				}
+				if(temploglik>maxloglik)
+				{
+					maxloglik=temploglik;
+					bestCol=i;
+					
+				}
+				
+			}
+			if(bestCol==-1)
+				break;
+			double [] repColumnValue=new double[4];
+			double sumNorm=0;
+			for (int j = 0; j < 4; j++) {
+				double temp=loglik_matrix[bestCol][j];
+				if(temp>0)
+				{
+					repColumnValue[j]=(temp);
+					sumNorm+=repColumnValue[j];
+				}
+				
+			}
+			//normalizing the column
+			for (int j = 0; j < 4; j++) {				
+					repColumnValue[j]/=sumNorm;				
+			}
+			if(sumNorm<=bestscore)
+				break;
+			else
+			{
+				bestscore=sumNorm;
+				
+			}
+			//update motif column value
+			motif.setWeights(bestCol, repColumnValue);
+			double sumPrior=0;
+			for (int i = 0; i < temp_prior.length; i++) {
+				sumPrior+=temp_prior[i];
+			}
+			for (int i = 0; i < temp_prior.length; i++) {
+				temp_prior[i]/=sumPrior;
+			}
+			
+			
+		}while(true);
+		
+		return motif;
+	}
+	
+	
+	double CenterDistributionScore(LinkedList<FastaLocation> LocList,int BGcount)
+	{
+		double score=0;
+		if(pos_prior.size()==0)
+		score=(double)LocList.size()/BGcount;
+		else
+		{
+			Iterator<FastaLocation> iter=LocList.iterator();
+			int lastseq=-1;
+			double WeightCount=0;
+
+			while(iter.hasNext())
+			{
+				FastaLocation loc=iter.next();
+                double prior=pos_prior.get( pos_prior.size()*loc.getSeqPos()/loc.getSeqLen());
+                WeightCount+=prior*pos_prior.size();
+                lastseq=loc.getSeqId();
+                              
+			}
+			
+			
+		}
+		
+		return score;
+		
 	}
 	
 	/**
@@ -147,6 +427,20 @@ public class Pomoda {
 		
 		//initialize Pomoda 
 		motifFinder.initialize();
+		
+		//get seed motifs
+		ArrayList<PWM>  seedPWMs=motifFinder.getSeedMotifs();
+		
+		//extend and refine motifs
+		for (int i = 0; i < seedPWMs.size(); i++) {
+			seedPWMs.set(i,motifFinder.Column_Replacement(seedPWMs.get(i)));
+			if(motifFinder.markflag)
+			{
+				//do something to mark the locations in SearchEngine
+				
+			}
+		}
+		
 
 		
 
