@@ -22,14 +22,35 @@ public class BGModel {
 	DP dp;
 	HashMap<String, Double> conditionProb;
 	public int order;
+	
+	//compute logprob of a sequence, support gap-sequence
 	public double Get_LOGPROB(String seq)
 	{
 		double logprob=0;
-		for (int i = 0; i < order; i++) {
-			logprob+=Math.log( conditionProb.get(seq.substring(0,order)));
-		}
-		for (int i = 1; i < seq.length()-order+1; i++) {
-			logprob+=Math.log( conditionProb.get(seq.substring(i,i+order)));
+		int start=0;
+		int i;
+		while(start<seq.length())
+		{
+			while(seq.charAt(start)=='N')
+				start++;
+			for (i = 0; i < order&&i<(seq.length()-start); i++) {
+				logprob+=Math.log( conditionProb.get(seq.substring(start,start+i+1)));
+				if(seq.charAt(start+i+1)=='N')
+					break;
+			}
+			if(seq.charAt(start+i)=='N')
+			{
+				start=start+i+1;
+				break;
+			}
+			
+			for (i = start+1; i < (seq.length()-order+1); i++) {
+				start=i+order-1;
+				if(seq.charAt(start)=='N')
+					break;
+				logprob+=Math.log( conditionProb.get(seq.substring(i,i+order)));
+			}
+			start++;
 		}
 		//prob=path.getScore();
 	    return logprob;

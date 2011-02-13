@@ -430,7 +430,13 @@ public class HashEngine implements ISearchEngine {
 	@Override
 	public String getSite(int location, int len) {
 		  if(location<0)
-			  return "";
+		  {
+			  String ret="";
+			  for (location = 0; location < 0; location++) {
+				ret+="N";
+			}
+			  ret+=CharText.substring(location, location+len);
+		  }
 		return CharText.substring(location, location+len);
 	}
 	
