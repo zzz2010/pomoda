@@ -198,7 +198,7 @@ public class Pomoda {
 			
 			double score=0;
 			if(pos_prior.size()==0)
-				score=positionlist.size()*(0-logprob_bg);//sum loglik
+				score=positionlist.size()*(-0.037267253272904234-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
 			else
 				score=CenterDistributionScore(LocList,0,logprob_bg);
 			seedScores.put(hash, score);
@@ -279,9 +279,27 @@ public class Pomoda {
 					site=SearchEngine.getSite(currloc.getMin()-motif.head, motif.columns());
 					if(site.equalsIgnoreCase(""))
 						continue;
-					if(site.indexOf("N")!=-1)
-						continue;
-					double logprob_BG=background.Get_LOGPROB(site);
+					//assume only one N for line break
+					StringBuffer sb=new StringBuffer(site);
+					for (int i = 0; i < site.length(); i++) {
+						if(site.charAt(i)=='N'&& i<=site.length()/2)
+						{
+							for (int j = 0; j < i; j++) {
+								sb.setCharAt(j, 'N');
+							}
+							continue;
+						}
+						else if(site.charAt(i)=='N')
+						{
+							for (int j = i+1; j < site.length(); j++) {
+								sb.setCharAt(j, 'N');
+							}
+							break;
+						}
+						
+					}
+					site=sb.toString();
+					double logprob_BG=background.Get_LOGPROB(site.replace("N", ""));
 					if(count>=SearchEngine.forwardCount)
 					{
 						//reverse site
@@ -290,15 +308,17 @@ public class Pomoda {
 					}	
 					double logprior=0;
 					if(pos_prior.size()!=0)
-						logprior=pos_prior.get( pos_prior.size()*(currloc.getSeqPos()+motiflen/2)/currloc.getSeqLen())-lognullprior;
+						logprior=pos_prior.get( pos_prior.size()*(currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/currloc.getSeqLen())-lognullprior;
 					double loglik=logprob_theta+logprior-logprob_BG;
 //					if(loglik<0)
 //						System.out.println(site);
-					temp_prior[num_priorbin*(currloc.getSeqPos()+motiflen/2)/currloc.getSeqLen()]+=loglik/10000;//make smaller
+					temp_prior[num_priorbin*(currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/currloc.getSeqLen()]+=loglik/10000;//make smaller
 					for (int i = 0; i < site.length(); i++) {
 						if(consensus.charAt(i)!='N')
 							continue;
 						int symid=common.acgt(site.charAt(i));
+						if(symid>3)
+							continue; //meet new line separator
 						loglik_matrix[i][symid]+=loglik;
 					}
 			}
@@ -308,7 +328,7 @@ public class Pomoda {
 		//select the best column replacement
 		double maxloglik=Double.MIN_VALUE;
 		
-		int numbestSym=3;
+		int numbestSym=2;
 		int bestCol=-1;
 		ArrayList<Integer> bestSym=new ArrayList<Integer>(numbestSym);
 			for (int i = 0; i < motif.columns(); i++) {
@@ -316,17 +336,20 @@ public class Pomoda {
 					continue;
 				TreeMap<Double,Integer> orderSym=new TreeMap<Double,Integer>();
 				double temploglik=0;
+				double sumtemp=0;
 				for (int j = 0; j < 4; j++) {
 					double temp=loglik_matrix[i][j];
 					orderSym.put(temp-Double.MIN_NORMAL*j, j);
+					sumtemp+=temp;
 				}
+				//System.out.println(sumtemp);
 				//only consider best two sym
 				
-				for(int j = 0; j < numbestSym; j++) {
-					Map.Entry<Double, Integer> entry=orderSym.pollLastEntry();
-					if(entry==null||entry.getKey()<0)
+				for(Double key: orderSym.descendingKeySet()) {
+					//int col=orderSym.get(key);
+					if(key<0)
 						break;
-					temploglik+=entry.getKey();
+					temploglik+=key;
 					
 				}
 				
@@ -335,11 +358,11 @@ public class Pomoda {
 					maxloglik=temploglik;
 					bestCol=i;
 					bestSym.clear();
-					for(int j = 0; j < numbestSym; j++) {
-						Map.Entry<Double, Integer> entry=orderSym.pollLastEntry();
-						if(entry==null||entry.getKey()<0)
+					for(Double key: orderSym.descendingKeySet()) {
+						int col=orderSym.get(key);
+						if(key<0||bestSym.size()==numbestSym)
 							break;
-						bestSym.add(entry.getValue());
+						bestSym.add(col);
 						
 					}
 					
