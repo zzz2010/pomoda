@@ -17,9 +17,9 @@ import org.biojava.bio.symbol.*;
 import org.biojavax.bio.seq.RichSequence;
 
 
-public class BGModel {
+public class BGModel implements Serializable{
 	
-	DP dp;
+	
 	HashMap<String, Double> conditionProb;
 	public int order;
 	
@@ -34,11 +34,12 @@ public class BGModel {
 			while(seq.charAt(start)=='N')
 				start++;
 			for (i = 0; i < order&&i<(seq.length()-start); i++) {
-				logprob+=Math.log( conditionProb.get(seq.substring(start,start+i+1)));
-				if(seq.charAt(start+i+1)=='N')
+				if(seq.charAt(start+i)=='N')
 					break;
+				logprob+=Math.log( conditionProb.get(seq.substring(start,start+i+1)));
+
 			}
-			if(seq.charAt(start+i)=='N')
+			if(start+i<seq.length()&& seq.charAt(start+i)=='N')
 			{
 				start=start+i+1;
 				break;
@@ -65,6 +66,7 @@ public class BGModel {
 		initializeConditionProb();
 		 for (int i = 0; i < Seqs.length; i++) {
 			addCount(Seqs[i]);
+			addCount(common.getReverseCompletementString(Seqs[i]));
 		}
 		 
 		 normalizeConditionProb();
@@ -137,6 +139,7 @@ public class BGModel {
    		          SequenceIterator seqi = RichSequence.IOTools.readFasta(br, toke,null);
    			      while (seqi.hasNext()) {
    				     addCount(seqi.nextSequence().seqString());
+   				  addCount(common.getReverseCompletementString(seqi.nextSequence().seqString()));
    			      }
    			  normalizeConditionProb();
 			     
@@ -174,7 +177,7 @@ public class BGModel {
 			FileOutputStream fo=new FileOutputStream(filename);
 	        ObjectOutputStream oos;
 			oos = new ObjectOutputStream(fo);
-			oos.writeObject(conditionProb);
+			oos.writeObject(this);
 			oos.close();			
 			
 		} catch (IOException e) {
@@ -189,7 +192,9 @@ public class BGModel {
 		try {
 			FileInputStream fi=new FileInputStream(filename);
 			ObjectInputStream si=new ObjectInputStream(fi);
-			conditionProb=(HashMap<String, Double>)si.readObject();
+			BGModel loaded=(BGModel)si.readObject();
+			conditionProb=loaded.conditionProb;
+			order=loaded.order;
 			si.close();
 			
 		} catch (FileNotFoundException e) {

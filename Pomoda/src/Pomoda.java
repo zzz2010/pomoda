@@ -4,6 +4,7 @@
  */
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -57,14 +58,15 @@ public class Pomoda {
 		
 		background=new BGModel();
 		File file = new File(inputFasta+".bgobj");
+		int bg_markov_order=0;
 		if(file.exists())
 		{
 			background.LoadModel(inputFasta+".bgobj");
-			background.order=4;
+			
 		}
 		else
 		{
-		     background.BuildModel(inputFasta, 4); //3-order bg
+		     background.BuildModel(inputFasta, bg_markov_order+1); //3-order bg
 		     background.SaveModel(inputFasta+".bgobj");
 		}
 //		if(BGModel_Test())
@@ -258,14 +260,22 @@ public class Pomoda {
 		
 		Iterator<Map.Entry<Double,String>> iter=inst.iterator();
 		double [][] loglik_matrix=new double[motif.columns()][4];
+		int [][] count_matrix=new int[motif.columns()][4];
 		String consensus=motif.Censensus(false);
 		//double logN025=log025*(motif.head+motif.tail);
 		int motiflen=consensus_core.length();
+		double[] single_logprob_bg=new double [4];
+		String ACGT="ACGT";
+		//get single sym bgprob
+		for (int i = 0; i < single_logprob_bg.length; i++) {
+			single_logprob_bg[i]=background.Get_LOGPROB(ACGT.substring(i, i+1));
+		}
 		//update the loglik matrix
 		while(iter.hasNext())
 		{
 			Map.Entry<Double,String> patternEntry=iter.next();
 			double logprob_theta=patternEntry.getKey();
+			double logprob_BG=background.Get_LOGPROB(patternEntry.getValue());
 			LinkedList<Integer> locs=SearchEngine.searchPattern(patternEntry.getValue(), 0);
 
 				LinkedList<FastaLocation> Falocs=SearchEngine.Int2Location(locs);
@@ -277,8 +287,8 @@ public class Pomoda {
 					String site="";
 					//forward site
 					site=SearchEngine.getSite(currloc.getMin()-motif.head, motif.columns());
-					if(site.equalsIgnoreCase(""))
-						continue;
+//					if(site.equalsIgnoreCase(""))
+//						continue;
 					//assume only one N for line break
 					StringBuffer sb=new StringBuffer(site);
 					for (int i = 0; i < site.length(); i++) {
@@ -299,7 +309,6 @@ public class Pomoda {
 						
 					}
 					site=sb.toString();
-					double logprob_BG=background.Get_LOGPROB(site.replace("N", ""));
 					if(count>=SearchEngine.forwardCount)
 					{
 						//reverse site
@@ -319,7 +328,8 @@ public class Pomoda {
 						int symid=common.acgt(site.charAt(i));
 						if(symid>3)
 							continue; //meet new line separator
-						loglik_matrix[i][symid]+=loglik;
+						loglik_matrix[i][symid]+=loglik-single_logprob_bg[symid];
+						count_matrix[i][symid]+=1;
 					}
 			}
 	
@@ -328,7 +338,7 @@ public class Pomoda {
 		//select the best column replacement
 		double maxloglik=Double.MIN_VALUE;
 		
-		int numbestSym=2;
+		int numbestSym=3;
 		int bestCol=-1;
 		ArrayList<Integer> bestSym=new ArrayList<Integer>(numbestSym);
 			for (int i = 0; i < motif.columns(); i++) {
@@ -374,18 +384,22 @@ public class Pomoda {
 				break;
 			double [] repColumnValue=new double[4];
 			double sumNorm=0;
+			double sumcount=0;
+			for (int j = 0; j < bestSym.size(); j++)
+				sumcount+=count_matrix[bestCol][bestSym.get(j)];
 			for (int j = 0; j < bestSym.size(); j++) {
 				double temp=loglik_matrix[bestCol][bestSym.get(j)];
 				if(temp>0)
 				{
-					repColumnValue[j]=(temp);
-					sumNorm+=repColumnValue[j];
+					// consider the logprob of extending sym, optimize the loglik , x=A/(A+B)
+					repColumnValue[j]=count_matrix[bestCol][bestSym.get(j)]/sumcount;
+					sumNorm+=(temp)+count_matrix[bestCol][bestSym.get(j)]*Math.log(count_matrix[bestCol][bestSym.get(j)]/sumcount);
 				}
 				
 			}
-			//normalizing the column
-			for (int j = 0; j < 4; j++) {				
-					repColumnValue[j]/=sumNorm;				
+			
+			for (int j = 0; j < count_matrix.length; j++) {
+				System.out.println(Arrays.toString(loglik_matrix[j]));
 			}
 			
 			
@@ -413,7 +427,7 @@ public class Pomoda {
 			
 			
 		}while(true);
-		
+		motif.Score=bestscore;
 		return motif;
 	}
 	
