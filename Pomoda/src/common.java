@@ -21,6 +21,8 @@ public class common {
 	};
 
 	
+
+	
 	static int getReverseComplementHashing(int hash, int len)
 	{
 		int ret=0;
