@@ -43,7 +43,7 @@ public class PWM extends SimpleWeightMatrix {
 		Alignment align = new SimpleAlignment(map);
 	    //make a Distribution[] of the motif
 	    Distribution[] dists =
-	        DistributionTools.distOverAlignment(align, false, 0.01);
+	        DistributionTools.distOverAlignment(align, false, common.DoubleMinNormal);
 	    
 	    
 	    
@@ -176,7 +176,7 @@ public class PWM extends SimpleWeightMatrix {
 		TreeMap<Double,Integer> column=new TreeMap<Double,Integer>();
 		
 
-			double smallvalue=Double.MIN_NORMAL;
+			double smallvalue=common.DoubleMinNormal;
 			for (int j = 1; j<= 4; j++)
 			{  
 				double weight=m_matrix[col][j-1];

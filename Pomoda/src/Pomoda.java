@@ -34,6 +34,7 @@ public class Pomoda {
 	public String outputPrefix="./";
 	public String inputFasta;
 	public int seedlen=5;
+	public boolean OOPS=true;
 	public int resolution=20;
 	public int starting_windowsize=200;
 	public int ending_windowsize=600;
@@ -199,10 +200,10 @@ public class Pomoda {
 			double logprob_bg=Math.max(background.Get_LOGPROB(pattern), background.Get_LOGPROB(common.getReverseCompletementString(pattern) )) ;
 			
 			double score=0;
-			if(pos_prior.size()==0)
-				score=positionlist.size()*(-0.037267253272904234-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
+			if(pos_prior.size()==0&&!OOPS)
+				score=positionlist.size()*(-common.DoubleMinNormal-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
 			else
-				score=CenterDistributionScore(LocList,0,logprob_bg);
+				score=CenterDistributionScore(LocList,-common.DoubleMinNormal,logprob_bg);
 			seedScores.put(hash, score);
 		}
 		//sort by score
@@ -260,6 +261,7 @@ public class Pomoda {
 		
 		Iterator<Map.Entry<Double,String>> iter=inst.iterator();
 		double [][] loglik_matrix=new double[motif.columns()][4];
+		
 		int [][] count_matrix=new int[motif.columns()][4];
 		String consensus=motif.Censensus(false);
 		//double logN025=log025*(motif.head+motif.tail);
@@ -281,6 +283,10 @@ public class Pomoda {
 				LinkedList<FastaLocation> Falocs=SearchEngine.Int2Location(locs);
 				Iterator<FastaLocation> iter2=Falocs.iterator();
 				int count=0;
+				int lastseq=-1;
+				double [][] max_loglik_matrix=new double[motif.columns()][4];
+				if(OOPS)
+					common.fill2DArray(max_loglik_matrix,Double.MIN_VALUE);
 				while(iter2.hasNext())
 				{
 					FastaLocation currloc=iter2.next();
@@ -319,9 +325,44 @@ public class Pomoda {
 					if(pos_prior.size()!=0)
 						logprior=pos_prior.get( pos_prior.size()*(currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/currloc.getSeqLen())-lognullprior;
 					double loglik=logprob_theta+logprior-logprob_BG;
+					temp_prior[num_priorbin*(currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/currloc.getSeqLen()]+=loglik/10000;//make smaller
+					if(OOPS)
+						loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
+					if(OOPS&&currloc.getSeqId()!=lastseq)
+					{
+						if(lastseq!=-1)
+							for (int i = 0; i < site.length(); i++) {
+								if(consensus.charAt(i)!='N')
+									continue;
+								
+	                         for (int symid = 0; symid < 4; symid++) {
+	                        	 if(max_loglik_matrix[i][symid]!=Double.MIN_VALUE)
+									loglik_matrix[i][symid]+=max_loglik_matrix[i][symid]-single_logprob_bg[symid];
+									count_matrix[i][symid]+=1;
+							}
+
+							}
+						lastseq=currloc.getSeqId();
+						common.fill2DArray(max_loglik_matrix,Double.MIN_VALUE);
+					}
+					if(OOPS)
+					{
+						for (int i = 0; i < site.length(); i++) {
+							if(consensus.charAt(i)!='N')
+								continue;
+							int symid=common.acgt(site.charAt(i));
+							if(symid>3)
+								continue; //meet new line separator
+							if(loglik>max_loglik_matrix[i][symid])
+								max_loglik_matrix[i][symid]=loglik;
+							
+						}
+					
+						continue;
+					}
 //					if(loglik<0)
 //						System.out.println(site);
-					temp_prior[num_priorbin*(currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/currloc.getSeqLen()]+=loglik/10000;//make smaller
+					
 					for (int i = 0; i < site.length(); i++) {
 						if(consensus.charAt(i)!='N')
 							continue;
@@ -349,7 +390,7 @@ public class Pomoda {
 				double sumtemp=0;
 				for (int j = 0; j < 4; j++) {
 					double temp=loglik_matrix[i][j];
-					orderSym.put(temp-Double.MIN_NORMAL*j, j);
+					orderSym.put(temp-common.DoubleMinNormal*j, j);
 					sumtemp+=temp;
 				}
 				//System.out.println(sumtemp);
@@ -439,6 +480,8 @@ public class Pomoda {
        Iterator<FastaLocation> iter=LocList.iterator();
 		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
 		double lognullprior=Math.log(1.0/num_priorbin);
+		double max_seqloglik=Double.MIN_VALUE;
+		int lastseq=-1;
 		while(iter.hasNext())
 		{
 			FastaLocation currloc=iter.next();
@@ -446,8 +489,25 @@ public class Pomoda {
 			if(pos_prior.size()!=0)
 				logprior=pos_prior.get( pos_prior.size()*currloc.getSeqPos()/currloc.getSeqLen())-lognullprior;
 			double loglik=pwmloglik+logprior-bgloglik;
+			if(OOPS)
+			loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-seedlen/2); //add small bias to center
+			if(OOPS&&currloc.getSeqId()!=lastseq)
+			{
+				if(lastseq!=-1)
+					score+=max_seqloglik;
+				lastseq=currloc.getSeqId();
+				max_seqloglik=Double.MIN_VALUE;
+			}
+			if(OOPS&&loglik>max_seqloglik)
+			{
+				max_seqloglik=loglik;
+				continue;
+			}
+			
 			score+=loglik;
 		}
+		if(OOPS)
+			score+=max_seqloglik;
 		
 		return score;
 	}
