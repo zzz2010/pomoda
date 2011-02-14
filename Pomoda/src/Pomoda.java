@@ -201,9 +201,9 @@ public class Pomoda {
 			
 			double score=0;
 			if(pos_prior.size()==0&&!OOPS)
-				score=positionlist.size()*(-common.DoubleMinNormal-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
+				score=positionlist.size()*(-common.DoubleMinNormal*seedlen-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
 			else
-				score=CenterDistributionScore(LocList,-common.DoubleMinNormal,logprob_bg);
+				score=CenterDistributionScore(LocList,-common.DoubleMinNormal*seedlen,logprob_bg);
 			seedScores.put(hash, score);
 		}
 		//sort by score
@@ -337,8 +337,10 @@ public class Pomoda {
 								
 	                         for (int symid = 0; symid < 4; symid++) {
 	                        	 if(max_loglik_matrix[i][symid]!=Double.MIN_VALUE)
+	                        	 {
 									loglik_matrix[i][symid]+=max_loglik_matrix[i][symid]-single_logprob_bg[symid];
 									count_matrix[i][symid]+=1;
+	                        	 }
 							}
 
 							}
@@ -379,7 +381,7 @@ public class Pomoda {
 		//select the best column replacement
 		double maxloglik=Double.MIN_VALUE;
 		
-		int numbestSym=3;
+		int numbestSym=2;
 		int bestCol=-1;
 		ArrayList<Integer> bestSym=new ArrayList<Integer>(numbestSym);
 			for (int i = 0; i < motif.columns(); i++) {
