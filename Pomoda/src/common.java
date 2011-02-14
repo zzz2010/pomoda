@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
 
@@ -7,6 +8,8 @@ import java.util.Map;
  */
 public class common {
 	
+	
+	static double DoubleMinNormal=0.000000000000001;
 	static String Hash2ACGT(int hash,int len)
 	{
 		String ACGT="ACGT";
@@ -74,6 +77,12 @@ public class common {
 				temp=temp.concat(String.valueOf((reverseC(Tag.charAt(Tag.length()-1-i)))));
 			//temp.push_back(reverseC(Tag[i]));
 			return temp;
+	}
+	static void fill2DArray(double[][] max_loglik_matrix,double val)
+	{
+		for (int i = 0; i < max_loglik_matrix.length; i++) {
+			Arrays.fill(max_loglik_matrix[i], val);
+		}
 	}
 
 	public static String replaceCharAt(String s, int pos, char c) {
