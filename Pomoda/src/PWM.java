@@ -298,7 +298,7 @@ public class PWM extends SimpleWeightMatrix {
 		
 		for (int i = 0; i < this.columns(); i++) {
 			StringBuffer sb=new StringBuffer("");
-			for (int j = 1; j<= 4; j++)
+			for (int j = 0; j< 4; j++)
 			{  
 				double weight=m_matrix[i][j];
 					sb.append(String.valueOf(weight));
@@ -345,11 +345,11 @@ public class PWM extends SimpleWeightMatrix {
 		}
 
 		int start,end;
-		start=end=0;
+		start=end=-1;
 		for (int i = 0; i < consensus.length(); i++) {
-			if(consensus.charAt(i)!='N'& start==0)
+			if(consensus.charAt(i)!='N'& start==-1)
 				start=i;
-			if(consensus.charAt(consensus.length()-i-1)!='N'& end==0)
+			if(consensus.charAt(consensus.length()-i-1)!='N'& end==-1)
 				end=consensus.length()-i;
 		}
 		head=start;

@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -22,6 +23,9 @@ import org.apache.commons.cli.ParseException;
 import org.biojava.bio.dp.ScoreType;
 import org.biojava.bio.symbol.IllegalAlphabetException;
 import org.biojava.bio.symbol.IllegalSymbolException;
+
+import cern.jet.random.ChiSquare;
+import cern.jet.random.engine.RandomEngine;
 
 
 
@@ -38,7 +42,7 @@ public class Pomoda {
 	public int resolution=20;
 	public int starting_windowsize=200;
 	public int ending_windowsize=600;
-	public double FDR=0.01;
+	public double FDR=1;
 	public int max_motiflen=15;
 	public int num_motif=5;
 	public double sampling_ratio=0.8;
@@ -72,11 +76,13 @@ public class Pomoda {
 		}
 //		if(BGModel_Test())
 //			System.out.println("BGModel_Test : pass");
-		
-//		if(PWM_Test())
-//			System.out.println("PWM_Test : pass");
-			
 		pos_prior=new ArrayList<Double>(SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution);
+		
+		
+		if(PWM_Test())
+			System.out.println("PWM_Test : pass");
+	    System.exit(1);
+		
 	}
 	
 	private boolean BGModel_Test()
@@ -115,6 +121,19 @@ public class Pomoda {
 			if(score2<score1)
 			{
 				pass=false;
+			}
+			LinkedList<PWM> AR=new LinkedList<PWM>();
+			
+			AR.add(new PWM(new String[]{"NNNNNNNNNNACANNNNNNNNNN"}));
+			AR.add(new PWM(new String[]{"NNNNNNNNNGNACANNNNNNNNN"}));
+			AR.add(new PWM(new String[]{"NNNNNNNGNACANNNNGNNNNNNN"}));
+			AR.add(new PWM(new String[]{"NNNNNNGNACANNNNGTNNNNNN"}));
+			AR.add(new PWM(new String[]{"NNNNNNGNACANNNNGTNCNNNNNN"}));
+			AR.add(new PWM(new String[]{"NNNNNGNACANNNTGTNCNNNNN"}));
+			
+			for (int i = 0; i < AR.size(); i++) {
+			//	AR.get(i).print();
+			     this.Column_Replacement(AR.get(i));
 			}
 				
 			
@@ -240,6 +259,29 @@ public class Pomoda {
 		
 		return	SeedMotifs;
 	}
+	
+//	public static double Evalue(int L,int Q,int N, int n,int A, double Iscore)
+//	{
+//		ChiSquare distr=new ChiSquare(L*(A-1),new RandomEngine() {
+//			
+//			@Override
+//			public int nextInt() {
+//				Random r=new Random();
+//				
+//				return r.nextInt();
+//			}
+//		});
+//		double P=1.0-distr.cdf(-2*Iscore);
+//		int Q_=Q-L+1;
+//		double Evalue=common.binomial(N,n)*P*Math.pow(Q_, n);
+//		
+//		
+//		return Evalue;
+//		
+//	}
+	
+	
+	
 	
 	public PWM Column_Replacement(PWM motif)
 	{
@@ -381,7 +423,7 @@ public class Pomoda {
 		//select the best column replacement
 		double maxloglik=Double.MIN_VALUE;
 		
-		int numbestSym=2;
+		int numbestSym=3;
 		int bestCol=-1;
 		ArrayList<Integer> bestSym=new ArrayList<Integer>(numbestSym);
 			for (int i = 0; i < motif.columns(); i++) {
@@ -397,12 +439,13 @@ public class Pomoda {
 				}
 				//System.out.println(sumtemp);
 				//only consider best two sym
-				
+				int c=0;
 				for(Double key: orderSym.descendingKeySet()) {
 					//int col=orderSym.get(key);
-					if(key<0)
+					if(key<0||c>=numbestSym)
 						break;
 					temploglik+=key;
+					c++;
 					
 				}
 				
@@ -426,32 +469,49 @@ public class Pomoda {
 			if(bestCol==-1)
 				break;
 			double [] repColumnValue=new double[4];
-			double sumNorm=0;
-			double sumcount=0;
-			for (int j = 0; j < bestSym.size(); j++)
-				sumcount+=count_matrix[bestCol][bestSym.get(j)];
-			for (int j = 0; j < bestSym.size(); j++) {
-				double temp=loglik_matrix[bestCol][bestSym.get(j)];
-				if(temp>0)
+			
+			double max_sumNorm=0;
+			double max_sumCount=0;
+			double max_symCount=0;
+			
+			for (int i = 1; i <= bestSym.size(); i++) {
+				double sumNorm=0;
+				double sumcount=0;
+				for (int j = 0; j < i; j++)
+					sumcount+=count_matrix[bestCol][bestSym.get(j)];
+				for (int j = 0; j < i; j++) {
+					double temp=loglik_matrix[bestCol][bestSym.get(j)];
+						// consider the logprob of extending sym, optimize the loglik , x=A/(A+B)
+						
+						sumNorm+=(temp)+count_matrix[bestCol][bestSym.get(j)]*Math.log(count_matrix[bestCol][bestSym.get(j)]/sumcount);
+					
+				}
+				if(sumNorm>max_sumNorm)
 				{
-					// consider the logprob of extending sym, optimize the loglik , x=A/(A+B)
-					repColumnValue[j]=count_matrix[bestCol][bestSym.get(j)]/sumcount;
-					sumNorm+=(temp)+count_matrix[bestCol][bestSym.get(j)]*Math.log(count_matrix[bestCol][bestSym.get(j)]/sumcount);
+					for (int j = 0; j < i; j++) 
+					{
+						repColumnValue[bestSym.get(j)]=count_matrix[bestCol][bestSym.get(j)]/sumcount;
+					}
+					max_sumNorm=sumNorm;
+					max_sumCount=sumcount;
+					max_symCount=i;
 				}
 				
+				
 			}
+
 			
 			for (int j = 0; j < count_matrix.length; j++) {
 				System.out.println(Arrays.toString(loglik_matrix[j]));
 			}
 			
-			
-			System.out.println(sumNorm);
-			if(sumNorm<=bestscore)
+			max_sumNorm=Evalue(motiflen+1,temp_prior.length*this.resolution,SearchEngine.getSeqNum(),(int)max_sumCount,4,max_sumNorm);
+			System.out.println(max_sumNorm);
+			if(max_sumNorm<=bestscore)
 				break;
 			else
 			{
-				bestscore=sumNorm;
+				bestscore=max_sumNorm;
 				
 			}
 
