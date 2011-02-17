@@ -10,6 +10,33 @@ public class common {
 	
 	
 	static double DoubleMinNormal=0.000000000000001;
+	
+	public static double Zscore(int N,double p, double X)
+	{
+		return (X-N*p)/Math.sqrt(N*p*(1-p));
+		
+	}
+	
+	
+	   // return integer nearest to x
+	   static long nint(double x) {
+	      if (x < 0.0) return (long) Math.ceil(x - 0.5);
+	      return (long) Math.floor(x + 0.5);
+	   }
+
+	   // return log n!
+	   static double logFactorial(int n) {
+	      double ans = 0.0;
+	      for (int i = 1; i <= n; i++)
+	         ans += Math.log(i);
+	      return ans;
+	   }
+
+	   // return the binomial coefficient n choose k.
+	   static long binomial(int n, int k) {
+	      return nint(Math.exp(logFactorial(n) - logFactorial(k) - logFactorial(n-k)));
+	   }
+
 	static String Hash2ACGT(int hash,int len)
 	{
 		String ACGT="ACGT";
