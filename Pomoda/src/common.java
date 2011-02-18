@@ -11,9 +11,9 @@ public class common {
 	
 	static double DoubleMinNormal=0.000000000000001;
 	
-	public static double Zscore(int N,double p, double X)
+	public static double Zscore(double sumcount,double p, double X)
 	{
-		return (X-N*p)/Math.sqrt(N*p*(1-p));
+		return (X-sumcount*p)/Math.sqrt(sumcount*p*(1-p));
 		
 	}
 	
