@@ -6,6 +6,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,15 +38,18 @@ public class Pomoda {
 
 	public String outputPrefix="./";
 	public String inputFasta;
+	public String ctrlFasta="";
+	public String bgmodelFile="";
 	public int seedlen=5;
+	public boolean debug=false;
 	public boolean OOPS=false;
 	public int resolution=20;
 	public int starting_windowsize=200;
 	public int ending_windowsize=600;
 	public double FDR=1;
-	public int max_motiflen=15;
+	public int max_motiflen=20;
 	public int num_motif=5;
-	public double sampling_ratio=0.8;
+	public double sampling_ratio=0.95;
 	public double min_support_ratio=0.05;
 	public boolean markflag=true;
 	public HashEngine SearchEngine;
@@ -62,17 +66,36 @@ public class Pomoda {
 			
 		
 		background=new BGModel();
-		File file = new File(inputFasta+".bgobj");
-		int bg_markov_order=2;
-		if(file.exists())
+		File file=null;
+		int bg_markov_order=3;
+		if(ctrlFasta.isEmpty())
 		{
-			background.LoadModel(inputFasta+".bgobj");
-			
+			bg_markov_order=1;
+			file= new File(inputFasta+".bgobj");
+		}
+		else
+			file= new File(ctrlFasta+".bgobj");
+		
+		if(file.exists()||!bgmodelFile.isEmpty())
+		{
+			if(bgmodelFile.isEmpty())
+			background.LoadModel(file.getAbsolutePath());
+			else
+				background.LoadModel(bgmodelFile);
 		}
 		else
 		{
+			if(ctrlFasta.isEmpty())
+			{
 		     background.BuildModel(inputFasta, bg_markov_order+1); //3-order bg
 		     background.SaveModel(inputFasta+".bgobj");
+			}
+			else
+			{
+			     background.BuildModel(ctrlFasta, bg_markov_order+1); //3-order bg
+			     background.SaveModel(ctrlFasta+".bgobj");
+				}
+				
 		}
 //		if(BGModel_Test())
 //			System.out.println("BGModel_Test : pass");
@@ -124,12 +147,12 @@ public class Pomoda {
 			}
 			LinkedList<PWM> AR=new LinkedList<PWM>();
 			
-			AR.add(new PWM(new String[]{"NNNNNNNNNNACANNNNNNNNNN"}));
-			AR.add(new PWM(new String[]{"NNNNNNNNNGNACANNNNNNNNN"}));
-			AR.add(new PWM(new String[]{"NNNNNNNGNACANNNNGNNNNNNN"}));
-			AR.add(new PWM(new String[]{"NNNNNNGNACANNNNGTNNNNNN"}));
-			AR.add(new PWM(new String[]{"NNNNNNGNACANNNNGTNCNNNNNN"}));
-			AR.add(new PWM(new String[]{"NNNNNGNACANNNTGTNCNNNNN"}));
+			AR.add(new PWM(new String[]{"NNNNNNNNNNGTACANNNNNNNNNN"}));
+//			AR.add(new PWM(new String[]{"NNNNNNNNNGNACANNNNNNNNN"}));
+//			AR.add(new PWM(new String[]{"NNNNNNNGNACANNNNGNNNNNNN"}));
+//			AR.add(new PWM(new String[]{"NNNNNNGNACANNNNGTNNNNNN"}));
+//			AR.add(new PWM(new String[]{"NNNNNNGNACANNNNGTNCNNNNNN"}));
+//			AR.add(new PWM(new String[]{"NNNNNGNACANNNTGTNCNNNNN"}));
 			
 			for (int i = 0; i < AR.size(); i++) {
 			//	AR.get(i).print();
@@ -217,14 +240,10 @@ public class Pomoda {
 			LinkedList<Integer> positionlist=SearchEngine.searchPattern(pattern,0);
 			LinkedList<FastaLocation> LocList=SearchEngine.Int2Location(positionlist);
 			double logprob_bg=Math.max(background.Get_LOGPROB(pattern), background.Get_LOGPROB(common.getReverseCompletementString(pattern) )) ;
-			
+
 			double score=0;
 			if(pos_prior.size()==0&&!OOPS)
-			{
-				double BGcount=Math.exp(logprob_bg)*(SearchEngine.TotalLen-seedlen*SearchEngine.getSeqNum());
-				double binominalP=0.5;
-				score=common.Zscore(positionlist.size(), binominalP, positionlist.size());//sum loglik ,-0.037267253272904234 is from pseudo count
-			}
+				score=positionlist.size()*(-common.DoubleMinNormal*seedlen-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
 			else
 				score=CenterDistributionScore(LocList,-common.DoubleMinNormal*seedlen,logprob_bg);
 			seedScores.put(hash, score);
@@ -284,34 +303,65 @@ public class Pomoda {
 //		
 //	}
 	
-	
+	public PWM Relax_Seed(PWM motif)
+	{
+		//relax the conserved column 
+		String consensus=motif.Censensus(false);
+		for (int i = 0; i < consensus.length(); i++) {
+			if(consensus.charAt(i)=='N')
+				continue;
+			boolean conserved=false;
+			for (int j = 0; j < 4; j++) {
+				 if(motif.m_matrix[i][j]>0.99)
+				 {
+					 conserved=true;
+					 break;
+				 }
+			}
+			if(conserved)
+			{
+				
+				
+			}
+		}
+		
+		return motif;
+	}
 	
 	
 	public PWM Column_Replacement(PWM motif)
 	{
 		double log025=Math.log(0.25);
-		
+		if(this.pos_prior.size()>0)
+			motif.pos_prior=(ArrayList<Double>) this.pos_prior.clone();
 		double bestscore=motif.Score;
-		
+		HashSet<Integer> extendedCols=new HashSet<Integer>();
 		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
+		int inst_hash=-1;
 		do
 		{
+
 			String consensus_core=motif.Censensus(true);
 		System.out.println(consensus_core+"\t"+String.valueOf(bestscore));
-		
+		bestscore=0;
 		double[] temp_prior=new double[num_priorbin];
 		double lognullprior=Math.log(1.0/num_priorbin);
 		LinkedList<Map.Entry<Double,String>> inst=motif.GenerateInstanceFromPWMPQ(this.sampling_ratio, this.FDR, this.background);
-		if(inst.size()==0)
+		System.out.println(inst.size());
+		if(inst.size()==0||inst_hash==inst.hashCode())
 			return motif;
+		else
+			inst_hash=inst.hashCode();
+			
 		
 		Iterator<Map.Entry<Double,String>> iter=inst.iterator();
 		double [][] loglik_matrix=new double[motif.columns()][4];
 		
-		int [][] count_matrix=new int[motif.columns()][4];
+		double[][] count_matrix=new double[motif.columns()][4];
 		String consensus=motif.Censensus(false);
 		//double logN025=log025*(motif.head+motif.tail);
 		int motiflen=consensus_core.length();
+		int avergeSeqlen=(SearchEngine.TotalLen/SearchEngine.SeqNum);
 		double[] single_logprob_bg=new double [4];
 		String ACGT="ACGT";
 		//get single sym bgprob
@@ -368,12 +418,14 @@ public class Pomoda {
 						
 					}	
 					double logprior=0;
-					if(pos_prior.size()!=0)
-						logprior=pos_prior.get( pos_prior.size()*(currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/currloc.getSeqLen())-lognullprior;
+					if(motif.pos_prior.size()!=0)
+						logprior=motif.pos_prior.get((int)( motif.pos_prior.size()*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen())))-lognullprior;
 					double loglik=logprob_theta+logprior-logprob_BG;
-					temp_prior[num_priorbin*(currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/currloc.getSeqLen()]+=loglik/10000;//make smaller
+					temp_prior[(int)(num_priorbin*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()))]+=1;//make smaller
 					if(OOPS)
 						loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
+					if(!OOPS)
+						bestscore+=loglik;
 					if(OOPS&&currloc.getSeqId()!=lastseq)
 					{
 						if(lastseq!=-1)
@@ -384,13 +436,13 @@ public class Pomoda {
 	                         for (int symid = 0; symid < 4; symid++) {
 	                        	 if(max_loglik_matrix[i][symid]!=Double.MIN_VALUE)
 	                        	 {
-	                        		 double x=Math.exp(max_loglik_matrix[i][symid]-single_logprob_bg[symid])*0.8;//0.8 is lower bound weight of selected sym
-									loglik_matrix[i][symid]+=x/(1+x);
+									loglik_matrix[i][symid]+=max_loglik_matrix[i][symid]-single_logprob_bg[symid];
 									count_matrix[i][symid]+=1;
 	                        	 }
 							}
 
 							}
+						bestscore+=loglik;
 						lastseq=currloc.getSeqId();
 						common.fill2DArray(max_loglik_matrix,Double.MIN_VALUE);
 					}
@@ -413,14 +465,13 @@ public class Pomoda {
 //						System.out.println(site);
 					
 					for (int i = 0; i < site.length(); i++) {
-						if(consensus.charAt(i)!='N')
-							continue;
 						int symid=common.acgt(site.charAt(i));
 						if(symid>3)
 							continue; //meet new line separator
-						double x=Math.exp(loglik-single_logprob_bg[symid])*0.8;//0.8 is lower bound weight of selected sym
-						loglik_matrix[i][symid]+=x/(1+x);
 						count_matrix[i][symid]+=1;
+						if(consensus.charAt(i)!='N')
+							continue;
+						loglik_matrix[i][symid]+=loglik-single_logprob_bg[symid];
 					}
 			}
 	
@@ -429,9 +480,9 @@ public class Pomoda {
 		//select the best column replacement
 		double maxloglik=Double.MIN_VALUE;
 		
-		int numbestSym=3;
+		int numbestSym=2;
 		int bestCol=-1;
-		ArrayList<Integer> bestSym=new ArrayList<Integer>(numbestSym);
+		ArrayList<Integer> bestSym=new ArrayList<Integer>(4);
 			for (int i = 0; i < motif.columns(); i++) {
 				if(consensus.charAt(i)!='N')
 					continue;
@@ -443,6 +494,7 @@ public class Pomoda {
 					orderSym.put(temp-common.DoubleMinNormal*j, j);
 					sumtemp+=temp;
 				}
+				double boundaryLoss=Math.min(Math.abs(i-motif.head), Math.abs(motiflen+motif.head-i))/(double)avergeSeqlen;
 				//System.out.println(sumtemp);
 				//only consider best two sym
 				int c=0;
@@ -450,7 +502,7 @@ public class Pomoda {
 					//int col=orderSym.get(key);
 					if(key<0||c>=numbestSym)
 						break;
-					temploglik+=key;
+					temploglik+=key*(1+boundaryLoss);
 					c++;
 					
 				}
@@ -462,7 +514,7 @@ public class Pomoda {
 					bestSym.clear();
 					for(Double key: orderSym.descendingKeySet()) {
 						int col=orderSym.get(key);
-						if(key<0||bestSym.size()==numbestSym)
+						if(key<0)//||bestSym.size()==numbestSym
 							break;
 						bestSym.add(col);
 						
@@ -479,20 +531,17 @@ public class Pomoda {
 			double max_sumNorm=0;
 			double max_sumCount=0;
 			double max_symCount=0;
-			
+
 			for (int i = 1; i <= bestSym.size(); i++) {
 				double sumNorm=0;
 				double sumcount=0;
 				for (int j = 0; j < i; j++)
 					sumcount+=count_matrix[bestCol][bestSym.get(j)];
-				double sum_x=0;
 				for (int j = 0; j < i; j++) {
 					double temp=loglik_matrix[bestCol][bestSym.get(j)];
-						// consider the logprob of extending sym, optimize the loglik , x=A/(A+B)
-						sum_x+=temp;
+						sumNorm+=(temp)+count_matrix[bestCol][bestSym.get(j)]*Math.log(count_matrix[bestCol][bestSym.get(j)]/sumcount);
+					
 				}
-				double binormalP=(sumcount-sum_x)/sumcount;
-				sumNorm=common.Zscore(sumcount, binormalP, sum_x);
 				if(sumNorm>max_sumNorm)
 				{
 					for (int j = 0; j < i; j++) 
@@ -507,13 +556,15 @@ public class Pomoda {
 				
 			}
 
+			if(debug)
+			for (int j = 0; j < count_matrix.length; j++) {
+				System.out.println(Arrays.toString(loglik_matrix[j]));
+			}
 			
-//			for (int j = 0; j < count_matrix.length; j++) {
-//				System.out.println(Arrays.toString(loglik_matrix[j]));
-//			}
-			
-		
 			System.out.println(max_sumNorm);
+			double boundaryLoss=Math.min(Math.abs(bestCol-motif.head), Math.abs(motiflen+motif.head-bestCol))/(double)avergeSeqlen;
+			max_sumNorm*=(1+boundaryLoss);
+			
 			if(max_sumNorm<=bestscore)
 				break;
 			else
@@ -529,17 +580,33 @@ public class Pomoda {
 			for (int i = 0; i < temp_prior.length; i++) {
 				sumPrior+=temp_prior[i];
 			}
-			pos_prior.clear();
+			//also maximize loglik for update other column
+//			Iterator<Integer> iter1=extendedCols.iterator();
+//			while(iter1.hasNext())
+//			{
+//				int ecol=iter1.next();
+//				motif.setWeights(ecol, common.Normalize(count_matrix[ecol]));
+//				
+//			}
+			
+			
+			extendedCols.add(bestCol);
+			motif.pos_prior.clear();
 			for (int i = 0; i < temp_prior.length; i++) {
 				temp_prior[i]/=sumPrior;
-				pos_prior.add(temp_prior[i]);
+				motif.pos_prior.add(temp_prior[i]);
 			}
+			if(debug)
+				motif.print();
 			
 			
 		}while(true);
 		motif.Score=bestscore;
 		return motif;
 	}
+	
+	
+	
 	
 	//for fix PWM score and BG score, but there is position prior
 	double CenterDistributionScore(LinkedList<FastaLocation> LocList,double pwmloglik,double bgloglik)
@@ -625,6 +692,8 @@ public class Pomoda {
 		// read parameters from command line
 		Options options = new Options();
 		options.addOption("i", true, "input fasta file");
+		options.addOption("c", true, "control fasta file");
+		options.addOption("bgmodel", true, "background model file");
 		options.addOption("prefix", true, "output directory");
 		options.addOption("seedlen", true, "kmer seed motif length (default 5)");
 		options.addOption("ratio",true, "sampling ratio (default 0.8)");
@@ -648,6 +717,14 @@ public class Pomoda {
 			else
 			{
 				throw new ParseException("no input fasta file");
+			}
+			if(cmd.hasOption("c"))
+			{
+				motifFinder.ctrlFasta=cmd.getOptionValue("c");
+			}
+			if(cmd.hasOption("bgmodel"))
+			{
+				motifFinder.bgmodelFile=cmd.getOptionValue("bgmodel");
 			}
 			if(cmd.hasOption("prefix"))
 			{
