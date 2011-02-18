@@ -38,7 +38,7 @@ public class Pomoda {
 	public String outputPrefix="./";
 	public String inputFasta;
 	public int seedlen=5;
-	public boolean OOPS=true;
+	public boolean OOPS=false;
 	public int resolution=20;
 	public int starting_windowsize=200;
 	public int ending_windowsize=600;
@@ -63,7 +63,7 @@ public class Pomoda {
 		
 		background=new BGModel();
 		File file = new File(inputFasta+".bgobj");
-		int bg_markov_order=0;
+		int bg_markov_order=2;
 		if(file.exists())
 		{
 			background.LoadModel(inputFasta+".bgobj");
@@ -79,9 +79,9 @@ public class Pomoda {
 		pos_prior=new ArrayList<Double>(SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution);
 		
 		
-		if(PWM_Test())
-			System.out.println("PWM_Test : pass");
-	    System.exit(1);
+//		if(PWM_Test())
+//			System.out.println("PWM_Test : pass");
+//	    System.exit(1);
 		
 	}
 	
@@ -220,7 +220,11 @@ public class Pomoda {
 			
 			double score=0;
 			if(pos_prior.size()==0&&!OOPS)
-				score=positionlist.size()*(-common.DoubleMinNormal*seedlen-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
+			{
+				double BGcount=Math.exp(logprob_bg)*(SearchEngine.TotalLen-seedlen*SearchEngine.getSeqNum());
+				double binominalP=0.5;
+				score=common.Zscore(positionlist.size(), binominalP, positionlist.size());//sum loglik ,-0.037267253272904234 is from pseudo count
+			}
 			else
 				score=CenterDistributionScore(LocList,-common.DoubleMinNormal*seedlen,logprob_bg);
 			seedScores.put(hash, score);
@@ -380,7 +384,8 @@ public class Pomoda {
 	                         for (int symid = 0; symid < 4; symid++) {
 	                        	 if(max_loglik_matrix[i][symid]!=Double.MIN_VALUE)
 	                        	 {
-									loglik_matrix[i][symid]+=max_loglik_matrix[i][symid]-single_logprob_bg[symid];
+	                        		 double x=Math.exp(max_loglik_matrix[i][symid]-single_logprob_bg[symid])*0.8;//0.8 is lower bound weight of selected sym
+									loglik_matrix[i][symid]+=x/(1+x);
 									count_matrix[i][symid]+=1;
 	                        	 }
 							}
@@ -413,7 +418,8 @@ public class Pomoda {
 						int symid=common.acgt(site.charAt(i));
 						if(symid>3)
 							continue; //meet new line separator
-						loglik_matrix[i][symid]+=loglik-single_logprob_bg[symid];
+						double x=Math.exp(loglik-single_logprob_bg[symid])*0.8;//0.8 is lower bound weight of selected sym
+						loglik_matrix[i][symid]+=x/(1+x);
 						count_matrix[i][symid]+=1;
 					}
 			}
@@ -479,13 +485,14 @@ public class Pomoda {
 				double sumcount=0;
 				for (int j = 0; j < i; j++)
 					sumcount+=count_matrix[bestCol][bestSym.get(j)];
+				double sum_x=0;
 				for (int j = 0; j < i; j++) {
 					double temp=loglik_matrix[bestCol][bestSym.get(j)];
 						// consider the logprob of extending sym, optimize the loglik , x=A/(A+B)
-						
-						sumNorm+=(temp)+count_matrix[bestCol][bestSym.get(j)]*Math.log(count_matrix[bestCol][bestSym.get(j)]/sumcount);
-					
+						sum_x+=temp;
 				}
+				double binormalP=(sumcount-sum_x)/sumcount;
+				sumNorm=common.Zscore(sumcount, binormalP, sum_x);
 				if(sumNorm>max_sumNorm)
 				{
 					for (int j = 0; j < i; j++) 
@@ -501,11 +508,11 @@ public class Pomoda {
 			}
 
 			
-			for (int j = 0; j < count_matrix.length; j++) {
-				System.out.println(Arrays.toString(loglik_matrix[j]));
-			}
+//			for (int j = 0; j < count_matrix.length; j++) {
+//				System.out.println(Arrays.toString(loglik_matrix[j]));
+//			}
 			
-			max_sumNorm=Evalue(motiflen+1,temp_prior.length*this.resolution,SearchEngine.getSeqNum(),(int)max_sumCount,4,max_sumNorm);
+		
 			System.out.println(max_sumNorm);
 			if(max_sumNorm<=bestscore)
 				break;
