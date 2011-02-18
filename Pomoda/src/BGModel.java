@@ -75,7 +75,7 @@ public class BGModel implements Serializable{
 	
 	private void addCount(String seq)
 	{
-		seq=seq.toUpperCase();
+		seq=seq.toUpperCase().replace("N", "");
 		for (int i = 0; i < seq.length()-order+1; i++) {
 			for (int j = 0; j < order; j++) {
 				String segment=seq.substring(i, i+j+1);
@@ -138,6 +138,7 @@ public class BGModel implements Serializable{
    		          SymbolTokenization toke = AlphabetManager.alphabetForName("DNA").getTokenization("token");
    		          SequenceIterator seqi = RichSequence.IOTools.readFasta(br, toke,null);
    			      while (seqi.hasNext()) {
+   			    	  
    				     addCount(seqi.nextSequence().seqString());
    				  addCount(common.getReverseCompletementString(seqi.nextSequence().seqString()));
    			      }

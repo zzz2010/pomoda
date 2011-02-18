@@ -97,6 +97,19 @@ public class common {
 		}
 		return 'N';
 	}
+	static double[] Normalize(double[] Arr)
+	{
+		double sum=0;
+		for (int i = 0; i < Arr.length; i++) {
+			sum+=Arr[i];
+		}
+		for (int i = 0; i < Arr.length; i++) {
+			Arr[i]/=sum;
+		}
+		return Arr;
+		
+	}
+	
 	static String getReverseCompletementString(String Tag)
 	{
 			String temp="";

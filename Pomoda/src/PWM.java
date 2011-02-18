@@ -23,12 +23,14 @@ public class PWM extends SimpleWeightMatrix {
 	public int head;
 	public int tail;
 	public double Score;
+	public ArrayList<Double>pos_prior;
 	public PWM(Distribution[] arg0) throws IllegalAlphabetException {
 		super(arg0);
 		// TODO Auto-generated constructor stub
 		
 		head=-1;
 		tail=-1;
+		pos_prior=new ArrayList<Double>();
 		Score=Double.MIN_VALUE;
 	}
 	
