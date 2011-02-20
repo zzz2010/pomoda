@@ -20,7 +20,9 @@ import org.biojava.bio.symbol.*;
 public class PWM extends SimpleWeightMatrix {
 
 	double[][]  m_matrix;
+	double[][]  log_matrix;
 	public int head;
+	public int core_motiflen;
 	public int tail;
 	public double Score;
 	public ArrayList<Double>pos_prior;
@@ -57,6 +59,8 @@ public class PWM extends SimpleWeightMatrix {
 	{
 		for (int i = 0; i < weights.length; i++) {
 			m_matrix[col][i]=weights[i];
+			log_matrix[col][i]=Math.log(weights[i]);
+			
 		}
 		Distribution di=this.getColumn(col);
 		SymbolList sla;
@@ -80,12 +84,14 @@ public class PWM extends SimpleWeightMatrix {
 	public void setWeight(int col, int symid,double weight)
 	{
 		m_matrix[col][symid]=weight;
+		log_matrix[col][symid]=Math.log(weight);
 		Distribution di=this.getColumn(col);
 		SymbolList sla;
 
 			try {
 				sla =DNATools.createDNA("ACGT");
-				this.getColumn(col).setWeight(sla.symbolAt(symid), weight);
+				//start from 1
+				this.getColumn(col).setWeight(sla.symbolAt(symid+1), weight);
 			} catch (IllegalSymbolException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -102,6 +108,13 @@ public class PWM extends SimpleWeightMatrix {
 		return m_matrix[col][symid];
 		
 	}
+	
+	public double getLogWeight(int col, int symid)
+	{
+
+		return log_matrix[col][symid];
+		
+	}
 
 	public PWM(String[] alignments) throws IllegalAlphabetException, IllegalSymbolException  {
 
@@ -112,12 +125,14 @@ public class PWM extends SimpleWeightMatrix {
 		try {
 			sla = DNATools.createDNA("ACGT");
 			m_matrix=new double[this.columns()][4];
+			log_matrix=new double[this.columns()][4];
 			for (int i = 0; i < this.columns(); i++) {
 				Distribution di=this.getColumn(i);
 				for (int j = 1; j<= 4; j++)
 				{  
 					double weight=di.getWeight(sla.symbolAt(j));
 			        m_matrix[i][j-1]=weight;
+			        log_matrix[i][j-1]=Math.log(weight);
 						
 				}
 				
@@ -147,6 +162,19 @@ public class PWM extends SimpleWeightMatrix {
 		
 	}
 	
+	//only consider the core-part, ignore flanking , log score
+	public double scoreWeightMatrix( String seq)
+	{
+		double score=0;
+		int len=Math.min(core_motiflen, seq.length());
+         for (int i = 0; i < len; i++) {
+			score+=log_matrix[head+i][common.acgt(seq.charAt(i))];
+		}
+         
+         return score;
+		
+	}
+	
 	
 	private double getBackgroundLogProb(String pattern,BGModel model)
 	{
@@ -154,20 +182,93 @@ public class PWM extends SimpleWeightMatrix {
 		char[] ACGT=new char[]{'A','C','G','T'};
 		StringBuffer sb=new StringBuffer(pattern);
 		//fill N with Random
-		Random rand=new Random();
-		int Ncount=0;
-		for (int i = 0; i < pattern.length(); i++) {
-			if(pattern.charAt(i)=='N')
-			{
-				sb.setCharAt(i,  ACGT[rand.nextInt(4)]);
-				Ncount++;
-			}
-			
-		}
-		logprob=model.Get_LOGPROB(sb.toString())+Ncount*Math.log(4);
+//		Random rand=new Random();
+//		int Ncount=0;
+//		for (int i = 0; i < pattern.length(); i++) {
+//			if(pattern.charAt(i)=='N')
+//			{
+//				sb.setCharAt(i,  ACGT[rand.nextInt(4)]);
+//				Ncount++;
+//			}
+//			
+//		}
+		logprob=model.Get_LOGPROB(sb.toString());//+Ncount*Math.log(4);
 		
 		
 		return logprob;
+	}
+	
+	public double getThresh(double sampleratio,double FDRthresh,BGModel bgmodel)
+	{
+		String Consensus=this.Consensus(true);
+		//compute the possible path
+		int num_path=1;
+		double log025=Math.exp(0.25);
+		int N_num=0;
+		for (int i = 0; i < Consensus.length(); i++) {
+			if(Consensus.charAt(i)=='N')
+			{
+				num_path*=4;
+				N_num++;
+			}
+			else 
+			{
+				int symid=common.acgt(Consensus.charAt(i));
+				if(symid<4)
+				{
+					num_path*=1/m_matrix[head+i][symid];
+				}
+				else if(symid>10)
+				{
+					num_path*=3;
+				}
+				else
+					num_path*=2;
+			}
+		}
+		
+		//number sampling
+		int num_sampl=10000;
+		boolean samplflag=false;
+		if((num_sampl)>num_path)
+		{
+
+			LinkedList<Map.Entry<Double,String>> inst=GenerateInstanceFromPWMPQ(sampleratio, FDRthresh, bgmodel);
+			if(inst.size()>0)
+			return inst.getFirst().getKey()+log025*N_num+common.DoubleMinNormal;
+			else
+				samplflag=true;
+		}
+		else
+			samplflag=true;
+		if(samplflag)
+		{
+			ArrayList<Double> scorelist=new ArrayList<Double>(num_sampl);
+			
+			int count=0;
+			//double sumfdr=0;
+			//double sumProb=0;
+			while(count<num_sampl)
+			{
+			 KeyValuePair<Double, String>	sample=bgmodel.generateRandomSequence(Consensus.length());
+				//sumfdr+=sample.getKey();
+				double score=scoreWeightMatrix(sample.getValue());
+				double score2=scoreWeightMatrix(common.getReverseCompletementString(sample.getValue()));
+				if(score<score2)
+					score=score2;
+				scorelist.add(score);
+				count++;
+				//sumProb+=Math.exp(score);
+				
+			}
+			Collections.sort(scorelist);
+			return scorelist.get((int)Math.ceil(scorelist.size()*(1-FDRthresh)));
+			
+			
+		}
+		return Double.MIN_VALUE;
+		
+		
 	}
 	
 	
@@ -209,7 +310,7 @@ public class PWM extends SimpleWeightMatrix {
 		double sumProb=0;
 		double smallscale=0.0000000000001;
 		char[] ACGT=new char[]{'A','C','G','T'};
-		String consensus=this.Censensus(false);
+		String consensus=this.Consensus(false);
         ArrayList<Integer>  effIndex=new ArrayList<Integer>(consensus.length());
         ArrayList< int[]> orderedCol=new ArrayList< int[]> (consensus.length());
       
@@ -232,7 +333,7 @@ public class PWM extends SimpleWeightMatrix {
     	for (int i = 0; i < effLen; i++) {
 			int symid=orderedCol.get(i)[0];
 			sb.append(ACGT[symid]);
-			logprob+=Math.log(getWeight(effIndex.get(i),symid));
+			logprob+=getLogWeight(effIndex.get(i),symid);
 			if(i!=effLen-1)
 			{
 				int gapsize=effIndex.get(i+1)-effIndex.get(i)-1;
@@ -244,11 +345,15 @@ public class PWM extends SimpleWeightMatrix {
 		}
     	PQ.put(logprob, sb.toString());
     	Entry<Double,String> topEntry=PQ.pollLastEntry();
+    	
     	sumFDR+=Math.exp(getBackgroundLogProb(topEntry.getValue(),bgmodel));
+    	//consider reverse complement
+    	sumFDR+=Math.exp(getBackgroundLogProb(common.getReverseCompletementString(topEntry.getValue()),bgmodel));
     	sumProb+=Math.exp(logprob);
     	
 		while(sumFDR<FDRthresh )
 		{
+		
 			InstanceSet.push(topEntry);
 			if(sumProb>sampleratio)
 				break;
@@ -274,10 +379,10 @@ public class PWM extends SimpleWeightMatrix {
 						
 											
 					sb.setCharAt(changingIndex-head,(ACGT[symid]));
-					logprob+=Math.log(getWeight(changingIndex,symid));
-					logprob-=Math.log(getWeight(changingIndex,orig_symid));
+					logprob+=getLogWeight(changingIndex,symid);
+					logprob-=getLogWeight(changingIndex,orig_symid);
 					
-				PQ.put(logprob, sb.toString());	 
+				PQ.put(logprob+z*common.DoubleMinNormal, sb.toString());	 
 				
 			}
 			// get pop out the best one from PQ
@@ -285,7 +390,7 @@ public class PWM extends SimpleWeightMatrix {
 			if(topEntry==null)
 				break;
 	    	sumFDR+=Math.exp(getBackgroundLogProb(topEntry.getValue(),bgmodel));
-	    	sumProb+=Math.exp(logprob);						
+	    	sumProb+=Math.exp(topEntry.getKey());						
 		}
 		
 		
@@ -314,7 +419,7 @@ public class PWM extends SimpleWeightMatrix {
 		
 	}
 	
-	public String Censensus(boolean trim)
+	public String Consensus(boolean trim)
 	{
 		String consensus="";
 		String  ACGT="ACGT";
@@ -360,6 +465,7 @@ public class PWM extends SimpleWeightMatrix {
 		{
 		consensus=consensus.substring(start,end);
 		}
+		core_motiflen=end-start;
 		return consensus;
 	}
 	
