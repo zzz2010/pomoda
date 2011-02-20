@@ -3,6 +3,7 @@ import org.biojava.bio.symbol.PointLocation;
 
 public class FastaLocation extends PointLocation {
 
+	public double Score;
 	public FastaLocation(int point, int seqId, int seqPos, int seqLen) {
 		super(point);
 		this.setSeqId(seqId);

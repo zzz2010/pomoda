@@ -1,5 +1,7 @@
 import java.io.*;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 import org.biojava.bio.BioException;
 import org.biojava.bio.dp.*;
@@ -10,28 +12,65 @@ import org.biojava.bio.dp.IllegalTransitionException;
 import org.biojava.bio.dp.ProfileHMM;
 import org.biojava.bio.dp.SimpleModelTrainer;
 import org.biojava.bio.seq.DNATools;
+import org.biojava.bio.seq.Sequence;
 import org.biojava.bio.seq.SequenceIterator;
 import org.biojava.bio.seq.db.*;
+import org.biojava.bio.seq.impl.RevCompSequence;
 import org.biojava.bio.seq.io.*;
 import org.biojava.bio.symbol.*;
 import org.biojavax.bio.seq.RichSequence;
+
 
 
 public class BGModel implements Serializable{
 	
 	
 	HashMap<String, Double> conditionProb;
+	Random r=new Random();
 	public int order;
+	
+	//return probability
+	public KeyValuePair<Double, String> generateRandomSequence(int len)
+	{
+		double score=1;
+		String seq="";
+		String ACGT="ACGT";
+		StringBuffer sb=new StringBuffer("");
+		for (int i = 0; i < len; i++) {
+			sb.append('N');
+			double cut=r.nextDouble();
+			double sumprob=0;
+			double tempprob=0;
+			for (int j = 0; j < 4; j++) {
+				sb.setCharAt(i, ACGT.charAt(j));
+				String temp=sb.toString();
+				if(order<temp.length())
+					temp=temp.substring(temp.length()-order);
+				tempprob=conditionProb.get(temp);
+				sumprob+=tempprob;
+				if(sumprob>cut)
+				{
+					break;
+				}
+			}
+			score*=tempprob;
+		}
+		seq=sb.toString();
+		
+		KeyValuePair<Double, String> result =new KeyValuePair<Double, String>(score, seq);
+		return result;
+	}
 	
 	//compute logprob of a sequence, support gap-sequence
 	public double Get_LOGPROB(String seq)
 	{
+		seq=seq.toUpperCase();
 		double logprob=0;
 		int start=0;
 		int i;
 		while(start<seq.length())
 		{
-			while(seq.charAt(start)=='N')
+			while(start<seq.length()&&seq.charAt(start)=='N')
 				start++;
 			for (i = 0; i < order&&i<(seq.length()-start); i++) {
 				if(seq.charAt(start+i)=='N')
@@ -42,7 +81,7 @@ public class BGModel implements Serializable{
 			if(start+i<seq.length()&& seq.charAt(start+i)=='N')
 			{
 				start=start+i+1;
-				break;
+				continue;
 			}
 			
 			for (i = start+1; i < (seq.length()-order+1); i++) {
@@ -138,9 +177,9 @@ public class BGModel implements Serializable{
    		          SymbolTokenization toke = AlphabetManager.alphabetForName("DNA").getTokenization("token");
    		          SequenceIterator seqi = RichSequence.IOTools.readFasta(br, toke,null);
    			      while (seqi.hasNext()) {
-   			    	  
-   				     addCount(seqi.nextSequence().seqString());
-   				  addCount(common.getReverseCompletementString(seqi.nextSequence().seqString()));
+   			    	  Sequence seq=seqi.nextSequence();
+   				     addCount(seq.seqString());
+   				  addCount(common.getReverseCompletementString(seq.seqString()));
    			      }
    			  normalizeConditionProb();
 			     
