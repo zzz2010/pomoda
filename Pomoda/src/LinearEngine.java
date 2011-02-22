@@ -23,16 +23,16 @@ import org.biojavax.bio.seq.RichSequence;
 
 public class LinearEngine {
 
-	LinkedList<Sequence> ForwardStrand;
-	LinkedList<Sequence> ReverseStrand;
+	LinkedList<String> ForwardStrand;
+	LinkedList<String> ReverseStrand;
 	int num_thread;
     public int forwardCount; //the first n entry in the searchPattern is forward.
 	public int SeqNum;
 	public int TotalLen;
 	public LinearEngine(int num_thread) {
 		this.num_thread=num_thread;
-		ForwardStrand=new LinkedList<Sequence>();
-		ReverseStrand=new LinkedList<Sequence>();
+		ForwardStrand=new LinkedList<String>();
+		ReverseStrand=new LinkedList<String>();
 		
 	}
 	public void build_index(String inputfile) {
@@ -48,10 +48,8 @@ public class LinearEngine {
    			    	  
    			    	  Sequence seq=seqi.nextSequence();
    			    	  String seqstr=seq.seqString().replace("N", "");
-   			    	seq =  DNATools.createDNASequence(seqstr , String.valueOf(count));
-   			    	Sequence rev =  DNATools.createDNASequence(common.getReverseCompletementString( seqstr), seq.getName());
-   				     ForwardStrand.add(seq);
-   				  ReverseStrand.add(rev);
+   				     ForwardStrand.add(seqstr);
+   				  ReverseStrand.add(common.getReverseCompletementString( seqstr));
    				  count++;
    			      }
    	
@@ -85,7 +83,7 @@ public class LinearEngine {
 	public LinkedList<FastaLocation> searchPattern(String pattern, int mismatch) {
 		// TODO Auto-generated method stub
 	    int workSize=ForwardStrand.size()/num_thread+1;
-	    Iterator<Sequence> iter=ForwardStrand.iterator();
+	    Iterator<String> iter=ForwardStrand.iterator();
 	    LinkedList<FastaLocation> search_result=new LinkedList<FastaLocation>();
 	    int count=0;
 	    ArrayList<SearchThread> threadpool=new ArrayList<SearchThread>(num_thread);
@@ -125,7 +123,7 @@ public class LinearEngine {
 	public LinkedList<FastaLocation> searchPattern(PWM pattern, double thresh) {
 		// TODO Auto-generated method stub
 	    int workSize=ForwardStrand.size()/num_thread+1;
-	    Iterator<Sequence> iter=ForwardStrand.iterator();
+	    Iterator<String> iter=ForwardStrand.iterator();
 	    LinkedList<FastaLocation> search_result=new LinkedList<FastaLocation>();
 	    int count=0;
 	    ArrayList<SearchThread> threadpool=new ArrayList<SearchThread>(num_thread);
@@ -162,8 +160,8 @@ public class LinearEngine {
 
 	public String getSite(int seqid, int location, int len) {
 		// TODO Auto-generated method stub
-		Sequence temp=ForwardStrand.get(seqid);
-		 String onsite=temp.subList(Math.max(1, location+1), Math.min(temp.length(), location+len)).seqString();
+		String temp=ForwardStrand.get(seqid);
+		 String onsite=temp.substring(Math.max(0, location),  Math.min(temp.length(), location+len));
 		 int head=-location;
 		 int tail=location+len-temp.length();
 		 if(head>0)

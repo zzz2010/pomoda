@@ -22,9 +22,9 @@ public class SearchThread extends Thread  {
 	String pattern;
 	int mismatch;
 	int dbsize;
-	public List<Sequence> db; //in case want to run multi db, before get result
+	public List<String> db; //in case want to run multi db, before get result
 	boolean PWMflag=false;
-	public SearchThread(PWM motif,double thresh, List<Sequence> db)
+	public SearchThread(PWM motif,double thresh, List<String> db)
 	{
 		this.motif=motif;
 		this.thresh=thresh;
@@ -34,7 +34,7 @@ public class SearchThread extends Thread  {
 		
 	}
 	
-	public SearchThread(String pattern,int mismatch, List<Sequence> db)
+	public SearchThread(String pattern,int mismatch, List<String> db)
 	{
 		this.pattern=pattern;
 		this.mismatch=mismatch;
@@ -50,13 +50,14 @@ public class SearchThread extends Thread  {
 		{
 			int pos=0;
 		
-			Iterator<Sequence> iter=db.iterator();
+			Iterator<String> iter=db.iterator();
+			int seqid=0;
 			while(iter.hasNext())
 			{
 
-				Sequence seq=iter.next();
+				String seq=iter.next();
 				try {
-					String seq2 = seq.seqString();
+					String seq2 = seq;
 					for (int i = 0; i < seq2.length()-motif.core_motiflen; i++) {
 						String temp=seq2.substring(i,i+motif.core_motiflen);
 						double score=motif.scoreWeightMatrix(temp);
@@ -65,7 +66,7 @@ public class SearchThread extends Thread  {
 							score=score2;
 						if(score>thresh)
 						{
-						FastaLocation fapos=new FastaLocation(pos+i,Integer.parseInt(seq.getName()) , i, seq.length());
+						FastaLocation fapos=new FastaLocation(pos+i,seqid , i, seq.length());
 					      fapos.Score=score;
 					      result.add(fapos);
 						}
@@ -73,6 +74,7 @@ public class SearchThread extends Thread  {
 					}
 					 
 				    pos+=seq.length();
+				    seqid++;
 				} catch (ChangeVetoException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -82,45 +84,40 @@ public class SearchThread extends Thread  {
 		else
 		{
 			int pos=0;
-			SymbolList sym_pattern;
-			try {
-				sym_pattern = DNATools.createDNA(pattern);
-				Iterator<Sequence> iter=db.iterator();
-	
-			while(iter.hasNext())
-			{
+			
+			Iterator<String> iter=db.iterator();
+			int seqid=0;
+while(iter.hasNext())
+{
 
-				Sequence seq=iter.next();
-				
-				for (int i = 0; i < seq.length()-pattern.length()+1; i++) {
-					int num_mismatch=0;
-					for (int j = 0; j < pattern.length(); j++) {
-						if(sym_pattern.symbolAt(j).getMatches().contains(seq.symbolAt(i+j)))
-						{
-							continue;
-						}
-						else
-						{
-							num_mismatch++;
-							if(num_mismatch>mismatch)
-								break;
-						}
-					}
-					if(num_mismatch<=mismatch)
+			String seq=iter.next();
+			
+			for (int i = 0; i < seq.length()-pattern.length()+1; i++) {
+				int num_mismatch=0;
+				for (int j = 0; j < pattern.length(); j++) {
+					if(pattern.charAt(j)=='N'|| pattern.charAt(j)==seq.charAt(i+j))
 					{
-						FastaLocation fapos=new FastaLocation(pos+i,Integer.parseInt(seq.getName()) , i, seq.length());
-					    fapos.Score=num_mismatch;  
-						result.add(fapos);
+						continue;
 					}
-						
-					
+					else
+					{
+						num_mismatch++;
+						if(num_mismatch>mismatch)
+							break;
+					}
 				}
-				
+				if(num_mismatch<=mismatch)
+				{
+					FastaLocation fapos=new FastaLocation(pos+i,seqid , i, seq.length());
+				    fapos.Score=num_mismatch;  
+					result.add(fapos);
+				}
+					
+			    pos+=seq.length();
+			    seqid++;
 			}
-			} catch (IllegalSymbolException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			
+}
 			
 		}
 			

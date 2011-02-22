@@ -2,7 +2,10 @@
  * @author zhizhuo zhang
  * zzz2010@gmail.com
  */
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -13,6 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -60,7 +64,7 @@ public class Pomoda {
 	public int starting_windowsize=200;
 	public int ending_windowsize=600;
 	public double FDR=0.01;
-	public int max_motiflen=20;
+	public int max_motiflen=25;
 	public int num_motif=5;
 	public double sampling_ratio=0.8;
 	public double min_support_ratio=0.05;
@@ -75,7 +79,7 @@ public class Pomoda {
 		//build hash index
 		SearchEngine=new HashEngine(5);
 		SearchEngine.build_index(this.inputFasta);
-		SearchEngine2=new LinearEngine(2);
+		SearchEngine2=new LinearEngine(4);
 		SearchEngine2.build_index(this.inputFasta);
 //		if(SearchEngine_Test())
 //			System.out.println("SearchEngine_Test : pass");
@@ -287,7 +291,7 @@ public class Pomoda {
 	
 	public ArrayList<PWM>	 getSeedMotifs() {
 		
-		ArrayList<PWM>	SeedMotifs=new	ArrayList<PWM>(num_motif*num_motif);
+		ArrayList<PWM>	SeedMotifs=new	ArrayList<PWM>(num_motif);
 		int LIBSIZE=SearchEngine.getTotalLength();
 		String ACGT="ACGT";
 		int loopnum=1<<(2*seedlen);
@@ -319,7 +323,7 @@ public class Pomoda {
 		//sort by score
 		List<Map.Entry<Integer,Double>> mappingList=new ArrayList<Map.Entry<Integer,Double>>(seedScores.entrySet());
 		Collections.sort(mappingList, bvc);
-		int max_num_Seeds=num_motif*num_motif;
+		int max_num_Seeds=num_motif;
 		//just take top ones
 		    for (Map.Entry<Integer,Double> pair : mappingList) {
 		    	if(SeedMotifs.size()==max_num_Seeds)
@@ -1144,6 +1148,10 @@ public class Pomoda {
 		//get seed motifs
 		ArrayList<PWM>  seedPWMs=motifFinder.getSeedMotifs();
 		
+		File file = new File(motifFinder.outputPrefix+"pomoda_raw.pwm"); 
+		try {
+			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
 		for (int i = 0; i < seedPWMs.size(); i++) {
 			System.out.println("Extend...");
@@ -1151,16 +1159,32 @@ public class Pomoda {
 			System.out.println("Relax...");
 			seedPWMs.set(i, motifFinder.Relax_Seed_(seedPWMs.get(i)));
 			Runtime.getRuntime().gc();
+			seedPWMs.get(i).Name="Motif"+String.valueOf(i+1);
 			if(motifFinder.markflag)
 			{
 				//do something to mark the locations in SearchEngine
 				
 			}
+			sortedPWMs.put(seedPWMs.get(i).Score, seedPWMs.get(i)); //desc order
+		
+		}
+		for(Double key:sortedPWMs.descendingKeySet())
+		{
+			writer.write(sortedPWMs.get(key).toString());
+			//WMPanel.wmViewer(sortedPWMs.get(key),sortedPWMs.get(key).Name);
+		}
+		
+		writer.close();
+		} 
+		catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		}
 		
 
 		
 
-	}
+	
 
 }
