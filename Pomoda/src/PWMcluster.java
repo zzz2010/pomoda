@@ -4,6 +4,9 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.cli.Options;
+import org.pr.clustering.hierarchical.Cluster;
+import org.pr.clustering.hierarchical.Hierarchical;
+import org.pr.clustering.hierarchical.LinkageCriterion;
 
 
 public class PWMcluster {
@@ -37,6 +40,7 @@ public class PWMcluster {
 		ArrayList<Thread> threadpool=new ArrayList<Thread>(rawPwms.size()*rawPwms.size());
 		for (int i = 0; i <rawPwms.size(); i++) {
 			PWM rawpwm=rawPwms.get(i);
+			System.out.println(rawpwm.Consensus(true)+'\t'+rawpwm.Score);
 			double thresh=rawpwm.getThresh(sampling_ratio, FDR, background);
 			LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(rawpwm, thresh);
 			ArrayList<Integer> pos=new ArrayList<Integer>(falocs.size());
@@ -51,11 +55,11 @@ public class PWMcluster {
 			
 		}
 		try {
-				ArrayList<ArrayList<Integer>> PosSet=new ArrayList<ArrayList<Integer>>(rawPwms.size());
+				ArrayList<LinkedList<Integer>> PosSet=new ArrayList<LinkedList<Integer>>(rawPwms.size());
 				for (int i = 0; i < threadpool.size(); i++) {
 				  SortingThread t1=(SortingThread)threadpool.get(i);
 				  t1.join();
-				PosSet.add((ArrayList<Integer>)t1.getResult());
+				PosSet.add((LinkedList<Integer>)t1.getResult());
 				}
 				threadpool.clear();
 				for (int i = 0; i < rawPwms.size()-1; i++) {
@@ -66,12 +70,58 @@ public class PWMcluster {
 						threadpool.add(t2);
 					}
 				}
-				
+				double[][] dist=new double[rawPwms.size()][rawPwms.size()];
 				for (int i = 0; i < threadpool.size(); i++) {
 					OverlappingThread t2=(OverlappingThread)threadpool.get(i);
+					int pairid=Integer.parseInt(t2.getName());
+					int row=pairid/rawPwms.size();
+					int col=pairid%rawPwms.size();						
 					t2.join();
+					double temp=t2.getResult().size()/(double)Math.min(PosSet.get(row).size(), PosSet.get(col).size());
+					dist[row][col]=1-temp; //distance
+					dist[col][row]=1-temp;
+					
 				}
 				
+//				for (int i = 0; i < dist.length; i++) {
+//					StringBuffer sb=new StringBuffer("");
+//					for (int j = 0; j< dist.length; j++)
+//					{  
+//						double weight=dist[i][j];
+//							sb.append(String.valueOf(weight));
+//							sb.append('\t');
+//							
+//					}
+//					System.out.println(sb.toString());
+//
+//					
+//				}
+				
+				Hierarchical clustering= new Hierarchical(dist,LinkageCriterion.UPGMA);
+				List<Integer> clusterlabed=clustering.partition(num_cluster);
+				for (int i = 0; i <num_cluster; i++)
+				{
+					clusterMoitfs.add(null);
+				}
+				for (int i = 0; i <clusterlabed.size(); i++)
+				{
+					int cid=clusterlabed.get(i);
+					if(cid>=clusterMoitfs.size())
+					{
+						for (int j = 0; j < cid+1-clusterMoitfs.size(); j++) {
+							clusterMoitfs.add(null);
+						}
+					}
+					if(clusterMoitfs.get(cid)==null)
+					{
+						clusterMoitfs.set(cid, rawPwms.get(i));
+					}
+					else if(clusterMoitfs.get(cid).Score<rawPwms.get(i).Score)
+					{
+						clusterMoitfs.set(cid, rawPwms.get(i));
+					}
+				}
+
 				
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
