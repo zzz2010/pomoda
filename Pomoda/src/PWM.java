@@ -169,6 +169,8 @@ public class PWM extends SimpleWeightMatrix {
 		double score=0;
 		int len=Math.min(core_motiflen, seq.length());
          for (int i = 0; i < len; i++) {
+        	 if(common.acgt(seq.charAt(i))>3)
+        		 return Double.NEGATIVE_INFINITY;
 			score+=log_matrix[head+i][common.acgt(seq.charAt(i))];
 		}
          
@@ -204,7 +206,7 @@ public class PWM extends SimpleWeightMatrix {
 		String Consensus=this.Consensus(true);
 		//compute the possible path
 		int num_path=1;
-		double log025=Math.exp(0.25);
+		double log025=Math.log(0.25);
 		int N_num=0;
 		for (int i = 0; i < Consensus.length(); i++) {
 			if(Consensus.charAt(i)=='N')
@@ -236,7 +238,7 @@ public class PWM extends SimpleWeightMatrix {
 
 			LinkedList<Map.Entry<Double,String>> inst=GenerateInstanceFromPWMPQ(sampleratio, FDRthresh, bgmodel);
 			if(inst.size()>0)
-			return inst.getFirst().getKey()+log025*N_num+common.DoubleMinNormal;
+			return inst.getFirst().getKey()+log025*N_num-common.DoubleMinNormal;
 			else
 				samplflag=true;
 		}
@@ -263,7 +265,10 @@ public class PWM extends SimpleWeightMatrix {
 				
 			}
 			Collections.sort(scorelist);
-			return scorelist.get((int)Math.ceil(scorelist.size()*(1-FDRthresh)));
+			double thresh=scorelist.get((int)Math.floor(scorelist.size()*(1-FDRthresh)));
+			if(thresh==scorelist.get(scorelist.size()-1))
+				thresh-=common.DoubleMinNormal;
+			return thresh;
 			
 			
 		}
@@ -352,7 +357,7 @@ public class PWM extends SimpleWeightMatrix {
     	sumFDR+=Math.exp(getBackgroundLogProb(common.getReverseCompletementString(topEntry.getValue()),bgmodel));
     	sumProb+=Math.exp(logprob);
     	
-		while(sumFDR<FDRthresh )
+		while(sumFDR<FDRthresh||InstanceSet.size()==0 )
 		{
 		
 			InstanceSet.push(topEntry);

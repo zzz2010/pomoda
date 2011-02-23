@@ -38,7 +38,8 @@ public class LinearEngine {
 	public void build_index(String inputfile) {
 		// TODO Auto-generated method stub
 		 try {
-
+			 ForwardStrand.clear();
+			 ReverseStrand.clear();
 			 //Database to hold the training set
 			      BufferedReader br = new BufferedReader(new FileReader(inputfile));
    		          SymbolTokenization toke = AlphabetManager.alphabetForName("DNA").getTokenization("token");

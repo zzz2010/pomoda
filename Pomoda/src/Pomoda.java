@@ -63,10 +63,10 @@ public class Pomoda {
 	public int resolution=20;
 	public int starting_windowsize=200;
 	public int ending_windowsize=600;
-	public double FDR=0.01;
+	public double FDR=0.001;
 	public int max_motiflen=25;
 	public int num_motif=5;
-	public double sampling_ratio=0.8;
+	public double sampling_ratio=0.95;
 	public double min_support_ratio=0.05;
 	public boolean markflag=true;
 	public HashEngine SearchEngine;
@@ -288,10 +288,47 @@ public class Pomoda {
 		return pass;
 	}
 	
+	public void Masking(PWM motif)
+	{
+		
+		double log_thresh=motif.getThresh(sampling_ratio, FDR, background);
+		String consensus_core=motif.Consensus(true);
+		
+		
+		//double logN025=log025*(motif.head+motif.tail);
+		int motiflen=consensus_core.length();
+		LinkedList<String> MatchSite=new LinkedList<String>();
+		
+		//update the loglik matrix
+		LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
+		Iterator<FastaLocation> iter2=Falocs.iterator();
+		int count=0;
+		int lastseq=-1;
+		StringBuffer sb=new StringBuffer(SearchEngine.CharText);
+		String X_Str="";
+		for (int i = 0; i < motiflen; i++) {
+			X_Str+="X";
+		}
+		while(iter2.hasNext())
+		{
+			FastaLocation currloc=iter2.next();
+			String Site1=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(), motiflen);
+			String Site2=SearchEngine.getSite(currloc.getMin()+currloc.getSeqId(),motiflen);
+			String rep=SearchEngine2.ForwardStrand.get(currloc.getSeqId()).replace(Site1, X_Str);
+			SearchEngine2.ForwardStrand.set(currloc.getSeqId(), rep);
+			rep=SearchEngine2.ReverseStrand.get(currloc.getSeqId()).replace(common.getReverseCompletementString(Site1) , X_Str);
+			SearchEngine2.ReverseStrand.set(currloc.getSeqId(), rep);
+			//hash engine...
+			sb.replace(currloc.getMin()+currloc.getSeqId(), currloc.getMin()+currloc.getSeqId()+motiflen, X_Str);
+		}
+		SearchEngine.CharText=sb.toString();
+		
+	}
+	
 	
 	public ArrayList<PWM>	 getSeedMotifs() {
-		
-		ArrayList<PWM>	SeedMotifs=new	ArrayList<PWM>(num_motif);
+		int max_num_Seeds=num_motif*num_motif;
+		ArrayList<PWM>	SeedMotifs=new	ArrayList<PWM>(max_num_Seeds);
 		int LIBSIZE=SearchEngine.getTotalLength();
 		String ACGT="ACGT";
 		int loopnum=1<<(2*seedlen);
@@ -323,7 +360,7 @@ public class Pomoda {
 		//sort by score
 		List<Map.Entry<Integer,Double>> mappingList=new ArrayList<Map.Entry<Integer,Double>>(seedScores.entrySet());
 		Collections.sort(mappingList, bvc);
-		int max_num_Seeds=num_motif;
+		
 		//just take top ones
 		    for (Map.Entry<Integer,Double> pair : mappingList) {
 		    	if(SeedMotifs.size()==max_num_Seeds)
@@ -535,13 +572,15 @@ public class Pomoda {
 	{
 		//relax the conserved column 
 		String consensus=motif.Consensus(false);
-		double main_prop=Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2));
+		double main_prop=Math.pow(3*sampling_ratio/(seedlen-2), 1.0/(seedlen-1));// 1 mismatch
+			//2 mismatch
+			//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2));
 		for (int i = 0; i < consensus.length(); i++) {
 			if(consensus.charAt(i)=='N')
 				continue;
 			boolean conserved=false;
 			for (int j = 0; j < 4; j++) {
-				 if(motif.m_matrix[i][j]>main_prop)
+				 if(motif.m_matrix[i][j]>(1-common.DoubleMinNormal))
 				 {
 					 conserved=true;
 					 break;
@@ -567,7 +606,7 @@ public class Pomoda {
 		double lastscore=Double.MIN_VALUE;
 		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
 		int inst_hash=-1;
-    	
+    
 		
 		do
 		{
@@ -588,6 +627,8 @@ public class Pomoda {
 			int motiflen=consensus_core.length();
 			LinkedList<String> MatchSite=new LinkedList<String>();
 			
+			double [][]m_matrix=new double [motiflen+4][4];
+			
 			//update the loglik matrix
 			LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
 			System.out.println("number of occurrences: "+String.valueOf(Falocs.size()));
@@ -601,6 +642,10 @@ public class Pomoda {
 						String site="";
 						//forward site
 						site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos()-2,motiflen+4);
+						//check masking
+						if(site.indexOf('X')>-1)
+							continue;
+						
 //						if(site.equalsIgnoreCase(""))
 //							continue;
 						//assume only one N for line break
@@ -623,19 +668,31 @@ public class Pomoda {
 							
 						}
 						site=sb.toString();
+
 						if(count>=SearchEngine2.forwardCount)
 						{
 							//reverse site
 							site=common.getReverseCompletementString(site);
 							
 						}
-						if(site.length()==motiflen+4)
-						MatchSite.add(site);
-						else
+//						if(site.length()==motiflen+4)
+//							MatchSite.add(site);
+//						else
+//							continue;
+						if(site.length()!=motiflen+4)
 							continue;
-				
+						double prob_theta=Math.exp(currloc.Score);
+						for (int i = 0; i < motiflen+4; i++) {
+							int symid=common.acgt(site.charAt(i));
+							if(symid>3)
+								continue;
+							m_matrix[i][symid]+=prob_theta;
+						}
 						
 						double logprob_theta=currloc.Score;
+						
+						
+						
 						double logprob_BG=background.Get_LOGPROB(site.substring((site.length()-motiflen)/2, motiflen));
 						double logprior=0;
 						if(motif.pos_prior.size()!=0)
@@ -657,24 +714,20 @@ public class Pomoda {
 					else
 					{
 						lastscore=bestscore;
-						try {
-							if(MatchSite.size()==0||inst_hash==MatchSite.hashCode())
-								return motif;
-							else
-								inst_hash=MatchSite.hashCode();
-							motif=new PWM((String[])(MatchSite.toArray(new  String[1])));
-							motif.Score=bestscore;
-							temp_prior=common.Normalize(temp_prior);
-							for (int i = 0; i < temp_prior.length; i++) {
-								motif.pos_prior.add(temp_prior[i]);
-							}
-							
-						} catch (IllegalAlphabetException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} catch (IllegalSymbolException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+						if(MatchSite.size()==0||inst_hash==MatchSite.hashCode())
+							return motif;
+						else
+							inst_hash=MatchSite.hashCode();
+						
+						//motif=new PWM((String[])(MatchSite.toArray(new  String[1])));
+						for (int i = 0; i < m_matrix.length; i++) {
+							motif.setWeights(i+motif.head-2,common.Normalize(m_matrix[i]));
+						}
+						
+						motif.Score=bestscore;
+						temp_prior=common.Normalize(temp_prior);
+						for (int i = 0; i < temp_prior.length; i++) {
+							motif.pos_prior.add(temp_prior[i]);
 						}
 						
 					}
@@ -747,6 +800,8 @@ public class Pomoda {
 					String site="";
 					//forward site
 					site=SearchEngine.getSite(currloc.getMin()-motif.head, motif.columns());
+					if(site.indexOf('X')>-1)
+						continue;
 //					if(site.equalsIgnoreCase(""))
 //						continue;
 					//assume only one N for line break
@@ -769,6 +824,7 @@ public class Pomoda {
 						
 					}
 					site=sb.toString();
+
 					if(count>=SearchEngine.forwardCount)
 					{
 						//reverse site
@@ -1144,37 +1200,53 @@ public class Pomoda {
 		
 		//initialize Pomoda 
 		motifFinder.initialize();
+		motifFinder.markflag=true;
 		
 		//get seed motifs
 		ArrayList<PWM>  seedPWMs=motifFinder.getSeedMotifs();
-		
+		double topseed_Score=seedPWMs.get(0).Score;
 		File file = new File(motifFinder.outputPrefix+"pomoda_raw.pwm"); 
 		try {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
 		for (int i = 0; i < seedPWMs.size(); i++) {
-			System.out.println("Extend...");
+			System.out.println("Extending...");
 			seedPWMs.set(i,motifFinder.Column_Replacement(seedPWMs.get(i)));
-			System.out.println("Relax...");
+			System.out.println("Relaxing...");
 			seedPWMs.set(i, motifFinder.Relax_Seed_(seedPWMs.get(i)));
-			Runtime.getRuntime().gc();
+
 			seedPWMs.get(i).Name="Motif"+String.valueOf(i+1);
-			if(motifFinder.markflag)
+			if(motifFinder.markflag&&seedPWMs.get(i).Score>topseed_Score)
 			{
 				//do something to mark the locations in SearchEngine
+				System.out.println("Masking...");
+				motifFinder.Masking(seedPWMs.get(i));
 				
 			}
+			//Runtime.getRuntime().gc();
 			sortedPWMs.put(seedPWMs.get(i).Score, seedPWMs.get(i)); //desc order
 		
 		}
 		for(Double key:sortedPWMs.descendingKeySet())
 		{
 			writer.write(sortedPWMs.get(key).toString());
+			
 			//WMPanel.wmViewer(sortedPWMs.get(key),sortedPWMs.get(key).Name);
 		}
 		
 		writer.close();
+		//clustering motif, re-initialize
+		motifFinder.SearchEngine2.build_index(motifFinder.inputFasta);
+		
+		PWMcluster clustering=new PWMcluster(motifFinder);
+		
+			ArrayList<PWM>  clusterPWMs=clustering.Clustering(seedPWMs,motifFinder.num_motif);
+			for(PWM pwm:clusterPWMs)
+			{
+				System.out.println(pwm.toString());
+			}
+		
 		} 
 		catch (IOException e) {
 			// TODO Auto-generated catch block

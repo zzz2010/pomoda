@@ -16,11 +16,14 @@ public class OverlappingThread extends Thread {
 		this.list1=list1;
 		this.list2=list2;
 		this.windowsize=windowsize;
+		result=new LinkedList<Integer>();
 	}
 	
 	public void run() {
 		Iterator<Integer> iter1=list1.iterator();
 		Iterator<Integer> iter2=list2.iterator();
+		if(list1.size()==0||list2.size()==0)
+			return;
 		Integer pos1 = iter1.next();
 		Integer pos2 = iter2.next();
 		while(iter1.hasNext()&&iter2.hasNext())
@@ -33,9 +36,9 @@ public class OverlappingThread extends Thread {
 				pos2=iter2.next();
 			
 			}
-			if(pos1<(pos2-windowsize))
+			else if(pos1<(pos2-windowsize))
 				pos1=iter1.next();
-			if(pos2<(pos1-windowsize))
+			else if(pos2<(pos1-windowsize))
 				pos2=iter2.next();
 		}
 		

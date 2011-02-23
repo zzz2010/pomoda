@@ -31,7 +31,7 @@ public class HashEngine implements ISearchEngine {
 
 	private int Hashlen;
 	private ArrayList< LinkedList<Integer>> HashIndex;
-	private String CharText; 
+	public String CharText; 
 	public int SeqNum;
 	public int TotalLen;
 	public ArrayList<Integer> accSeqLen;
