@@ -1021,6 +1021,286 @@ public class Pomoda {
 	}
 	
 	
+	public PWM Column_Replacement_(PWM motif)
+	{
+		double log025=Math.log(0.25);
+		if(this.pos_prior.size()>0)
+			motif.pos_prior=(ArrayList<Double>) this.pos_prior.clone();
+		double bestscore=motif.Score;
+		HashSet<Integer> extendedCols=new HashSet<Integer>();
+		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
+		int inst_hash=-1;
+		do
+		{
+
+			String consensus_core=motif.Consensus(true);
+		System.out.println(consensus_core+"\t"+String.valueOf(bestscore));
+		bestscore=0;
+		double[] temp_prior=new double[num_priorbin];
+		double lognullprior=Math.log(1.0/num_priorbin);
+		double thresh=motif.getThresh(this.sampling_ratio, this.FDR, this.background);
+		
+		LinkedList<FastaLocation> Falocs=SearchEngine.searchPattern(motif, thresh);
+		System.out.println(Falocs.size());
+		if(Falocs.size()<min_support_ratio*SearchEngine.getSeqNum() ||inst_hash==Falocs.hashCode())
+			return motif;
+		else
+			inst_hash=Falocs.hashCode();
+			
+	
+		double [][] loglik_matrix=new double[motif.columns()][4];
+		
+		double[][] count_matrix=new double[motif.columns()][4];
+		String consensus=motif.Consensus(false);
+		//double logN025=log025*(motif.head+motif.tail);
+		int motiflen=consensus_core.length();
+		int avergeSeqlen=(SearchEngine.TotalLen/SearchEngine.SeqNum);
+		double[] single_logprob_bg=new double [4];
+		String ACGT="ACGT";
+		//get single sym bgprob
+		for (int i = 0; i < single_logprob_bg.length; i++) {
+			single_logprob_bg[i]=background.Get_LOGPROB(ACGT.substring(i, i+1));
+		}
+		//update the loglik matrix
+		
+			
+			
+				Iterator<FastaLocation> iter2=Falocs.iterator();
+				int count=0;
+				int lastseq=-1;
+				double [][] max_loglik_matrix=new double[motif.columns()][4];
+				if(OOPS)
+					common.fill2DArray(max_loglik_matrix,Double.MIN_VALUE);
+				while(iter2.hasNext())
+				{
+					FastaLocation currloc=iter2.next();
+					double logprob_theta=currloc.Score;
+					String site="";
+					//forward site
+					site=SearchEngine.getSite(currloc.getMin()-motif.head, motif.columns());
+					if(site.indexOf('X')>-1)
+						continue;
+					
+					double logprob_BG=background.Get_LOGPROB(site);
+//					if(site.equalsIgnoreCase(""))
+//						continue;
+					//assume only one N for line break
+					StringBuffer sb=new StringBuffer(site);
+					for (int i = 0; i < site.length(); i++) {
+						if(site.charAt(i)=='N'&& i<=site.length()/2)
+						{
+							for (int j = 0; j < i; j++) {
+								sb.setCharAt(j, 'N');
+							}
+							continue;
+						}
+						else if(site.charAt(i)=='N')
+						{
+							for (int j = i+1; j < site.length(); j++) {
+								sb.setCharAt(j, 'N');
+							}
+							break;
+						}
+						
+					}
+					site=sb.toString();
+
+					if(count>=SearchEngine.forwardCount)
+					{
+						//reverse site
+						site=common.getReverseCompletementString(site);
+						
+					}	
+					double logprior=0;
+					if(motif.pos_prior.size()!=0)
+						logprior=motif.pos_prior.get((int)( motif.pos_prior.size()*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen())))-lognullprior;
+					double loglik=logprob_theta+logprior-logprob_BG;
+					temp_prior[(int)(num_priorbin*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()))]+=1;//make smaller
+					if(OOPS)
+						loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
+					if(!OOPS)
+						bestscore+=loglik;
+					if(OOPS&&currloc.getSeqId()!=lastseq)
+					{
+						if(lastseq!=-1)
+							for (int i = 0; i < site.length(); i++) {
+								if(consensus.charAt(i)!='N')
+									continue;
+								
+	                         for (int symid = 0; symid < 4; symid++) {
+	                        	 if(max_loglik_matrix[i][symid]!=Double.MIN_VALUE)
+	                        	 {
+									loglik_matrix[i][symid]+=max_loglik_matrix[i][symid]-single_logprob_bg[symid];
+									count_matrix[i][symid]+=1;
+	                        	 }
+							}
+
+							}
+						bestscore+=loglik;
+						lastseq=currloc.getSeqId();
+						common.fill2DArray(max_loglik_matrix,Double.MIN_VALUE);
+					}
+					if(OOPS)
+					{
+						for (int i = 0; i < site.length(); i++) {
+							if(consensus.charAt(i)!='N')
+								continue;
+							int symid=common.acgt(site.charAt(i));
+							if(symid>3)
+								continue; //meet new line separator
+							if(loglik>max_loglik_matrix[i][symid])
+								max_loglik_matrix[i][symid]=loglik;
+							
+						}
+					
+						continue;
+					}
+//					if(loglik<0)
+//						System.out.println(site);
+					
+					for (int i = 0; i < site.length(); i++) {
+						int symid=common.acgt(site.charAt(i));
+						if(symid>3)
+							continue; //meet new line separator
+						count_matrix[i][symid]+=1;
+						if(consensus.charAt(i)!='N')
+							continue;
+						loglik_matrix[i][symid]+=loglik-single_logprob_bg[symid];
+					}
+			}
+	
+		
+		
+		//select the best column replacement
+		double maxloglik=Double.MIN_VALUE;
+		
+		int numbestSym=2;
+		int bestCol=-1;
+		ArrayList<Integer> bestSym=new ArrayList<Integer>(4);
+			for (int i = 0; i < motif.columns(); i++) {
+				if(consensus.charAt(i)!='N')
+					continue;
+				TreeMap<Double,Integer> orderSym=new TreeMap<Double,Integer>();
+				double temploglik=0;
+				double sumtemp=0;
+				for (int j = 0; j < 4; j++) {
+					double temp=loglik_matrix[i][j];
+					orderSym.put(temp-common.DoubleMinNormal*j, j);
+					sumtemp+=temp;
+				}
+				double boundaryLoss=Math.min(Math.abs(i-motif.head), Math.abs(motiflen+motif.head-i))/(double)avergeSeqlen;
+				//System.out.println(sumtemp);
+				//only consider best two sym
+				int c=0;
+				for(Double key: orderSym.descendingKeySet()) {
+					//int col=orderSym.get(key);
+					if(key<0||c>=numbestSym)
+						break;
+					temploglik+=key*(1+boundaryLoss);
+					c++;
+					
+				}
+				
+				if(temploglik>maxloglik)
+				{
+					maxloglik=temploglik;
+					bestCol=i;
+					bestSym.clear();
+					for(Double key: orderSym.descendingKeySet()) {
+						int col=orderSym.get(key);
+						if(key<0)//||bestSym.size()==numbestSym
+							break;
+						bestSym.add(col);
+						
+					}
+					
+					
+				}
+				
+			}
+			if(bestCol==-1)
+				break;
+			double [] repColumnValue=new double[4];
+			Arrays.fill(repColumnValue, common.DoubleMinNormal);
+			
+			double max_sumNorm=0;
+			double max_sumCount=0;
+			double max_symCount=0;
+
+			for (int i = 1; i <= bestSym.size(); i++) {
+				double sumNorm=0;
+				double sumcount=0;
+				for (int j = 0; j < i; j++)
+					sumcount+=count_matrix[bestCol][bestSym.get(j)];
+				for (int j = 0; j < i; j++) {
+					double temp=loglik_matrix[bestCol][bestSym.get(j)];
+						sumNorm+=(temp)+count_matrix[bestCol][bestSym.get(j)]*Math.log(count_matrix[bestCol][bestSym.get(j)]/sumcount);
+					
+				}
+				if(sumNorm>max_sumNorm)
+				{
+					for (int j = 0; j < i; j++) 
+					{
+						repColumnValue[bestSym.get(j)]=count_matrix[bestCol][bestSym.get(j)]/sumcount;
+					}
+					max_sumNorm=sumNorm;
+					max_sumCount=sumcount;
+					max_symCount=i;
+				}
+				
+				
+			}
+
+			if(debug)
+			for (int j = 0; j < count_matrix.length; j++) {
+				System.out.println(Arrays.toString(loglik_matrix[j]));
+			}
+			
+			System.out.println(max_sumNorm);
+			double boundaryLoss=Math.min(Math.abs(bestCol-motif.head), Math.abs(motiflen+motif.head-bestCol))/(double)avergeSeqlen;
+			max_sumNorm*=(1+boundaryLoss);
+			
+			if(max_sumNorm<=bestscore||max_sumCount<SearchEngine.getSeqNum()*min_support_ratio)
+				break;
+			else
+			{
+				bestscore=max_sumNorm;
+				
+			}
+
+
+			//update motif column value
+			motif.setWeights(bestCol, repColumnValue);
+			double sumPrior=0;
+			for (int i = 0; i < temp_prior.length; i++) {
+				sumPrior+=temp_prior[i];
+			}
+			//also maximize loglik for update other column
+			Iterator<Integer> iter1=extendedCols.iterator();
+			while(iter1.hasNext())
+			{
+				int ecol=iter1.next();
+				motif.setWeights(ecol, common.Normalize(count_matrix[ecol]));
+				
+			}
+			
+			
+			extendedCols.add(bestCol);
+			motif.pos_prior.clear();
+			for (int i = 0; i < temp_prior.length; i++) {
+				temp_prior[i]/=sumPrior;
+				motif.pos_prior.add(temp_prior[i]);
+			}
+			if(debug)
+				motif.print();
+			
+			
+		}while(true);
+		motif.Score=bestscore;
+		return motif;
+	}
+	
+	
 	
 	
 	//for fix PWM score and BG score, but there is position prior
@@ -1212,7 +1492,7 @@ public class Pomoda {
 		//extend and refine motifs
 		for (int i = 0; i < seedPWMs.size(); i++) {
 			System.out.println("Extending...");
-			seedPWMs.set(i,motifFinder.Column_Replacement(seedPWMs.get(i)));
+			seedPWMs.set(i,motifFinder.Column_Replacement_(seedPWMs.get(i)));
 			System.out.println("Relaxing...");
 			seedPWMs.set(i, motifFinder.Relax_Seed_(seedPWMs.get(i)));
 
@@ -1222,6 +1502,7 @@ public class Pomoda {
 				//do something to mark the locations in SearchEngine
 				System.out.println("Masking...");
 				motifFinder.Masking(seedPWMs.get(i));
+				
 				
 			}
 			//Runtime.getRuntime().gc();
