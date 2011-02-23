@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -401,6 +402,94 @@ public class HashEngine implements ISearchEngine {
 		gPattern=temp;
 		
 		ret.addAll( searchPatternNRC(temp,0,mismatch));
+		return ret;
+	}
+	
+	public LinkedList<FastaLocation> searchPattern(PWM motif, double thresh) {
+		LinkedList<FastaLocation> ret=new LinkedList<FastaLocation>();
+		//find most converse Hashlen part
+		String Consensus=motif.Consensus(true);
+		double[] columnCons=new double[Consensus.length()];
+		int beststart=-1;
+		double minCon_score=Double.MAX_VALUE;
+		double Con_score=0;
+		for (int i = 0; i < Consensus.length(); i++) {
+			int symid=common.acgt(Consensus.charAt(i));
+			if(symid<4)
+			{
+				columnCons[i]=1/motif.m_matrix[motif.head+i][symid];
+				
+			}
+			else
+				columnCons[i]=4;
+			
+			Con_score+=columnCons[i];
+			if(i>Hashlen-2)
+			{
+				if(Con_score<minCon_score)
+				{
+					beststart=i-Hashlen+1;
+					minCon_score=Con_score;
+				}
+				if(i-Hashlen+1>=0)
+					Con_score-=columnCons[i-Hashlen+1];
+			}
+			
+		}
+		
+		Integer[] seqlenlist=accSeqLen.toArray(new Integer[1]);
+		//forward strand
+		String pattern=Consensus.substring(beststart,Hashlen);
+		LinkedList<Integer> poslist=searchPatternNRC(pattern,0,0);
+		Iterator<Integer> iter=poslist.iterator();
+		while(iter.hasNext())
+		{
+			int pos=iter.next();
+			String site=this.getSite(pos-beststart, Consensus.length());
+			double score=motif.scoreWeightMatrix(site);
+			if(score>thresh)
+			{
+				pos=pos-beststart;
+				int seqNum=0;
+				//use binary search
+				seqNum=Arrays.binarySearch(seqlenlist, pos);
+				
+				int seqLen=accSeqLen.get(seqNum+1)-accSeqLen.get(seqNum);
+				FastaLocation fapos=new FastaLocation(pos, seqNum, pos-accSeqLen.get(seqNum), seqLen);
+				fapos.Score=score;
+				ret.add(fapos);
+			}
+		}
+		forwardCount=ret.size();
+		
+		if(Consensus.equalsIgnoreCase(common.getReverseCompletementString(Consensus)))
+			return ret;
+		//reverse strand
+		pattern=common.getReverseCompletementString(pattern);
+		poslist=searchPatternNRC(pattern,0,0);
+		iter=poslist.iterator();
+		while(iter.hasNext())
+		{
+			int pos=iter.next();
+			String site=this.getSite(pos-(Consensus.length()-beststart-Hashlen), Consensus.length());
+			site=common.getReverseCompletementString(site);
+			double score=motif.scoreWeightMatrix(site);
+			if(score>thresh)
+			{
+				pos=pos-(Consensus.length()-beststart-Hashlen);
+				int seqNum=0;
+				
+				//use binary search
+				seqNum=Arrays.binarySearch(seqlenlist, pos);
+	
+				int seqLen=accSeqLen.get(seqNum+1)-accSeqLen.get(seqNum);
+				FastaLocation fapos=new FastaLocation(pos, seqNum, pos-accSeqLen.get(seqNum), seqLen);
+				fapos.Score=score;
+				ret.add(fapos);
+			}
+		}
+		
+		
 		return ret;
 	}
 	
