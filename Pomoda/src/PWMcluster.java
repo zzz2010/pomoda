@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -33,12 +34,50 @@ public class PWMcluster {
 	public ArrayList<PWM> Clustering(List<PWM> rawPwms,int num_cluster)
 	{
 		ArrayList<PWM> clusterMoitfs=new ArrayList<PWM>(num_cluster);
-		for (int i = 0; i < clusterMoitfs.size(); i++) {
+		ArrayList<Thread> threadpool=new ArrayList<Thread>(rawPwms.size()*rawPwms.size());
+		for (int i = 0; i <rawPwms.size(); i++) {
 			PWM rawpwm=rawPwms.get(i);
 			double thresh=rawpwm.getThresh(sampling_ratio, FDR, background);
 			LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(rawpwm, thresh);
+			ArrayList<Integer> pos=new ArrayList<Integer>(falocs.size());
+			Iterator<FastaLocation> iter=falocs.iterator();
+			while(iter.hasNext())
+			{
+				pos.add((iter.next().getMin()+rawpwm.columns()/2));
+			}
+			SortingThread t1=new SortingThread(pos);
+			t1.start();
+			threadpool.add(t1);
 			
 		}
+		try {
+				ArrayList<ArrayList<Integer>> PosSet=new ArrayList<ArrayList<Integer>>(rawPwms.size());
+				for (int i = 0; i < threadpool.size(); i++) {
+				  SortingThread t1=(SortingThread)threadpool.get(i);
+				  t1.join();
+				PosSet.add((ArrayList<Integer>)t1.getResult());
+				}
+				threadpool.clear();
+				for (int i = 0; i < rawPwms.size()-1; i++) {
+					for (int j = i+1; j < rawPwms.size(); j++) {
+						OverlappingThread t2=new OverlappingThread(PosSet.get(i), PosSet.get(j), 10);
+						t2.start();
+						t2.setName(String.valueOf(i*rawPwms.size()+j));
+						threadpool.add(t2);
+					}
+				}
+				
+				for (int i = 0; i < threadpool.size(); i++) {
+					OverlappingThread t2=(OverlappingThread)threadpool.get(i);
+					t2.join();
+				}
+				
+				
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		
 		
 		return clusterMoitfs;
 	}
