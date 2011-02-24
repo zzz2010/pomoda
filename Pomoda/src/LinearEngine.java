@@ -130,16 +130,16 @@ public class LinearEngine {
 	    ArrayList<SearchThread> threadpool=new ArrayList<SearchThread>(num_thread);
 	    //Forward search
 	    for (int i = 0; i < num_thread; i++) {
-	    	SearchThread t1 = new SearchThread(pattern, thresh, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize )));
+	    	SearchThread t1 = new SearchThread(pattern, thresh, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize )),i*workSize);
 			t1.start();
 			threadpool.add(t1);
 		}
-	    //Reverse search
-	    for (int i = 0; i < num_thread; i++) {
-	    	SearchThread t1 = new SearchThread(pattern, thresh, ReverseStrand.subList(i*workSize,Math.min(ReverseStrand.size(),(i+1)*workSize )));
-			t1.start();
-			threadpool.add(t1);
-		}
+//	    //Reverse search
+//	    for (int i = 0; i < num_thread; i++) {
+//	    	SearchThread t1 = new SearchThread(pattern, thresh, ReverseStrand.subList(i*workSize,Math.min(ReverseStrand.size(),(i+1)*workSize )));
+//			t1.start();
+//			threadpool.add(t1);
+//		}
 	    
 	    //join and wait
 		try {

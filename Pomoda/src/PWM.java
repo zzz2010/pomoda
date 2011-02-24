@@ -25,6 +25,7 @@ public class PWM extends SimpleWeightMatrix {
 	public String Name="";
 	public int core_motiflen;
 	public int tail;
+	public double inst_coverage=1;
 	public double Score;
 	public ArrayList<Double>pos_prior;
 	public PWM(Distribution[] arg0) throws IllegalAlphabetException {
@@ -400,6 +401,7 @@ public class PWM extends SimpleWeightMatrix {
 		}
 		
 		
+		inst_coverage=sumProb; //denote how many percentage of sample above thresh
 		
 	   return InstanceSet;	
 	}
@@ -441,7 +443,7 @@ public class PWM extends SimpleWeightMatrix {
 				TransStr.append('\t');
 					
 			}
-			TransStr.append("X\n");
+			TransStr.append(consensus.charAt(i-head)+"\n");
 	
 		}
 		TransStr.append("XX\n");
