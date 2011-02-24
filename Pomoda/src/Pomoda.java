@@ -68,7 +68,7 @@ public class Pomoda {
 	public int num_motif=5;
 	public double sampling_ratio=0.95;
 	public double min_support_ratio=0.05;
-	public boolean markflag=true;
+	public boolean maskflag=true;
 	public HashEngine SearchEngine;
 	public LinearEngine SearchEngine2;
 	public BGModel background;
@@ -573,8 +573,10 @@ public class Pomoda {
 		//relax the conserved column 
 		String consensus=motif.Consensus(false);
 		double main_prop=Math.pow(3*sampling_ratio/(seedlen-2), 1.0/(seedlen-1));// 1 mismatch
-			//2 mismatch
-			//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2));
+			
+			//Math.pow(3*sampling_ratio/(seedlen-2), 1.0/(seedlen-1));// 1 mismatch
+			
+			//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
 		for (int i = 0; i < consensus.length(); i++) {
 			if(consensus.charAt(i)=='N')
 				continue;
@@ -605,8 +607,8 @@ public class Pomoda {
 		double bestscore=motif.Score;
 		double lastscore=Double.MIN_VALUE;
 		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
-		int inst_hash=-1;
-    
+	
+		HashSet<Integer> stateCodes=new HashSet<Integer>();
 		
 		do
 		{
@@ -635,7 +637,8 @@ public class Pomoda {
 					Iterator<FastaLocation> iter2=Falocs.iterator();
 					int count=0;
 					int lastseq=-1;
-		
+					double max_seqloglik=0;
+					double max_seqprob_theta=0;
 					while(iter2.hasNext())
 					{
 						FastaLocation currloc=iter2.next();
@@ -681,13 +684,6 @@ public class Pomoda {
 //							continue;
 						if(site.length()!=motiflen+4)
 							continue;
-						double prob_theta=Math.exp(currloc.Score);
-						for (int i = 0; i < motiflen+4; i++) {
-							int symid=common.acgt(site.charAt(i));
-							if(symid>3)
-								continue;
-							m_matrix[i][symid]+=prob_theta;
-						}
 						
 						double logprob_theta=currloc.Score;
 						
@@ -705,8 +701,30 @@ public class Pomoda {
 							bestscore+=loglik;
 						if(OOPS&&currloc.getSeqId()!=lastseq)
 						{
-							bestscore+=loglik;
+							bestscore+=max_seqloglik;
 							lastseq=currloc.getSeqId();
+							max_seqloglik=0;
+							
+							for (int i = 0; i < motiflen+4; i++) {
+								int symid=common.acgt(site.charAt(i));
+								if(symid>3)
+									continue;
+								m_matrix[i][symid]+=max_seqprob_theta;
+							}
+						}
+						double prob_theta=Math.exp(currloc.Score);
+						if(max_seqloglik<loglik)
+						{
+							max_seqloglik=loglik;
+							max_seqprob_theta=prob_theta;
+						}
+						
+						if(!OOPS)
+						for (int i = 0; i < motiflen+4; i++) {
+							int symid=common.acgt(site.charAt(i));
+							if(symid>3)
+								continue;
+							m_matrix[i][symid]+=prob_theta;
 						}
 					}
 					if(lastscore>bestscore)
@@ -714,10 +732,10 @@ public class Pomoda {
 					else
 					{
 						lastscore=bestscore;
-						if(MatchSite.size()==0||inst_hash==MatchSite.hashCode())
+						if(MatchSite.size()==0|| stateCodes.contains(MatchSite.hashCode()))
 							return motif;
 						else
-							inst_hash=MatchSite.hashCode();
+							stateCodes.add(MatchSite.hashCode());
 						
 						//motif=new PWM((String[])(MatchSite.toArray(new  String[1])));
 						for (int i = 0; i < m_matrix.length; i++) {
@@ -1028,12 +1046,15 @@ public class Pomoda {
 			motif.pos_prior=(ArrayList<Double>) this.pos_prior.clone();
 		double bestscore=motif.Score;
 		HashSet<Integer> extendedCols=new HashSet<Integer>();
+		HashSet<Integer> stateCodes=new HashSet<Integer>();
 		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
+		
 		int inst_hash=-1;
 		do
 		{
-
+		
 			String consensus_core=motif.Consensus(true);
+		
 		System.out.println(consensus_core+"\t"+String.valueOf(bestscore));
 		bestscore=0;
 		double[] temp_prior=new double[num_priorbin];
@@ -1042,15 +1063,16 @@ public class Pomoda {
 		
 		LinkedList<FastaLocation> Falocs=SearchEngine.searchPattern(motif, thresh);
 		System.out.println(Falocs.size());
-		if(Falocs.size()<min_support_ratio*SearchEngine.getSeqNum() ||inst_hash==Falocs.hashCode())
+		if(Falocs.size()<min_support_ratio*SearchEngine.getSeqNum() ||stateCodes.contains(Falocs.hashCode()))
 			return motif;
 		else
-			inst_hash=Falocs.hashCode();
+			stateCodes.add(Falocs.hashCode());
 			
 	
 		double [][] loglik_matrix=new double[motif.columns()][4];
 		
 		double[][] count_matrix=new double[motif.columns()][4];
+		common.fill2DArray(count_matrix, common.DoubleMinNormal);
 		String consensus=motif.Consensus(false);
 		//double logN025=log025*(motif.head+motif.tail);
 		int motiflen=consensus_core.length();
@@ -1124,8 +1146,8 @@ public class Pomoda {
 					{
 						if(lastseq!=-1)
 							for (int i = 0; i < site.length(); i++) {
-								if(consensus.charAt(i)!='N')
-									continue;
+//								if(consensus.charAt(i)!='N')
+//									continue;
 								
 	                         for (int symid = 0; symid < 4; symid++) {
 	                        	 if(max_loglik_matrix[i][symid]!=Double.MIN_VALUE)
@@ -1143,8 +1165,8 @@ public class Pomoda {
 					if(OOPS)
 					{
 						for (int i = 0; i < site.length(); i++) {
-							if(consensus.charAt(i)!='N')
-								continue;
+//							if(consensus.charAt(i)!='N')
+//								continue;
 							int symid=common.acgt(site.charAt(i));
 							if(symid>3)
 								continue; //meet new line separator
@@ -1237,6 +1259,7 @@ public class Pomoda {
 						sumNorm+=(temp)+count_matrix[bestCol][bestSym.get(j)]*Math.log(count_matrix[bestCol][bestSym.get(j)]/sumcount);
 					
 				}
+
 				if(sumNorm>max_sumNorm)
 				{
 					for (int j = 0; j < i; j++) 
@@ -1398,7 +1421,8 @@ public class Pomoda {
 		options.addOption("maxlen",true,"maxmimum length of the motif (default 30)");
 		options.addOption("minw",true,"minimum size of motif binding region (default 200bp)");
 		options.addOption("maxw",true, "maximum size of motif binding region (default 600bp)");
-		options.addOption("mark",true,"whether marking the top motif location in order to find co-motif");
+		options.addOption("mask",false,"whether marking the top motif location in order to find co-motif");
+		options.addOption("oops",false,"whether assuming only one occurrence per sequence");
 		options.addOption("FDR",true,"fasle positive rate");
 		
 		CommandLineParser parser = new GnuParser();
@@ -1457,13 +1481,17 @@ public class Pomoda {
 			{
 				motifFinder.ending_windowsize=Integer.parseInt( cmd.getOptionValue("maxw"));
 			}
-			if(cmd.hasOption("mark"))
+			if(cmd.hasOption("mask"))
 			{
-				motifFinder.markflag=true;
+				motifFinder.maskflag=true;
+			}
+			if(cmd.hasOption("oops"))
+			{
+				motifFinder.OOPS=true;
 			}
 			else
 			{
-				motifFinder.markflag=false;
+				motifFinder.maskflag=false;
 			}
 			if(cmd.hasOption("FDR"))
 			{
@@ -1480,7 +1508,7 @@ public class Pomoda {
 		
 		//initialize Pomoda 
 		motifFinder.initialize();
-		motifFinder.markflag=true;
+
 		
 		//get seed motifs
 		ArrayList<PWM>  seedPWMs=motifFinder.getSeedMotifs();
@@ -1497,7 +1525,7 @@ public class Pomoda {
 			seedPWMs.set(i, motifFinder.Relax_Seed_(seedPWMs.get(i)));
 
 			seedPWMs.get(i).Name="Motif"+String.valueOf(i+1);
-			if(motifFinder.markflag&&seedPWMs.get(i).Score>topseed_Score)
+			if(motifFinder.maskflag&&seedPWMs.get(i).Score>topseed_Score)
 			{
 				//do something to mark the locations in SearchEngine
 				System.out.println("Masking...");
@@ -1506,7 +1534,7 @@ public class Pomoda {
 				
 			}
 			//Runtime.getRuntime().gc();
-			sortedPWMs.put(seedPWMs.get(i).Score, seedPWMs.get(i)); //desc order
+		
 		
 		}
 		for(Double key:sortedPWMs.descendingKeySet())
@@ -1517,16 +1545,29 @@ public class Pomoda {
 		}
 		
 		writer.close();
-		//clustering motif, re-initialize
-		motifFinder.SearchEngine2.build_index(motifFinder.inputFasta);
 		
+		file = new File(motifFinder.outputPrefix+"pomoda_clust.pwm"); 
+		writer = new BufferedWriter(new FileWriter(file));
+		//clustering motif, re-initialize
+		System.out.println("Clustering...");
+		motifFinder.SearchEngine2.build_index(motifFinder.inputFasta);
+		sortedPWMs.clear();
 		PWMcluster clustering=new PWMcluster(motifFinder);
 		
 			ArrayList<PWM>  clusterPWMs=clustering.Clustering(seedPWMs,motifFinder.num_motif);
 			for(PWM pwm:clusterPWMs)
 			{
-				System.out.println(pwm.toString());
+				sortedPWMs.put(pwm.Score, pwm); //desc order
 			}
+			System.out.println("Clustered Motifs:");
+			for(Double key:sortedPWMs.descendingKeySet())
+			{
+				System.out.println(sortedPWMs.get(key).Consensus(true)+'\t'+sortedPWMs.get(key).Score);
+				writer.write(sortedPWMs.get(key).toString());
+				
+			}
+			
+			writer.close();
 		
 		} 
 		catch (IOException e) {

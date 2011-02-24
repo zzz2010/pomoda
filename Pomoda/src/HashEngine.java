@@ -439,7 +439,7 @@ public class HashEngine implements ISearchEngine {
 		
 		Integer[] seqlenlist=accSeqLen.toArray(new Integer[1]);
 		//forward strand
-		String pattern=Consensus.substring(beststart,Hashlen);
+		String pattern=Consensus.substring(beststart,beststart+Hashlen);
 		LinkedList<Integer> poslist=searchPatternNRC(pattern,0,0);
 		Iterator<Integer> iter=poslist.iterator();
 		while(iter.hasNext())
@@ -453,7 +453,8 @@ public class HashEngine implements ISearchEngine {
 				int seqNum=0;
 				//use binary search
 				seqNum=Arrays.binarySearch(seqlenlist, pos);
-				
+				if(seqNum<0)
+					seqNum=-seqNum-2;
 				int seqLen=accSeqLen.get(seqNum+1)-accSeqLen.get(seqNum);
 				FastaLocation fapos=new FastaLocation(pos, seqNum, pos-accSeqLen.get(seqNum), seqLen);
 				fapos.Score=score;
@@ -481,7 +482,8 @@ public class HashEngine implements ISearchEngine {
 				
 				//use binary search
 				seqNum=Arrays.binarySearch(seqlenlist, pos);
-	
+				if(seqNum<0)
+					seqNum=-seqNum-2;
 				int seqLen=accSeqLen.get(seqNum+1)-accSeqLen.get(seqNum);
 				FastaLocation fapos=new FastaLocation(pos, seqNum, pos-accSeqLen.get(seqNum), seqLen);
 				fapos.Score=score;
