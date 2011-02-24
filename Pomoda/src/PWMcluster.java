@@ -15,6 +15,7 @@ public class PWMcluster {
 	double threshold;
 	public double sampling_ratio=0.8;
 	public double FDR=0.01;
+	public LinkageCriterion linkage;
 	public BGModel background;
 	public PWMcluster(String faFile,double thresh)
 	{
@@ -29,7 +30,8 @@ public class PWMcluster {
 		sampling_ratio=motiffinder.sampling_ratio;
 		FDR=motiffinder.FDR;
 		background=motiffinder.background;
-		
+		linkage=LinkageCriterion.valueOf(motiffinder.linkage);
+		System.out.println("LinkageCriterion: "+motiffinder.linkage);
 		
 	}
 	
@@ -97,7 +99,7 @@ public class PWMcluster {
 //					
 //				}
 				
-				Hierarchical clustering= new Hierarchical(dist,LinkageCriterion.SINGLE);
+				Hierarchical clustering= new Hierarchical(dist,linkage);
 				List<Integer> clusterlabed=clustering.partition(num_cluster);
 				for (int i = 0; i <num_cluster; i++)
 				{
@@ -106,9 +108,11 @@ public class PWMcluster {
 				for (int i = 0; i <clusterlabed.size(); i++)
 				{
 					int cid=clusterlabed.get(i);
+					
 					if(cid>=clusterMoitfs.size())
 					{
-						for (int j = 0; j < cid+1-clusterMoitfs.size(); j++) {
+						int origsize=clusterMoitfs.size();
+						for (int j = 0; j < cid+1-origsize; j++) {
 							clusterMoitfs.add(null);
 						}
 					}

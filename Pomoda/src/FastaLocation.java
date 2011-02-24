@@ -4,6 +4,8 @@ import org.biojava.bio.symbol.PointLocation;
 public class FastaLocation extends PointLocation {
 
 	public double Score;
+	public String seq="";
+	public boolean ReverseStrand=false;
 	public FastaLocation(int point, int seqId, int seqPos, int seqLen) {
 		super(point);
 		this.setSeqId(seqId);

@@ -20,12 +20,14 @@ public class SearchThread extends Thread  {
 	PWM motif;
 	double thresh;
 	String pattern;
+	int startSeqId;
 	int mismatch;
 	int dbsize;
 	public List<String> db; //in case want to run multi db, before get result
 	boolean PWMflag=false;
-	public SearchThread(PWM motif,double thresh, List<String> db)
+	public SearchThread(PWM motif,double thresh, List<String> db,int startseqNum)
 	{
+		startSeqId= startseqNum;
 		this.motif=motif;
 		this.thresh=thresh;
 		this.db=db;
@@ -51,23 +53,32 @@ public class SearchThread extends Thread  {
 			int pos=0;
 		
 			Iterator<String> iter=db.iterator();
-			int seqid=0;
+			int seqid=startSeqId;
 			
 			while(iter.hasNext())
 			{
 
 				String seq=iter.next();
 				try {
-					String seq2 = seq;
-					for (int i = 0; i < seq2.length()-motif.core_motiflen; i++) {
-						String temp=seq2.substring(i,i+motif.core_motiflen);
+
+					for (int i = 0; i < seq.length()-motif.core_motiflen; i++) {
+						String temp=seq.substring(i,i+motif.core_motiflen);
 						double score=motif.scoreWeightMatrix(temp);
+						boolean reverse=false;
 						double score2=motif.scoreWeightMatrix(common.getReverseCompletementString(temp));
 						if(score2>score)
+						{
 							score=score2;
+							reverse=true;
+						}
 						if(score>thresh)
 						{
-						FastaLocation fapos=new FastaLocation(pos+i,seqid , i, seq.length());
+							int addpos=pos+i;
+							
+						FastaLocation fapos=new FastaLocation(addpos,seqid , i, seq.length());
+						fapos.seq=temp;
+						if(reverse)
+							fapos.ReverseStrand=true;
 					      fapos.Score=score;
 					      result.add(fapos);
 						}
