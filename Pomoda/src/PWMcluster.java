@@ -97,7 +97,7 @@ public class PWMcluster {
 //					
 //				}
 				
-				Hierarchical clustering= new Hierarchical(dist,LinkageCriterion.UPGMA);
+				Hierarchical clustering= new Hierarchical(dist,LinkageCriterion.SINGLE);
 				List<Integer> clusterlabed=clustering.partition(num_cluster);
 				for (int i = 0; i <num_cluster; i++)
 				{

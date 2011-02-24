@@ -9,7 +9,7 @@ import java.util.Map;
 public class common {
 	
 	
-	static double DoubleMinNormal=0.000000000000001;
+	static double DoubleMinNormal=0.00000000000001;
 	
 	public static double Zscore(double sumcount,double p, double X)
 	{

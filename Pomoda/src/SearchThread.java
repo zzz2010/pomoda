@@ -52,6 +52,7 @@ public class SearchThread extends Thread  {
 		
 			Iterator<String> iter=db.iterator();
 			int seqid=0;
+			
 			while(iter.hasNext())
 			{
 
