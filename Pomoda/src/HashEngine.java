@@ -487,6 +487,8 @@ public class HashEngine implements ISearchEngine {
 				int seqLen=accSeqLen.get(seqNum+1)-accSeqLen.get(seqNum);
 				FastaLocation fapos=new FastaLocation(pos, seqNum, pos-accSeqLen.get(seqNum), seqLen);
 				fapos.Score=score;
+				fapos.ReverseStrand=true;
+			
 				ret.add(fapos);
 			}
 		}

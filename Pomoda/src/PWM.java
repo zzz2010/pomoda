@@ -206,7 +206,7 @@ public class PWM extends SimpleWeightMatrix {
 	{
 		String Consensus=this.Consensus(true);
 		//compute the possible path
-		int num_path=1;
+		double num_path=1;
 		double log025=Math.log(0.25);
 		int N_num=0;
 		for (int i = 0; i < Consensus.length(); i++) {
@@ -220,7 +220,13 @@ public class PWM extends SimpleWeightMatrix {
 				int symid=common.acgt(Consensus.charAt(i));
 				if(symid<4)
 				{
-					num_path*=1/m_matrix[head+i][symid];
+					if(m_matrix[head+i][symid]>0.99)
+					num_path*=1;
+					else if(m_matrix[head+i][symid]>0.7)
+						num_path*=2;
+					else
+						num_path*=3;
+						
 				}
 				else if(symid>10)
 				{
@@ -234,7 +240,7 @@ public class PWM extends SimpleWeightMatrix {
 		//number sampling
 		int num_sampl=10000;
 		boolean samplflag=false;
-		if((num_sampl)>num_path)
+		if((num_sampl)>num_path)//zzz
 		{
 
 			LinkedList<Map.Entry<Double,String>> inst=GenerateInstanceFromPWMPQ(sampleratio, FDRthresh, bgmodel);
@@ -462,7 +468,7 @@ public class PWM extends SimpleWeightMatrix {
 			for (int j = 1; j<= 4; j++)
 			{  
 				double weight=m_matrix[i][j-1];
-				if(weight>0.3)
+				if(weight>0.27)
 					sb.append(ACGT.charAt(j-1));
 					
 			}
