@@ -76,7 +76,7 @@ public class SearchThread extends Thread  {
 							int addpos=pos+i;
 							
 						FastaLocation fapos=new FastaLocation(addpos,seqid , i, seq.length());
-						fapos.seq=temp;
+						//fapos.seq=temp;
 						if(reverse)
 							fapos.ReverseStrand=true;
 					      fapos.Score=score;

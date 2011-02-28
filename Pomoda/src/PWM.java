@@ -26,6 +26,8 @@ public class PWM extends SimpleWeightMatrix {
 	public int core_motiflen;
 	public int tail;
 	public double inst_coverage=1;
+	public double inst_FDR=1;
+	
 	public double Score;
 	public ArrayList<Double>pos_prior;
 	public PWM(Distribution[] arg0) throws IllegalAlphabetException {
@@ -238,7 +240,7 @@ public class PWM extends SimpleWeightMatrix {
 		}
 		
 		//number sampling
-		int num_sampl=10000;
+		int num_sampl=100000;
 		boolean samplflag=false;
 		if((num_sampl)>num_path)//zzz
 		{
@@ -321,7 +323,6 @@ public class PWM extends SimpleWeightMatrix {
 		TreeMap<Double,String> PQ=new TreeMap<Double,String>();
 		double sumFDR=0;
 		double sumProb=0;
-		double smallscale=0.0000000000001;
 		char[] ACGT=new char[]{'A','C','G','T'};
 		String consensus=this.Consensus(false);
         ArrayList<Integer>  effIndex=new ArrayList<Integer>(consensus.length());
@@ -408,7 +409,7 @@ public class PWM extends SimpleWeightMatrix {
 		
 		
 		inst_coverage=sumProb; //denote how many percentage of sample above thresh
-		
+		inst_FDR=sumFDR;
 	   return InstanceSet;	
 	}
 	
@@ -468,7 +469,7 @@ public class PWM extends SimpleWeightMatrix {
 			for (int j = 1; j<= 4; j++)
 			{  
 				double weight=m_matrix[i][j-1];
-				if(weight>0.27)
+				if(weight>0.3)//side effect control extending length
 					sb.append(ACGT.charAt(j-1));
 					
 			}
@@ -492,11 +493,11 @@ public class PWM extends SimpleWeightMatrix {
 		}
 
 		int start,end;
-		start=end=-1;
+		start=end=0;
 		for (int i = 0; i < consensus.length(); i++) {
-			if(consensus.charAt(i)!='N'& start==-1)
+			if(consensus.charAt(i)!='N'& start==0)
 				start=i;
-			if(consensus.charAt(consensus.length()-i-1)!='N'& end==-1)
+			if(consensus.charAt(consensus.length()-i-1)!='N'& end==0)
 				end=consensus.length()-i;
 		}
 		head=start;
