@@ -10,5 +10,7 @@
 	<classpathentry kind="lib" path="C:/Documents and Settings/g0800188/My Documents/Downloads/biojava.jar"/>
 	<classpathentry kind="lib" path="C:/Documents and Settings/g0800188/My Documents/Downloads/bytecode.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/clustering"/>
+	<classpathentry kind="lib" path="D:/eclipse/library/colt/lib/colt.jar"/>
+	<classpathentry kind="lib" path="D:/eclipse/library/colt/lib/concurrent.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

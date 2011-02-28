@@ -124,6 +124,14 @@ public class common {
 			Arrays.fill(max_loglik_matrix[i], val);
 		}
 	}
+	
+	
+	static void print2DArray(double[][] max_loglik_matrix)
+	{
+		for (int i = 0; i < max_loglik_matrix.length; i++) {
+			System.out.println( Arrays.toString(max_loglik_matrix[i]));
+		}
+	}
 
 	public static String replaceCharAt(String s, int pos, char c) {
 	   return s.substring(0,pos) + c + s.substring(pos+1);
