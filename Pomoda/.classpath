@@ -7,8 +7,8 @@
 			<attribute name="javadoc_location" value="jar:file:/C:/Documents and Settings/g0800188/My Documents/Downloads/commons-cli-1.2/commons-cli-1.2-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Documents and Settings/g0800188/My Documents/Downloads/biojava.jar"/>
-	<classpathentry kind="lib" path="C:/Documents and Settings/g0800188/My Documents/Downloads/bytecode.jar"/>
+	<classpathentry kind="lib" path="D:/eclipse/library/biojava.jar" sourcepath="D:/eclipse/library/biojava-1.7.1-src.jar"/>
+	<classpathentry kind="lib" path="D:/eclipse/library/bytecode.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/clustering"/>
 	<classpathentry kind="lib" path="D:/eclipse/library/colt/lib/colt.jar"/>
 	<classpathentry kind="lib" path="D:/eclipse/library/colt/lib/concurrent.jar"/>

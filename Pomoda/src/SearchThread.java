@@ -36,7 +36,7 @@ public class SearchThread extends Thread  {
 		
 	}
 	
-	public SearchThread(String pattern,int mismatch, List<String> db)
+	public SearchThread(String pattern,int mismatch, List<String> db,int startseqNum)
 	{
 		this.pattern=pattern;
 		this.mismatch=mismatch;
@@ -77,8 +77,8 @@ public class SearchThread extends Thread  {
 							
 						FastaLocation fapos=new FastaLocation(addpos,seqid , i, seq.length());
 						//fapos.seq=temp;
-						if(reverse)
-							fapos.ReverseStrand=true;
+	
+							fapos.ReverseStrand=reverse;
 					      fapos.Score=score;
 					      result.add(fapos);
 						}
@@ -98,14 +98,15 @@ public class SearchThread extends Thread  {
 			int pos=0;
 			
 			Iterator<String> iter=db.iterator();
-			int seqid=0;
+			int seqid=startSeqId;
 while(iter.hasNext())
 {
 
-			String seq=iter.next();
+			String seq=iter.next().toUpperCase();
 			
 			for (int i = 0; i < seq.length()-pattern.length()+1; i++) {
 				int num_mismatch=0;
+				boolean reverse=false;
 				for (int j = 0; j < pattern.length(); j++) {
 					if(pattern.charAt(j)=='N'|| pattern.charAt(j)==seq.charAt(i+j))
 					{
@@ -118,16 +119,42 @@ while(iter.hasNext())
 							break;
 					}
 				}
+				
+				
+				//reverse strand
+				String rcseq=common.getReverseCompletementString(seq.substring(i,i+pattern.length()));
+				int num_mismatch2=0;
+				for (int j = 0; j < pattern.length(); j++) {
+					if(pattern.charAt(j)=='N'|| pattern.charAt(j)==rcseq.charAt(j))
+					{
+						continue;
+					}
+					else
+					{
+						num_mismatch2++;
+						if(num_mismatch2>mismatch)
+							break;
+					}
+				}
+				if(num_mismatch2<num_mismatch)
+				{
+					reverse=true;
+					num_mismatch=num_mismatch2;
+				}
+				
+				
 				if(num_mismatch<=mismatch)
 				{
 					FastaLocation fapos=new FastaLocation(pos+i,seqid , i, seq.length());
 				    fapos.Score=num_mismatch;  
+				    fapos.ReverseStrand=reverse;
 					result.add(fapos);
 				}
 					
-			    pos+=seq.length();
-			    seqid++;
+
 			}
+		    pos+=seq.length();
+		    seqid++;
 			
 }
 			
