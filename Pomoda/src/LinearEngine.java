@@ -90,16 +90,11 @@ public class LinearEngine {
 	    ArrayList<SearchThread> threadpool=new ArrayList<SearchThread>(num_thread);
 	    //Forward search
 	    for (int i = 0; i < num_thread; i++) {
-	    	SearchThread t1 = new SearchThread(pattern, mismatch, ForwardStrand.subList(i*workSize,(i+1)*workSize ));
+	    	SearchThread t1 = new SearchThread(pattern, mismatch, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize ) ),i*workSize);
 			t1.start();
 			threadpool.add(t1);
 		}
-	    //Reverse search
-	    for (int i = 0; i < num_thread; i++) {
-	    	SearchThread t1 = new SearchThread(pattern, mismatch, ReverseStrand.subList(i*workSize,(i+1)*workSize ));
-			t1.start();
-			threadpool.add(t1);
-		}
+
 	    
 	    //join and wait
 		try {

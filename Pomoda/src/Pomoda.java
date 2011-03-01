@@ -127,9 +127,9 @@ public class Pomoda {
 		pos_prior=new ArrayList<Double>(SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution);
 		
 ////		
-//		if(GAP_Test())
-//			System.out.println("PWM_Test : pass");
-//	    System.exit(1);
+		if(GAP_Test())
+			System.out.println("PWM_Test : pass");
+	    System.exit(1);
 		
 	}
 	
@@ -218,11 +218,39 @@ public class Pomoda {
 			AR.add(new PWM(new String[]{"NNNGNACANNNNNTGTNCNNN"}));
 			AR.add(new PWM(new String[]{"NNNNNNACANNNNNNTGTNNNNN"}));
 			AR.add(new PWM(new String[]{"NNNGNACANNNNNNTGTNCNNN"}));
-			for (int i = 0; i < AR.size(); i++) {
-			//	AR.get(i).print();
-
-			     this.Relax_Seed_(AR.get(i));
+//			for (int i = 0; i < AR.size(); i++) {
+//			//	AR.get(i).print();
+//
+//			     this.Relax_Seed_(AR.get(i));
+//			}
+			
+			
+			LinkedList<String> sites=new LinkedList<String>();
+			String gappattern="ACANNNTGT";
+			int Nlen=3;
+			int Nstart=3;
+			int gapmerSize=1<<(Nlen*2);
+			double[] gapmerCount=new double[gapmerSize];
+			LinkedList<FastaLocation> falocs=SearchEngine2.searchPattern(gappattern, 0);
+			Iterator<FastaLocation> iter=falocs.iterator();
+			while(iter.hasNext())
+			{
+				FastaLocation currloc=iter.next();
+				String site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(), gappattern.length());
+				if(currloc.ReverseStrand)
+					site=common.getReverseCompletementString(site);
+				int hash=common.getHashing(site, Nstart, Nlen);
+				gapmerCount[hash]+=1;
+				sites.add(site.substring(Nstart, Nstart+Nlen));		
 			}
+			PWM model=new PWM(sites.toArray(new String[1]));
+			for (int i = 0; i < gapmerSize; i++) {
+				String gapstr=common.Hash2ACGT(i, Nlen);
+				double log_p=model.scoreWeightMatrix(gapstr,ScoreType.PROBABILITY);
+				double fold=gapmerCount[i]/(falocs.size()*Math.exp(log_p));
+				System.out.println(gapstr+'\t'+fold+'\t'+gapmerCount[i]/falocs.size());
+			}
+			
 				
 			
 		} catch (IllegalAlphabetException e) {
@@ -1188,6 +1216,7 @@ public class Pomoda {
 		//get seed motifs
 		ArrayList<PWM>  seedPWMs=motifFinder.getSeedMotifs();
 		double topseed_Score=seedPWMs.get(0).Score;
+		topseed_Score=0;//zzz
 		File file = new File(motifFinder.outputPrefix+"pomoda_raw.pwm"); 
 		try {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
