@@ -24,34 +24,35 @@ import org.biojavax.bio.seq.RichSequence;
 public class LinearEngine {
 
 	LinkedList<String> ForwardStrand;
-	LinkedList<String> ReverseStrand;
+	//LinkedList<String> ReverseStrand;
 	int num_thread;
     public int forwardCount; //the first n entry in the searchPattern is forward.
-	public int SeqNum;
-	public int TotalLen;
+	public int TotalLen=0;
 	public LinearEngine(int num_thread) {
 		this.num_thread=num_thread;
 		ForwardStrand=new LinkedList<String>();
-		ReverseStrand=new LinkedList<String>();
+		//ReverseStrand=new LinkedList<String>();
 		
 	}
 	public void build_index(String inputfile) {
 		// TODO Auto-generated method stub
 		 try {
 			 ForwardStrand.clear();
-			 ReverseStrand.clear();
+			// ReverseStrand.clear();
 			 //Database to hold the training set
 			      BufferedReader br = new BufferedReader(new FileReader(inputfile));
    		          SymbolTokenization toke = AlphabetManager.alphabetForName("DNA").getTokenization("token");
    		          SequenceIterator seqi = RichSequence.IOTools.readFasta(br, toke,null);
-   		          int count=0;
+   		          
+   		          TotalLen=0;
    			      while (seqi.hasNext()) {
    			    	  
    			    	  Sequence seq=seqi.nextSequence();
    			    	  String seqstr=seq.seqString().replace("N", "");
    				     ForwardStrand.add(seqstr);
-   				  ReverseStrand.add(common.getReverseCompletementString( seqstr));
-   				  count++;
+   				  //ReverseStrand.add(common.getReverseCompletementString( seqstr));
+   			
+   				TotalLen+=seqstr.length();
    			      }
    	
 			     
@@ -165,7 +166,7 @@ public class LinearEngine {
 				onsite="N"+onsite;
 			}
 		 if(tail>0)
-			 for (int i = 0; i < head; i++) {
+			 for (int i = 0; i < tail; i++) {
 					onsite=onsite+"N";
 				}
 		 return onsite;
@@ -178,7 +179,7 @@ public class LinearEngine {
 
 	public int getSeqNum() {
 		// TODO Auto-generated method stub
-		return SeqNum;
+		return ForwardStrand.size();
 	}
 
 }

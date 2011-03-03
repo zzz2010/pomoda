@@ -1,5 +1,11 @@
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -10,6 +16,35 @@ public class common {
 	
 	
 	static double DoubleMinNormal=0.00000000000001;
+	public static LinkedList<PWM> readPWMfile(String pwmfile)
+	{
+		LinkedList<PWM> pwmlist=new LinkedList<PWM>();
+		File file = new File(pwmfile);
+		try {
+			BufferedReader reader = new BufferedReader(new FileReader(file));
+			String text = null;
+			String content="";
+			while ((text = reader.readLine()) != null) {
+			    if(text.startsWith("DE"))
+			    {
+			    	content="";
+			    }
+			    else if(text.startsWith("XX"))
+			    {
+			    	pwmlist.add(PWM.parseTransfac(content));
+			    }
+			    content+=text+'\n';
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return pwmlist;
+	}
 	
 	public static double Zscore(double sumcount,double p, double X)
 	{
@@ -41,13 +76,14 @@ public class common {
 	{
 		String ACGT="ACGT";
 		int k;
-		StringBuffer pa=new StringBuffer("");
+		String kmer="";
 			for(k=0;k<len;k++)
 			{
-				pa.append( ACGT.charAt(hash%4));
+				kmer=ACGT.charAt(hash%4)+kmer;
+			
 				hash>>=2;
 			}	
-			return pa.toString();
+			return kmer;
 	};
 
 	
