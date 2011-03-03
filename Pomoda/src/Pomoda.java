@@ -127,9 +127,9 @@ public class Pomoda {
 		pos_prior=new ArrayList<Double>(SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution);
 		
 ////		
-		if(GAP_Test())
-			System.out.println("PWM_Test : pass");
-	    System.exit(1);
+//		if(GAP_Test())
+//			System.out.println("PWM_Test : pass");
+//	    System.exit(1);
 		
 	}
 	
@@ -225,33 +225,37 @@ public class Pomoda {
 //			}
 			
 			
-			LinkedList<String> sites=new LinkedList<String>();
-			String gappattern="ACANNNTGT";
-			int Nlen=3;
-			int Nstart=3;
-			int gapmerSize=1<<(Nlen*2);
-			double[] gapmerCount=new double[gapmerSize];
-			LinkedList<FastaLocation> falocs=SearchEngine2.searchPattern(gappattern, 0);
-			Iterator<FastaLocation> iter=falocs.iterator();
-			while(iter.hasNext())
-			{
-				FastaLocation currloc=iter.next();
-				String site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(), gappattern.length());
-				if(currloc.ReverseStrand)
-					site=common.getReverseCompletementString(site);
-				int hash=common.getHashing(site, Nstart, Nlen);
-				gapmerCount[hash]+=1;
-				sites.add(site.substring(Nstart, Nstart+Nlen));		
-			}
-			PWM model=new PWM(sites.toArray(new String[1]));
-			for (int i = 0; i < gapmerSize; i++) {
-				String gapstr=common.Hash2ACGT(i, Nlen);
-				double log_p=model.scoreWeightMatrix(gapstr,ScoreType.PROBABILITY);
-				double fold=gapmerCount[i]/(falocs.size()*Math.exp(log_p));
-				System.out.println(gapstr+'\t'+fold+'\t'+gapmerCount[i]/falocs.size());
-			}
+//			LinkedList<String> sites=new LinkedList<String>();
+//			String gappattern="ACANNNTGT";
+//			int Nlen=3;
+//			int Nstart=3;
+//			int gapmerSize=1<<(Nlen*2);
+//			double[] gapmerCount=new double[gapmerSize];
+//			LinkedList<FastaLocation> falocs=SearchEngine2.searchPattern(gappattern, 0);
+//			Iterator<FastaLocation> iter=falocs.iterator();
+//			while(iter.hasNext())
+//			{
+//				FastaLocation currloc=iter.next();
+//				String site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(), gappattern.length());
+//				if(currloc.ReverseStrand)
+//					site=common.getReverseCompletementString(site);
+//				int hash=common.getHashing(site, Nstart, Nlen);
+//				gapmerCount[hash]+=1;
+//				sites.add(site.substring(Nstart, Nstart+Nlen));		
+//			}
+//			PWM model=new PWM(sites.toArray(new String[1]));
+//			for (int i = 0; i < gapmerSize; i++) {
+//				String gapstr=common.Hash2ACGT(i, Nlen);
+//				double log_p=model.scoreWeightMatrix(gapstr,ScoreType.PROBABILITY);
+//				double fold=gapmerCount[i]/(falocs.size()*Math.exp(log_p));
+//				System.out.println(gapstr+'\t'+fold+'\t'+gapmerCount[i]/falocs.size());
+//			}
 			
-				
+			GapImprover gimprover=new GapImprover(this);
+			GapPWM gPWM=gimprover.fillDependency(AR.get(3));
+			double gthresh=gPWM.getThresh(sampling_ratio, FDR, background);
+			LinkedList<FastaLocation> falocs=SearchEngine2.searchPattern(gPWM, gthresh);
+			int dd=falocs.size();
 			
 		} catch (IllegalAlphabetException e) {
 			// TODO Auto-generated catch block
@@ -387,8 +391,8 @@ public class Pomoda {
 			String Site2=SearchEngine.getSite(currloc.getMin()+currloc.getSeqId(),motiflen);
 			String rep=SearchEngine2.ForwardStrand.get(currloc.getSeqId()).replace(Site1, X_Str);
 			SearchEngine2.ForwardStrand.set(currloc.getSeqId(), rep);
-			rep=SearchEngine2.ReverseStrand.get(currloc.getSeqId()).replace(common.getReverseCompletementString(Site1) , X_Str);
-			SearchEngine2.ReverseStrand.set(currloc.getSeqId(), rep);
+		//	rep=SearchEngine2.ReverseStrand.get(currloc.getSeqId()).replace(common.getReverseCompletementString(Site1) , X_Str);
+		//	SearchEngine2.ReverseStrand.set(currloc.getSeqId(), rep);
 			//hash engine...
 			sb.replace(currloc.getMin()+currloc.getSeqId(), currloc.getMin()+currloc.getSeqId()+motiflen, X_Str);
 		}
@@ -1262,6 +1266,7 @@ public class Pomoda {
 			}
 			System.out.println("Clustered Motifs:");
 			int c=0;
+			GapImprover gimprover=new GapImprover(motifFinder);
 			for(Double key:sortedPWMs.descendingKeySet())
 			{
 				sortedPWMs.get(key).Name="Motif_clust"+String.valueOf(c+1);
@@ -1269,6 +1274,10 @@ public class Pomoda {
 				System.out.println(sortedPWMs.get(key).Consensus(true)+'\t'+sortedPWMs.get(key).Score);
 				writer.write(sortedPWMs.get(key).toString());
 				
+				GapPWM gpwm=gimprover.fillDependency(sortedPWMs.get(key));
+				
+				System.out.println("PWM AUC:"+gimprover.AUCtest(sortedPWMs.get(key)));
+				System.out.println("Gap improved PWM AUC:"+gimprover.AUCtest(gpwm));
 			}
 			
 			writer.close();

@@ -3,6 +3,9 @@
  * zzz2010@gmail.com
  */
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -10,12 +13,14 @@ import java.util.Iterator;
 
 import org.biojava.bio.alignment.*;
 import org.biojava.bio.dist.Distribution;
+import org.biojava.bio.dist.DistributionFactory;
 import org.biojava.bio.dist.DistributionTools;
 import org.biojava.bio.dp.DP;
 import org.biojava.bio.dp.ScoreType;
 import org.biojava.bio.dp.SimpleWeightMatrix;
 import org.biojava.bio.seq.DNATools;
 import org.biojava.bio.symbol.*;
+import org.biojava.utils.ChangeVetoException;
 
 public class PWM extends SimpleWeightMatrix {
 
@@ -38,6 +43,28 @@ public class PWM extends SimpleWeightMatrix {
 		tail=-1;
 		pos_prior=new ArrayList<Double>();
 		Score=Double.MIN_VALUE;
+		SymbolList sla;
+		try {
+			sla = DNATools.createDNA("ACGT");
+			m_matrix=new double[this.columns()][4];
+			log_matrix=new double[this.columns()][4];
+			for (int i = 0; i < this.columns(); i++) {
+				Distribution di=this.getColumn(i);
+				for (int j = 1; j<= 4; j++)
+				{  
+					double weight=di.getWeight(sla.symbolAt(j));
+			        m_matrix[i][j-1]=weight;
+			        log_matrix[i][j-1]=Math.log(weight);
+						
+				}
+				
+		
+				
+			}
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	
@@ -119,34 +146,15 @@ public class PWM extends SimpleWeightMatrix {
 		return log_matrix[col][symid];
 		
 	}
+	
+
 
 	public PWM(String[] alignments) throws IllegalAlphabetException, IllegalSymbolException  {
 
 	    this(alignment2Distribution(alignments));
 		
 	    
-		SymbolList sla;
-		try {
-			sla = DNATools.createDNA("ACGT");
-			m_matrix=new double[this.columns()][4];
-			log_matrix=new double[this.columns()][4];
-			for (int i = 0; i < this.columns(); i++) {
-				Distribution di=this.getColumn(i);
-				for (int j = 1; j<= 4; j++)
-				{  
-					double weight=di.getWeight(sla.symbolAt(j));
-			        m_matrix[i][j-1]=weight;
-			        log_matrix[i][j-1]=Math.log(weight);
-						
-				}
-				
-		
-				
-			}
-		} catch (IllegalSymbolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+
 		
 
 	    
@@ -181,8 +189,31 @@ public class PWM extends SimpleWeightMatrix {
 		
 	}
 	
+	public PWM subPWM(int start, int end)
+	{
+		
+		Distribution[] dists=new Distribution[end-start];
+		for (int i = start; i < end; i++) {
+			dists[i-start]=getColumn(i);
+		}
+		PWM sub=null;
+		try {
+			sub = new PWM(dists);
+			sub.core_motiflen=core_motiflen-Math.max(0, start-head)-Math.max(0, this.columns()-end-tail);
+			sub.head=Math.max(0, head-start);
+			sub.tail=Math.max(0, tail-(this.columns()-end));
+			sub.Name=sub.Name;
+			sub.pos_prior=(ArrayList<Double>)pos_prior.clone();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return sub;
+	}
 	
-	private double getBackgroundLogProb(String pattern,BGModel model)
+	
+	protected double getBackgroundLogProb(String pattern,BGModel model)
 	{
 		double logprob=0;
 		char[] ACGT=new char[]{'A','C','G','T'};
@@ -284,6 +315,64 @@ public class PWM extends SimpleWeightMatrix {
 		return Double.MIN_VALUE;
 		
 		
+	}
+	
+	
+	public static PWM parseTransfac(String transfcontent)
+	{
+		String str;
+		BufferedReader reader = new BufferedReader(	new StringReader(transfcontent));
+		ArrayList<Distribution> dists=new ArrayList<Distribution>();
+		PWM pwm=null;
+		String pwmName="";
+		try {
+			while ((str = reader.readLine()) != null) {
+				if(str.startsWith("DE"))
+				{
+					String[] elms=str.split("\t| ");
+					if(elms.length>1)
+					pwmName=elms[1];
+				}
+				else if(str.startsWith("PO"))
+				{
+					continue;
+				}
+				else if(str.length()>2)
+				{
+					String[] elms=str.split("\t| ");
+					Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
+					if(elms.length<5)
+						break;
+					double [] count=new double[4];
+					for (int i = 1; i <= 4; i++) {
+						count[i-1]=Double.parseDouble(elms[i]);
+					}
+					common.Normalize(count);
+				
+						di.setWeight(DNATools.a(), count[0]);
+						di.setWeight(DNATools.c(), count[1]);
+						di.setWeight(DNATools.g(), count[2]);
+						di.setWeight(DNATools.t(), count[3]);
+					dists.add(di);
+					//
+				}
+			}
+			pwm=new PWM(dists.toArray(new Distribution[1]));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ChangeVetoException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return pwm;
 	}
 	
 	
@@ -493,9 +582,10 @@ public class PWM extends SimpleWeightMatrix {
 		}
 
 		int start,end;
-		start=end=0;
+		start=-1;
+			end=0;
 		for (int i = 0; i < consensus.length(); i++) {
-			if(consensus.charAt(i)!='N'& start==0)
+			if(consensus.charAt(i)!='N'& start==-1)
 				start=i;
 			if(consensus.charAt(consensus.length()-i-1)!='N'& end==0)
 				end=consensus.length()-i;

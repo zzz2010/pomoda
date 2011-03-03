@@ -26,7 +26,7 @@ public class BGModel implements Serializable{
 	
 	
 	HashMap<String, Double> conditionProb;
-	Random r=new Random();
+	 Random r=new Random();
 	public int order;
 	
 	//return probability
