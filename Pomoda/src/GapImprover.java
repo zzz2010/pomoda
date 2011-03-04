@@ -23,6 +23,8 @@ import org.biojava.bio.symbol.IllegalSymbolException;
 import org.biojava.utils.ChangeVetoException;
 import org.pr.clustering.hierarchical.LinkageCriterion;
 
+import sun.util.calendar.LocalGregorianCalendar.Date;
+
 import auc.AUCCalculator;
 import auc.Confusion;
 
@@ -150,7 +152,7 @@ public class GapImprover {
 		}
 		try {
 		//find the best dependency modeling in each gap region
-		LinkedList<GapModelingThread> threadPool=new LinkedList<GapModelingThread>();
+		LinkedList<GapBGModelingThread> threadPool=new LinkedList<GapBGModelingThread>();
 		for (int i = 0; i <gapstart.size(); i++) {
 			int gstart=gapstart.get(i);
 			int gend=gapend.get(i);
@@ -167,19 +169,19 @@ public class GapImprover {
 				}
 				if(dpos.size()==1)
 					continue;
-				GapModelingThread t1=new GapModelingThread(gstart, gend, sites, dpos);
+				GapBGModelingThread t1=new GapBGModelingThread(gstart, gend, sites, dpos,null);
 				t1.run();
 				threadPool.add(t1);
 			}
 		}
-		Iterator<GapModelingThread> iter3=threadPool.iterator();
+		Iterator<GapBGModelingThread> iter3=threadPool.iterator();
 		 start=-1;
 		double minKL=Double.MAX_VALUE;
-		GapModelingThread bestThread=null;
+		GapBGModelingThread bestThread=null;
 		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>,HashMap<String,Double>>();
 		while(iter3.hasNext())
 		{
-			GapModelingThread t1=iter3.next();	
+			GapBGModelingThread t1=iter3.next();	
 				t1.join();
 				if(t1.depend_Pos.size()==0)
 					System.out.println(t1.toString());
@@ -212,6 +214,9 @@ public class GapImprover {
 			Dmap.put(bestThread.depend_Pos, bestThread.DprobMap);
 		System.out.println("best:"+bestThread.toString());
 		
+		
+		
+		
 		gapPWM=GapPWM.createGapPWM(motif.subPWM(Math.max(0, motif.head-FlankLen),Math.min(motif.columns(),  motif.head+motif.core_motiflen+FlankLen)), Dmap,FlankLen);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
@@ -228,14 +233,14 @@ public class GapImprover {
       
          LinearEngine BGSearch=new LinearEngine(6);
          Iterator<String> iter2=SearchEngine.ForwardStrand.iterator();
-         background.r.setSeed(max_gaplen);
+         background.r.setSeed(Date.TIME_UNDEFINED);
          while(iter2.hasNext())
          {
         	 int len=iter2.next().length();
-        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
-        	 String bgstr=bgstr_p.value;
-//        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
-//        	 String bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
+//        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
+//        	 String bgstr=bgstr_p.value;
+        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
+        	 String bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
         	 BGSearch.ForwardStrand.add(bgstr);	 
         	 BGSearch.TotalLen+=bgstr.length();
          }
