@@ -12,5 +12,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/clustering"/>
 	<classpathentry kind="lib" path="D:/eclipse/library/colt/lib/colt.jar"/>
 	<classpathentry kind="lib" path="D:/eclipse/library/colt/lib/concurrent.jar"/>
+	<classpathentry kind="lib" path="D:/eclipse/library/auc.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
