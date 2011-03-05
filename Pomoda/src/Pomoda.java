@@ -595,7 +595,7 @@ public class Pomoda {
 						if(motif.pos_prior.size()!=0)
 							logprior=motif.pos_prior.get(prior_bin)-lognullprior;
 						double loglik=logprob_theta+logprior-logprob_BG;
-						double prob_theta=1;//Math.exp(loglik)/10000;//Math.exp(currloc.Score);
+						double prob_theta=Math.exp(logprior)/10000;//Math.exp(currloc.Score);
 						temp_prior[prior_bin]+=prob_theta;//make smaller
 						if(OOPS)
 							loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center

@@ -40,7 +40,7 @@ public class GapImprover {
 	public String bgmodelFile="";
 	LinearEngine SearchEngine;
 	public double sampling_ratio=1;
-	public double FDR=0.01;
+	public double FDR=0.001;
 	public double entropyThresh=1;
 	public int max_gaplen=8;
 	public BGModel background;
@@ -179,6 +179,8 @@ public class GapImprover {
 		double minKL=Double.MAX_VALUE;
 		GapBGModelingThread bestThread=null;
 		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>,HashMap<String,Double>>();
+		GapBGModelingThread[] Pos_BestThread=new GapBGModelingThread[motif.core_motiflen+2*FlankLen];
+		
 		while(iter3.hasNext())
 		{
 			GapBGModelingThread t1=iter3.next();	
@@ -209,12 +211,50 @@ public class GapImprover {
 					}
 					
 				}
+				
+				Iterator<Integer> iter4=t1.depend_Pos.iterator();
+				while(iter4.hasNext())
+				{
+					int posId=iter4.next();
+					if(Pos_BestThread[posId]!=null)
+					{
+						if(Pos_BestThread[posId].KL_improve>t1.KL_improve)
+							Pos_BestThread[posId]=t1;
+					}
+					else
+					{
+						Pos_BestThread[posId]=t1;
+					}
+				}
+				if(t1.depend_Pos.size()==0)
+				{
+					for (int i = t1.gapStart; i < t1.gapEnd; i++) {
+						if(Pos_BestThread[i].KL_improve>t1.KL_improve)
+							Pos_BestThread[i]=t1;
+						
+					}
+				}
 		}
 		if(bestThread.depend_Pos.size()>1)
 			Dmap.put(bestThread.depend_Pos, bestThread.DprobMap);
 		System.out.println("best:"+bestThread.toString());
 		
-		
+		for (int i = 0; i < Pos_BestThread.length; i++) {
+			if(Pos_BestThread[i]!=null&&Pos_BestThread[i].depend_Pos.size()>1)
+			{
+				boolean maxCover=true;
+				for(Integer ii:Pos_BestThread[i].depend_Pos)
+				{
+					if(Pos_BestThread[ii].hashCode()!=Pos_BestThread[i].hashCode())
+					{
+						maxCover=false;
+						break;
+					}
+				}
+				if(maxCover)
+				Dmap.put(Pos_BestThread[i].depend_Pos, Pos_BestThread[i].DprobMap);
+			}
+		}
 		
 		
 		gapPWM=GapPWM.createGapPWM(motif.subPWM(Math.max(0, motif.head-FlankLen),Math.min(motif.columns(),  motif.head+motif.core_motiflen+FlankLen)), Dmap,FlankLen);

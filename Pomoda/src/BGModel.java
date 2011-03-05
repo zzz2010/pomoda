@@ -78,6 +78,8 @@ public class BGModel implements Serializable{
 				logprob+=Math.log( conditionProb.get(seq.substring(start,start+i+1)));
 
 			}
+			if(start+i==seq.length())
+				break;
 			if(start+i<seq.length()&& seq.charAt(start+i)=='N')
 			{
 				start=start+i+1;
