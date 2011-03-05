@@ -34,6 +34,63 @@ public class LinearEngine {
 		//ReverseStrand=new LinkedList<String>();
 		
 	}
+	
+	
+	
+	
+	
+	public void build_index(String inputfile,int maxSeq) {
+		// TODO Auto-generated method stub
+		 try {
+			 ForwardStrand.clear();
+			// ReverseStrand.clear();
+			 //Database to hold the training set
+			      BufferedReader br = new BufferedReader(new FileReader(inputfile));
+   		          SymbolTokenization toke = AlphabetManager.alphabetForName("DNA").getTokenization("token");
+   		          SequenceIterator seqi = RichSequence.IOTools.readFasta(br, toke,null);
+   		          
+   		          TotalLen=0;
+   			      while (seqi.hasNext()) {
+   			    	  
+   			    	  Sequence seq=seqi.nextSequence();
+   			    	  String seqstr=seq.seqString().replace("N", "");
+   				     ForwardStrand.add(seqstr);
+   				  //ReverseStrand.add(common.getReverseCompletementString( seqstr));
+   				if(ForwardStrand.size()>maxSeq)
+   				    	 return;
+   				TotalLen+=seqstr.length();
+   			      }
+   	
+			     
+			
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalTransitionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BioException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+	
+	
+	
+	
 	public void build_index(String inputfile) {
 		// TODO Auto-generated method stub
 		 try {
