@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.TreeMap;
 
 import org.apache.commons.cli.CommandLine;
@@ -37,10 +38,12 @@ public class GapImprover {
 	public String outputPrefix="./";
 	public String inputFasta;
 	public String ctrlFasta="";
+	public boolean OOPS=true; //only one dependence per sequence
+	public boolean OOPG=false; //only one occurrence per sequence
 	public String bgmodelFile="";
 	LinearEngine SearchEngine;
 	public double sampling_ratio=1;
-	public double FDR=0.001;
+	public double FDR=0.01;
 	public double entropyThresh=1;
 	public int max_gaplen=8;
 	public BGModel background;
@@ -55,6 +58,46 @@ public class GapImprover {
 	
 	public GapImprover()
 	{
+		
+	}
+	
+	public double KL_Divergence_empirical(List<String> sites,PWM motif)
+	{
+		
+		double KLsum=0;
+		HashMap<String, Integer> sitecount=new HashMap<String, Integer>();
+		Iterator<String> iter=sites.iterator();
+		int totalCount=0;
+		while(iter.hasNext())
+		{
+			String temp=iter.next();
+			temp=temp.substring((temp.length()-motif.core_motiflen)/2,(temp.length()-motif.core_motiflen)/2+motif.core_motiflen);
+			if(temp.contains("N"))
+				continue;
+			if(sitecount.containsKey(temp))
+			{
+				sitecount.put(temp, sitecount.get(temp)+1);
+			}
+			else
+			{
+				sitecount.put(temp, 1);
+			}
+			totalCount++;
+		}
+		
+		for(String key:sitecount.keySet())
+		{
+			int count=sitecount.get(key);
+			double p=(double)count/totalCount;
+			double motif_logP=motif.scoreWeightMatrix(key);
+			if(Double.isInfinite(motif_logP))
+				continue;
+		
+			KLsum+=p*(Math.log(p)-motif_logP);
+		}
+			
+			
+		return KLsum;
 		
 	}
 	
@@ -105,7 +148,7 @@ public class GapImprover {
 		String Consensus=motif.Consensus(true);
 		ArrayList<Integer> gapstart=new ArrayList<Integer>(motif.core_motiflen/2);
 		ArrayList<Integer> gapend=new ArrayList<Integer>(motif.core_motiflen/2);
-		int FlankLen=0;//Math.min(Math.min(motif.head, motif.tail), 2);
+		int FlankLen=2;//Math.min(Math.min(motif.head, motif.tail), 2);
 		//detect gap range
 		int start=-1;
 		for (int i = motif.head-FlankLen; i < motif.head+motif.core_motiflen+FlankLen; i++) {
@@ -138,17 +181,60 @@ public class GapImprover {
 		}
 		//get a set of instance strings
 		LinkedList<String> sites=new LinkedList<String>();
-		double pwmThresh=motif.getThresh(sampling_ratio, FDR, background);
-		LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(motif, pwmThresh);
-		Iterator<FastaLocation> iter=falocs.iterator();
-		while(iter.hasNext())
+		if(!OOPS)
 		{
-			FastaLocation currloc=iter.next();
-			String site=SearchEngine.getSite(currloc.getSeqId(), currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
-			if(currloc.ReverseStrand)
+			double pwmThresh=motif.getThresh(sampling_ratio, FDR, background);
+			LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(motif, pwmThresh);
+			Iterator<FastaLocation> iter=falocs.iterator();
+			while(iter.hasNext())
+			{
+				FastaLocation currloc=iter.next();
+				String site=SearchEngine.getSite(currloc.getSeqId(), currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+				if(currloc.ReverseStrand)
+					site=common.getReverseCompletementString(site);
+				if(site!=null)
+				sites.add(site);		
+			}
+		}
+		else
+		{
+			 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
+        	 Iterator<FastaLocation> iter=falocs.iterator();
+        	 int lastseq=-1;
+        	 double seqcount=0;
+        	 double maxseq_score=	Double.NEGATIVE_INFINITY;
+        	 FastaLocation max_currloc=null;
+        	 while(iter.hasNext())
+        	 {
+        		 FastaLocation currloc=iter.next();
+        		 if(lastseq!=currloc.getSeqId())
+        		 {
+        			 seqcount+=1;
+        			
+        			 if(lastseq!=-1)
+        			 {
+     				String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+    				if(max_currloc.ReverseStrand)
+    					site=common.getReverseCompletementString(site);
+    				if(site!=null)
+    				sites.add(site);
+        			 }
+        			 lastseq=currloc.getSeqId(); 
+        			 maxseq_score=currloc.Score;
+        			 max_currloc=currloc;
+        		 }
+        		 if(maxseq_score<currloc.Score)
+        		 {
+        			 maxseq_score=currloc.Score;
+        			 max_currloc=currloc;
+        		 }
+        	 }
+        	 //last seq
+ 			String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+			if(max_currloc.ReverseStrand)
 				site=common.getReverseCompletementString(site);
 			if(site!=null)
-			sites.add(site);		
+			sites.add(site);
 		}
 		try {
 		//find the best dependency modeling in each gap region
@@ -169,11 +255,14 @@ public class GapImprover {
 				}
 				if(dpos.size()==1)
 					continue;
-				GapBGModelingThread t1=new GapBGModelingThread(gstart, gend, sites, dpos,null);
+				GapBGModelingThread t1=new GapBGModelingThread(gstart, gend, sites, dpos,background);//null mean not considering BG
 				t1.run();
 				threadPool.add(t1);
 			}
 		}
+		
+		
+	
 		Iterator<GapBGModelingThread> iter3=threadPool.iterator();
 		 start=-1;
 		double minKL=Double.MAX_VALUE;
@@ -190,7 +279,7 @@ public class GapImprover {
 				if(t1.gapStart!=start)
 				{
 					start=t1.gapStart;
-					minKL=t1.KL_improve;
+					minKL=t1.KL_Divergence;
 					if(bestThread!=null)
 					{
 						System.out.println("best:"+bestThread.toString());
@@ -204,9 +293,9 @@ public class GapImprover {
 				}
 				else 
 				{
-					if(t1.KL_improve<minKL)
+					if(t1.KL_Divergence<minKL)
 					{
-						minKL=t1.KL_improve;
+						minKL=t1.KL_Divergence;
 						bestThread=t1;
 					}
 					
@@ -218,7 +307,7 @@ public class GapImprover {
 					int posId=iter4.next();
 					if(Pos_BestThread[posId]!=null)
 					{
-						if(Pos_BestThread[posId].KL_improve>t1.KL_improve)
+						if(Pos_BestThread[posId].KL_Divergence>t1.KL_Divergence)
 							Pos_BestThread[posId]=t1;
 					}
 					else
@@ -229,7 +318,7 @@ public class GapImprover {
 				if(t1.depend_Pos.size()==0)
 				{
 					for (int i = t1.gapStart; i < t1.gapEnd; i++) {
-						if(Pos_BestThread[i].KL_improve>t1.KL_improve)
+						if(Pos_BestThread[i].KL_Divergence>t1.KL_Divergence)
 							Pos_BestThread[i]=t1;
 						
 					}
@@ -238,7 +327,9 @@ public class GapImprover {
 		if(bestThread.depend_Pos.size()>1)
 			Dmap.put(bestThread.depend_Pos, bestThread.DprobMap);
 		System.out.println("best:"+bestThread.toString());
-		
+		if(!OOPG)
+		{
+		//fill in multi-dependency in the same gap region	
 		for (int i = 0; i < Pos_BestThread.length; i++) {
 			if(Pos_BestThread[i]!=null&&Pos_BestThread[i].depend_Pos.size()>1)
 			{
@@ -252,18 +343,43 @@ public class GapImprover {
 					}
 				}
 				if(maxCover)
+				{
 				Dmap.put(Pos_BestThread[i].depend_Pos, Pos_BestThread[i].DprobMap);
+				System.out.println(Pos_BestThread[i]);
+				}
 			}
 		}
+		}
+	
+		gapPWM=GapPWM.createGapPWM(motif.subPWM( motif.head,motif.head+motif.core_motiflen), Dmap,FlankLen);
+		if(gapPWM.core_motiflen!=motif.core_motiflen)
+		{
+			motif=new PWM(sites.toArray(new String[1]));
+			gapPWM=GapPWM.createGapPWM(motif.subPWM(FlankLen,motif.columns()-FlankLen), Dmap,FlankLen);
+			motif=motif.subPWM(gapPWM.head, gapPWM.head+gapPWM.core_motiflen);
+		}
+//		String testStr="agagaagaagaaagaaagaaagaagaaaggaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaaagaaagaaagaa";
+//		testStr=common.getReverseCompletementString(testStr);
+//		for (int i = 0; i < testStr.length()-gapPWM.core_motiflen; i++) {
+//			String temp=testStr.substring(i, i+gapPWM.core_motiflen);
+//			double score1=gapPWM.scoreWeightMatrix(temp);
+//			double score2=motif.scoreWeightMatrix(temp);
+//			System.out.println(score1+"\t"+score2);
+//		}
+		System.out.println(KL_Divergence_empirical(sites, motif) +"\t"+KL_Divergence_empirical(sites, gapPWM));
 		
-		
-		gapPWM=GapPWM.createGapPWM(motif.subPWM(Math.max(0, motif.head-FlankLen),Math.min(motif.columns(),  motif.head+motif.core_motiflen+FlankLen)), Dmap,FlankLen);
 		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalSymbolException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-	
+		
 		return gapPWM;
 	}
 	
@@ -273,14 +389,14 @@ public class GapImprover {
       
          LinearEngine BGSearch=new LinearEngine(6);
          Iterator<String> iter2=SearchEngine.ForwardStrand.iterator();
-         background.r.setSeed(Date.TIME_UNDEFINED);
+         background.r.setSeed(0);
          while(iter2.hasNext())
          {
         	 int len=iter2.next().length();
-//        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
-//        	 String bgstr=bgstr_p.value;
-        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
-        	 String bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
+        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
+        	 String bgstr=bgstr_p.value;
+//        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
+//        	 String bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
         	 BGSearch.ForwardStrand.add(bgstr);	 
         	 BGSearch.TotalLen+=bgstr.length();
          }
@@ -292,38 +408,53 @@ public class GapImprover {
         	 int lastseq=-1;
         	 double seqcount=0;
         	 double maxseq_score=	Double.NEGATIVE_INFINITY;
+        	 FastaLocation max_currloc=null;
+        	 ArrayList<FastaLocation> worseSite=new ArrayList<FastaLocation>();
+        	 
         	 while(iter.hasNext())
         	 {
         		 FastaLocation currloc=iter.next();
         		 if(lastseq!=currloc.getSeqId())
         		 {
         			 seqcount+=1;
-        			 lastseq=currloc.getSeqId();
-        			 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
-        			 
+        			 if(lastseq!=-1)
+        			 {
+        				 if(max_currloc.Score<-30)
+        					 worseSite.add(max_currloc);
+        				 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
+        			 }
+        				 lastseq=currloc.getSeqId();
         			 maxseq_score=currloc.Score;
+        			 max_currloc=currloc;
         		 }
         		 if(maxseq_score<currloc.Score)
         		 {
+        			 max_currloc=currloc;
         			 maxseq_score=currloc.Score;
         		 }
         	 }
+        	 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
         	 
         	 //bg sequences
         	 falocs =BGSearch.searchPattern(motif, Double.NEGATIVE_INFINITY);
         	 iter=falocs.iterator();
         	lastseq=-1;
         	 seqcount=0;
-        	maxseq_score=	Double.NEGATIVE_INFINITY;
+        	maxseq_score=Double.NEGATIVE_INFINITY;
 	       	 while(iter.hasNext())
 	    	 {
 	    		 FastaLocation currloc=iter.next();
 	    		 if(lastseq!=currloc.getSeqId())
 	    		 {
 	    			 seqcount+=1;
-	    			 lastseq=currloc.getSeqId();
+	    			
+	    			 if(lastseq!=-1)
+	    			 {
 	    			 Sorted_labels.put(maxseq_score-seqcount*common.DoubleMinNormal, 0);
+	    			
+	    			 }
 	    			 maxseq_score=currloc.Score;
+	    			 lastseq=currloc.getSeqId();
 	    		 }
 	    		 if(maxseq_score<currloc.Score)
 	    		 {
@@ -331,18 +462,23 @@ public class GapImprover {
 	    		 }
 	    		 
 	    	 }
+	       	Sorted_labels.put(maxseq_score-seqcount*common.DoubleMinNormal, 0);
 	       	 int[]  labels=new int[Sorted_labels.size()];
 	       	double[]  scores=new double[Sorted_labels.size()];
 	       	 int ii=0;
+	       	 int one=0;
 	       	 for(Double key:Sorted_labels.descendingKeySet())
 	       	 {
 	       		 labels[ii]=Sorted_labels.get(key);
+	       		 if(labels[ii]==1)
+	       			 one++;
 	       		 scores[ii]=key;
 	       		        ii++;
 	       	 }
         	 
         	 //AUCcalc.addROCPoint(fp,(double)seqcount/SearchEngine.getSeqNum());
 	       	Confusion AUCcalc=AUCCalculator.readArrays(labels, scores);	
+	       	System.out.println(scores[scores.length-1]);
          double AUCscore=AUCcalc.calculateAUCROC();
          
          return AUCscore;
