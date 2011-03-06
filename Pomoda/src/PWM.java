@@ -39,8 +39,9 @@ public class PWM extends SimpleWeightMatrix {
 		super(arg0);
 		// TODO Auto-generated constructor stub
 		
-		head=-1;
-		tail=-1;
+		head=0;
+		tail=0;
+		core_motiflen=arg0.length;
 		pos_prior=new ArrayList<Double>();
 		Score=Double.MIN_VALUE;
 		SymbolList sla;

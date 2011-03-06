@@ -89,8 +89,6 @@ public class LinearEngine {
 	}
 	
 	
-	
-	
 	public void build_index(String inputfile) {
 		// TODO Auto-generated method stub
 		 try {

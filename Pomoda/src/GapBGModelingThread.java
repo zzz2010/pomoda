@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,9 +16,10 @@ public class GapBGModelingThread extends Thread {
 	List<String> Sites;
 	public int gapStart;
 	public int gapEnd;
+	public double lamda=1;
 	public HashSet<Integer> depend_Pos;
 	public PWM gapPWM;
-	public double KL_improve;
+	public double KL_Divergence;
 	public HashMap<String,Double> DprobMap;
 	public BGModel background;
 	
@@ -27,12 +29,53 @@ public class GapBGModelingThread extends Thread {
 		this.gapStart=gapstart;
 		this.Sites=sites;
 		this.depend_Pos=depend_pos;
-		KL_improve=common.DoubleMinNormal;
+		KL_Divergence=common.DoubleMinNormal;
 		DprobMap=new HashMap<String,Double>();
 		background=bg;
 	}
 	
 	double findPriorLamda(double[] Pob,double[] Pbg,double[] Pt)
+	{
+		double lamda=0.5;
+		
+		double sqerror=Double.MAX_VALUE;
+		double lamdachange=Double.MAX_VALUE;
+		
+		//sort the Pob , and get index of sorted array
+		TreeMap<Double, List<Integer>> map = new TreeMap<Double, List<Integer>>();
+		for(int i = 0; i < Pob.length; i++) {
+		    List<Integer> ind = map.get(Pob[i]);
+		    if(ind == null){
+		        ind = new ArrayList<Integer>();
+		        map.put(Pob[i], ind);
+		    }
+		    ind.add(i);
+		}
+
+		// Now flatten the list
+		List<Integer> indices = new ArrayList<Integer>();
+		for(List<Integer> arr : map.values()) {
+		    indices.addAll(arr);
+		}
+		double A,B;
+		A=B=0;
+		//minimize sum_(Pbg*lamda-Pob)^2
+		for (int i = 0; i < indices.size()/2; i++) {
+			A+=Pob[indices.get(i)]*Pbg[indices.get(i)];
+			B+=Pbg[indices.get(i)];
+		}
+		lamda=1-A/B;
+		
+		for (int i = 0; i < Pt.length; i++) {
+			Pt[i]=(Pob[i]-(1-lamda)*Pbg[i])/lamda;
+			if(Pt[i]<0)
+				Pt[i]=0;
+		}
+		
+		return lamda;
+	}
+	
+	double findPriorLamda2(double[] Pob,double[] Pbg,double[] Pt)
 	{
 		double lamda;
 		
@@ -74,7 +117,7 @@ public class GapBGModelingThread extends Thread {
 	public String toString()
 	{
 		String ret="";
-		ret=String.valueOf(gapStart)+"-"+String.valueOf(gapEnd)+":"+Arrays.toString(depend_Pos.toArray(new Integer[1]))+'\t'+KL_improve; 
+		ret=String.valueOf(gapStart)+"-"+String.valueOf(gapEnd)+":"+Arrays.toString(depend_Pos.toArray(new Integer[1]))+'\t'+KL_Divergence+'\t'+lamda; 
 		
 		return ret;
 	}
@@ -119,6 +162,7 @@ public class GapBGModelingThread extends Thread {
 				}
 			}
 			common.Normalize(gapmerCount);
+		
 			int num_top=4* depend_Pos.size()-1;
 			if(depend_Pos.size()>1)
 			{
@@ -149,7 +193,7 @@ public class GapBGModelingThread extends Thread {
 					}
 					Pbg[j]=Math.exp(background.Get_LOGPROB(gapdmer));
 				}
-				double lamda=findPriorLamda(dmerCount,Pbg,Pt);
+				 lamda=findPriorLamda(dmerCount,Pbg,Pt);
 				}
 				else
 				{
@@ -160,20 +204,30 @@ public class GapBGModelingThread extends Thread {
 				for (int j = 0; j< dmerSize; j++)
 				{  
 					double weight=Pt[j]-(j%num_top)*common.DoubleMinNormal;
+					if(weight<0)
+						weight=0;
 					sorted_column.put(weight, j);
 				}
 			
 			double sumprob=0;
+			//sort the dmer by desc prob£¬ and take top 4d-1 as the dependency model 
 			for(Double key:sorted_column.descendingKeySet())
 			{
 				DprobMap.put(common.Hash2ACGT(sorted_column.get(key), depend_Pos.size()), key);
 				sumprob+=key;
+
 				if(DprobMap.size()==(num_top))
 					break;
 			}
 		
 			DprobMap.put("N", (1-sumprob)/(dmerSize-4*depend_Pos.size()+1));
+//				if((1-sumprob)<=(num_top*num_top)*common.DoubleMinNormal)
+//				{
+//					KL_Divergence=Double.MAX_VALUE; //overfit!
+//					return;
+//				}
 			}
+			
 			//compute KL-divergence
 			
 			double sum_plogp_p=0;
@@ -216,7 +270,7 @@ public class GapBGModelingThread extends Thread {
 				
 			}
 			
-			KL_improve=sum_plogp_p;
+			KL_Divergence=sum_plogp_p;
 			
 		} catch (IllegalAlphabetException e) {
 			// TODO Auto-generated catch block
