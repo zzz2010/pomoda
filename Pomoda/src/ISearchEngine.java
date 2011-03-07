@@ -3,8 +3,6 @@
  * zzz2010@gmail.com
  */
 import java.util.*;
-
-import org.biojava.bio.symbol.Location;
 public interface ISearchEngine {
 	
  void	build_index(String inputfile);

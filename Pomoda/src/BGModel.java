@@ -1,21 +1,11 @@
 import java.io.*;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Random;
 
 import org.biojava.bio.BioException;
-import org.biojava.bio.dp.*;
-import org.biojava.bio.dist.DistributionFactory;
-import org.biojava.bio.dp.DP;
-import org.biojava.bio.dp.DPFactory;
 import org.biojava.bio.dp.IllegalTransitionException;
-import org.biojava.bio.dp.ProfileHMM;
-import org.biojava.bio.dp.SimpleModelTrainer;
-import org.biojava.bio.seq.DNATools;
 import org.biojava.bio.seq.Sequence;
 import org.biojava.bio.seq.SequenceIterator;
-import org.biojava.bio.seq.db.*;
-import org.biojava.bio.seq.impl.RevCompSequence;
 import org.biojava.bio.seq.io.*;
 import org.biojava.bio.symbol.*;
 import org.biojavax.bio.seq.RichSequence;
