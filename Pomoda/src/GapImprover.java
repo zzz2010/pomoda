@@ -40,12 +40,14 @@ public class GapImprover {
 	public String ctrlFasta="";
 	public boolean OOPS=true; //only one dependence per sequence
 	public boolean OOPG=false; //only one occurrence per sequence
+	public boolean removeBG=true; //uniform BG assume
 	public String bgmodelFile="";
 	LinearEngine SearchEngine;
 	public double sampling_ratio=1;
 	public double FDR=0.01;
 	public double entropyThresh=1;
 	public int max_gaplen=8;
+	
 	public BGModel background;
 	public GapImprover(Pomoda motiffinder)
 	{
@@ -105,7 +107,7 @@ public class GapImprover {
 	{
 
 		SearchEngine=new LinearEngine(4);
-		SearchEngine.build_index(this.inputFasta);
+		SearchEngine.build_index(this.inputFasta,1000);
 	
 		background=new BGModel();
 		File file=null;
@@ -148,7 +150,7 @@ public class GapImprover {
 		String Consensus=motif.Consensus(true);
 		ArrayList<Integer> gapstart=new ArrayList<Integer>(motif.core_motiflen/2);
 		ArrayList<Integer> gapend=new ArrayList<Integer>(motif.core_motiflen/2);
-		int FlankLen=2;//Math.min(Math.min(motif.head, motif.tail), 2);
+		int FlankLen=5;//Math.min(Math.min(motif.head, motif.tail), 2);
 		//detect gap range
 		int start=-1;
 		for (int i = motif.head-FlankLen; i < motif.head+motif.core_motiflen+FlankLen; i++) {
@@ -193,7 +195,7 @@ public class GapImprover {
 				if(currloc.ReverseStrand)
 					site=common.getReverseCompletementString(site);
 				if(site!=null)
-				sites.add(site);		
+					sites.add(site);		
 			}
 		}
 		else
@@ -239,6 +241,7 @@ public class GapImprover {
 		try {
 		//find the best dependency modeling in each gap region
 		LinkedList<GapBGModelingThread> threadPool=new LinkedList<GapBGModelingThread>();
+		if(sites.size()>0)
 		for (int i = 0; i <gapstart.size(); i++) {
 			int gstart=gapstart.get(i);
 			int gend=gapend.get(i);
@@ -255,7 +258,11 @@ public class GapImprover {
 				}
 				if(dpos.size()==1)
 					continue;
-				GapBGModelingThread t1=new GapBGModelingThread(gstart, gend, sites, dpos,background);//null mean not considering BG
+				GapBGModelingThread t1=null;
+				if(removeBG)
+					t1=new GapBGModelingThread(gstart, gend, sites, dpos,background);//null mean not considering BG
+				else
+					t1=new GapBGModelingThread(gstart, gend, sites, dpos,null);//null mean not considering BG
 				t1.run();
 				threadPool.add(t1);
 			}
@@ -324,9 +331,11 @@ public class GapImprover {
 					}
 				}
 		}
-		if(bestThread.depend_Pos.size()>1)
+		if(bestThread!=null&&bestThread.depend_Pos.size()>1)
+		{
 			Dmap.put(bestThread.depend_Pos, bestThread.DprobMap);
 		System.out.println("best:"+bestThread.toString());
+		}
 		if(!OOPG)
 		{
 		//fill in multi-dependency in the same gap region	
@@ -352,7 +361,7 @@ public class GapImprover {
 		}
 	
 		gapPWM=GapPWM.createGapPWM(motif.subPWM( motif.head,motif.head+motif.core_motiflen), Dmap,FlankLen);
-		if(gapPWM.core_motiflen!=motif.core_motiflen)
+		if(gapPWM.core_motiflen!=motif.core_motiflen&&sites.size()>0)
 		{
 			motif=new PWM(sites.toArray(new String[1]));
 			gapPWM=GapPWM.createGapPWM(motif.subPWM(FlankLen,motif.columns()-FlankLen), Dmap,FlankLen);
@@ -393,10 +402,17 @@ public class GapImprover {
          while(iter2.hasNext())
          {
         	 int len=iter2.next().length();
-        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
-        	 String bgstr=bgstr_p.value;
-//        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
-//        	 String bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
+        	 String bgstr="";
+        	 if(removeBG)
+        	 {
+	        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
+	        	 bgstr=bgstr_p.value;
+        	 }
+        	 else
+        	 {
+	        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
+	        	 bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
+        	 }
         	 BGSearch.ForwardStrand.add(bgstr);	 
         	 BGSearch.TotalLen+=bgstr.length();
          }

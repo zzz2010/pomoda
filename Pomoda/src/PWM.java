@@ -346,7 +346,7 @@ public class PWM extends SimpleWeightMatrix {
 						break;
 					double [] count=new double[4];
 					for (int i = 1; i <= 4; i++) {
-						count[i-1]=Double.parseDouble(elms[i]);
+						count[i-1]=Double.parseDouble(elms[i])+common.DoubleMinNormal;
 					}
 					common.Normalize(count);
 				
