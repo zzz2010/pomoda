@@ -5,7 +5,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.TreeMap;
 
-import org.biojava.bio.dist.DistributionTools;
 import org.biojava.bio.symbol.IllegalAlphabetException;
 import org.biojava.bio.symbol.IllegalSymbolException;
 
@@ -30,6 +29,7 @@ public class GapModelingThread extends Thread {
 		DprobMap=new HashMap<String,Double>();
 	}
 	
+	@Override
 	public String toString()
 	{
 		String ret="";
@@ -38,6 +38,7 @@ public class GapModelingThread extends Thread {
 		return ret;
 	}
 	
+	@Override
 	public void run() {
 		String[] gapstr=new String[ Sites.size()];
 		Iterator<String> iter=Sites.iterator();

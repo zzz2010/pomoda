@@ -3,9 +3,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
-
 import org.biojava.bio.dist.Distribution;
 import org.biojava.bio.dist.UniformDistribution;
 import org.biojava.bio.seq.DNATools;
@@ -78,6 +75,7 @@ public class GapPWM extends PWM {
 	}
 	
 	
+	@Override
 	public double getThresh(double sampleratio,double FDRthresh,BGModel bgmodel)
 	{
 		
@@ -117,6 +115,7 @@ public class GapPWM extends PWM {
 	
 	
 	//only consider the core-part, ignore flanking , log score
+	@Override
 	public double scoreWeightMatrix( String seq)
 	{
 		double score=0;

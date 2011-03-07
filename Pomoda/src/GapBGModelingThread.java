@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.TreeMap;
 
-import org.biojava.bio.dist.DistributionTools;
 import org.biojava.bio.symbol.IllegalAlphabetException;
 import org.biojava.bio.symbol.IllegalSymbolException;
 
@@ -71,7 +70,7 @@ public class GapBGModelingThread extends Thread {
 			if(Pt[i]<0)
 				Pt[i]=0;
 		}
-		
+		common.Normalize(Pt);
 		return lamda;
 	}
 	
@@ -114,6 +113,7 @@ public class GapBGModelingThread extends Thread {
 		return lamda;
 	}
 	
+	@Override
 	public String toString()
 	{
 		String ret="";
@@ -122,6 +122,7 @@ public class GapBGModelingThread extends Thread {
 		return ret;
 	}
 	
+	@Override
 	public void run() {
 		String[] gapstr=new String[ Sites.size()];
 		Iterator<String> iter=Sites.iterator();
@@ -194,6 +195,7 @@ public class GapBGModelingThread extends Thread {
 					Pbg[j]=Math.exp(background.Get_LOGPROB(gapdmer));
 				}
 				 lamda=findPriorLamda(dmerCount,Pbg,Pt);
+				 
 				}
 				else
 				{

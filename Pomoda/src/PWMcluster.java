@@ -4,7 +4,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.cli.Options;
-import org.pr.clustering.hierarchical.Cluster;
 import org.pr.clustering.hierarchical.Hierarchical;
 import org.pr.clustering.hierarchical.LinkageCriterion;
 

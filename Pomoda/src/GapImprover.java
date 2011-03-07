@@ -1,6 +1,5 @@
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -14,18 +13,11 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.biojava.bio.dist.Distribution;
-import org.biojava.bio.dist.DistributionFactory;
 import org.biojava.bio.dist.DistributionTools;
 import org.biojava.bio.dist.UniformDistribution;
 import org.biojava.bio.seq.DNATools;
 import org.biojava.bio.symbol.IllegalAlphabetException;
 import org.biojava.bio.symbol.IllegalSymbolException;
-import org.biojava.utils.ChangeVetoException;
-import org.pr.clustering.hierarchical.LinkageCriterion;
-
-import sun.util.calendar.LocalGregorianCalendar.Date;
-
 import auc.AUCCalculator;
 import auc.Confusion;
 
@@ -40,7 +32,7 @@ public class GapImprover {
 	public String ctrlFasta="";
 	public boolean OOPS=true; //only one dependence per sequence
 	public boolean OOPG=false; //only one occurrence per sequence
-	public boolean removeBG=true; //uniform BG assume
+	public boolean removeBG=true; //false:uniform BG assume
 	public String bgmodelFile="";
 	LinearEngine SearchEngine;
 	public double sampling_ratio=1;
@@ -150,7 +142,7 @@ public class GapImprover {
 		String Consensus=motif.Consensus(true);
 		ArrayList<Integer> gapstart=new ArrayList<Integer>(motif.core_motiflen/2);
 		ArrayList<Integer> gapend=new ArrayList<Integer>(motif.core_motiflen/2);
-		int FlankLen=5;//Math.min(Math.min(motif.head, motif.tail), 2);
+		int FlankLen=2;//Math.min(Math.min(motif.head, motif.tail), 2);
 		//detect gap range
 		int start=-1;
 		for (int i = motif.head-FlankLen; i < motif.head+motif.core_motiflen+FlankLen; i++) {
@@ -424,9 +416,6 @@ public class GapImprover {
         	 int lastseq=-1;
         	 double seqcount=0;
         	 double maxseq_score=	Double.NEGATIVE_INFINITY;
-        	 FastaLocation max_currloc=null;
-        	 ArrayList<FastaLocation> worseSite=new ArrayList<FastaLocation>();
-        	 
         	 while(iter.hasNext())
         	 {
         		 FastaLocation currloc=iter.next();
@@ -435,18 +424,15 @@ public class GapImprover {
         			 seqcount+=1;
         			 if(lastseq!=-1)
         			 {
-        				 if(max_currloc.Score<-30)
-        					 worseSite.add(max_currloc);
         				 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
         			 }
         				 lastseq=currloc.getSeqId();
         			 maxseq_score=currloc.Score;
-        			 max_currloc=currloc;
         		 }
         		 if(maxseq_score<currloc.Score)
         		 {
-        			 max_currloc=currloc;
         			 maxseq_score=currloc.Score;
+
         		 }
         	 }
         	 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
@@ -460,6 +446,7 @@ public class GapImprover {
 	       	 while(iter.hasNext())
 	    	 {
 	    		 FastaLocation currloc=iter.next();
+
 	    		 if(lastseq!=currloc.getSeqId())
 	    		 {
 	    			 seqcount+=1;

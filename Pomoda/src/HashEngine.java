@@ -10,9 +10,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
-
-import org.biojava.bio.symbol.Location;
 
 
 public class HashEngine implements ISearchEngine {
@@ -497,6 +494,7 @@ public class HashEngine implements ISearchEngine {
 		return ret;
 	}
 	
+	@Override
 	public LinkedList<FastaLocation> Int2Location(LinkedList<Integer> input)
 	{
 		LinkedList<FastaLocation> ret=new LinkedList<FastaLocation>();

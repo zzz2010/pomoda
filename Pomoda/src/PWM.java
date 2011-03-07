@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 
 import java.util.Iterator;
 
-import org.biojava.bio.alignment.*;
 import org.biojava.bio.dist.Distribution;
 import org.biojava.bio.dist.DistributionFactory;
 import org.biojava.bio.dist.DistributionTools;
@@ -524,6 +523,7 @@ public class PWM extends SimpleWeightMatrix {
 		
 	}
 	
+	@Override
 	public String toString()
 	{
 		StringBuffer TransStr=new StringBuffer("");

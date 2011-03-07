@@ -2,15 +2,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.biojava.bio.BioException;
-import org.biojava.bio.dp.WeightMatrixAnnotator;
-import org.biojava.bio.seq.DNATools;
-import org.biojava.bio.seq.Feature;
-import org.biojava.bio.seq.Sequence;
-import org.biojava.bio.symbol.IllegalAlphabetException;
-import org.biojava.bio.symbol.IllegalSymbolException;
-import org.biojava.bio.symbol.Location;
-import org.biojava.bio.symbol.SymbolList;
 import org.biojava.utils.ChangeVetoException;
 
 
