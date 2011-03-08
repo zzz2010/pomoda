@@ -29,15 +29,15 @@ public class common {
     public  static List<PWM> LoadPWMFromFile(String file, int topk)
     {
         List<PWM> retlist = new List<PWM>();
-        if (file.IndexOf(".pomoda") != -1)
-           retlist= PomodaHandler(file);
-        else if (file.IndexOf(".traw") != -1)
+        if (file.indexOf(".pomoda") != -1)
+        	retlist = TransfacHandler(file);
+        else if (file.indexOf(".traw") != -1)
             retlist = TrawlerHandler(file);
-        else if (file.IndexOf(".trans") != -1)
+        else if (file.indexOf(".trans") != -1)
             retlist = TransfacHandler(file);
-        else if (file.IndexOf(".admout") != -1)
+        else if (file.indexOf(".admout") != -1)
             retlist = AmadeusHandler(file);
-        else if (file.IndexOf(".wee") != -1)
+        else if (file.indexOf(".wee") != -1)
             retlist = WeederHandler(file);
 
        if(retlist.Count>topk)
