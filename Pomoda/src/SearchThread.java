@@ -14,6 +14,7 @@ public class SearchThread extends Thread  {
 	int startSeqId;
 	int mismatch;
 	int dbsize;
+	BGModel bgmodel=null;
 	public List<String> db; //in case want to run multi db, before get result
 	boolean PWMflag=false;
 	public SearchThread(PWM motif,double thresh, List<String> db,int startseqNum)
@@ -55,13 +56,20 @@ public class SearchThread extends Thread  {
 					for (int i = 0; i < seq.length()-motif.core_motiflen; i++) {
 						String temp=seq.substring(i,i+motif.core_motiflen);
 						double score=motif.scoreWeightMatrix(temp);
+						double bgscore=0;
+						if(bgmodel!=null)
+							bgscore=bgmodel.Get_LOGPROB(temp);
+						
 						boolean reverse=false;
 						double score2=motif.scoreWeightMatrix(common.getReverseCompletementString(temp));
+						
 						if(score2>score)
 						{
 							score=score2;
 							reverse=true;
 						}
+						
+						score-=bgscore;
 						if(score>thresh)
 						{
 							int addpos=pos+i;

@@ -22,6 +22,7 @@ public class LinearEngine {
 	LinkedList<String> ForwardStrand;
 	//LinkedList<String> ReverseStrand;
 	int num_thread;
+	BGModel background=null;
     public int forwardCount; //the first n entry in the searchPattern is forward.
 	public int TotalLen=0;
 	public LinearEngine(int num_thread) {
@@ -32,7 +33,14 @@ public class LinearEngine {
 	}
 	
 	
-	
+	public void EnableBackground(BGModel bg)
+	{
+		background=bg;
+	}
+	public void DisableBackground()
+	{
+		background=null;
+	}
 	
 	
 	public void build_index(String inputfile,int maxSeq) {
@@ -143,7 +151,9 @@ public class LinearEngine {
 	    //Forward search
 	    for (int i = 0; i < num_thread; i++) {
 	    	SearchThread t1 = new SearchThread(pattern, mismatch, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize ) ),i*workSize);
-			t1.start();
+			if(background!=null)
+				t1.bgmodel=background;
+	    	t1.start();
 			threadpool.add(t1);
 		}
 
@@ -178,7 +188,9 @@ public class LinearEngine {
 	    //Forward search
 	    for (int i = 0; i < num_thread; i++) {
 	    	SearchThread t1 = new SearchThread(pattern, thresh, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize )),i*workSize);
-			t1.start();
+	    	if(background!=null)
+				t1.bgmodel=background;
+	    	t1.start();
 			threadpool.add(t1);
 		}
 //	    //Reverse search

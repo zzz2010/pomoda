@@ -370,6 +370,7 @@ public class Pomoda {
 		LinkedList<String> MatchSite=new LinkedList<String>();
 		
 		//update the loglik matrix
+		SearchEngine2.DisableBackground();
 		LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
 		Iterator<FastaLocation> iter2=Falocs.iterator();
 		int count=0;
@@ -521,9 +522,9 @@ public class Pomoda {
 			double lognullprior=Math.log(1.0/num_priorbin);
 	
 			
-			double log_thresh=motif.getThresh(sampling_ratio, FDR, background);
-
-			
+			//double log_thresh=motif.getThresh(sampling_ratio, FDR, background);
+			double log_thresh=0;
+			SearchEngine2.EnableBackground(background);
 			double [][]m_matrix=new double [motiflen+flankingLen*2][4];
 			
 			//update the loglik matrix
@@ -580,16 +581,17 @@ public class Pomoda {
 						if(site.length()!=motiflen+flankingLen*2)
 							continue;
 						
-						double logprob_theta=currloc.Score;
+						double logprob_theta=currloc.Score;//include the bg log_prob in the score
 						
 						
 						
-						double logprob_BG=background.Get_LOGPROB(site.substring((site.length()-motiflen)/2, motiflen));
+						//double logprob_BG=background.Get_LOGPROB(site.substring((site.length()-motiflen)/2, motiflen));
 						double logprior=0;
 						int prior_bin=(int)(num_priorbin*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
 						if(motif.pos_prior.size()!=0)
 							logprior=motif.pos_prior.get(prior_bin)-lognullprior;
-						double loglik=logprob_theta+logprior-logprob_BG;
+						//double loglik=logprob_theta+logprior-logprob_BG;
+						double loglik=logprob_theta+logprior;
 						double prob_theta=Math.exp(logprior)/10000;//Math.exp(currloc.Score);
 						temp_prior[prior_bin]+=prob_theta;//make smaller
 						if(OOPS)
@@ -1261,7 +1263,7 @@ public class Pomoda {
 			}
 			System.out.println("Clustered Motifs:");
 			int c=0;
-			GapImprover gimprover=new GapImprover(motifFinder);
+//			GapImprover gimprover=new GapImprover(motifFinder);
 			for(Double key:sortedPWMs.descendingKeySet())
 			{
 				sortedPWMs.get(key).Name="Motif_clust"+String.valueOf(c+1);
@@ -1269,10 +1271,10 @@ public class Pomoda {
 				System.out.println(sortedPWMs.get(key).Consensus(true)+'\t'+sortedPWMs.get(key).Score);
 				writer.write(sortedPWMs.get(key).toString());
 				
-				GapPWM gpwm=gimprover.fillDependency(sortedPWMs.get(key));
-				
-				System.out.println("PWM AUC:"+gimprover.AUCtest(sortedPWMs.get(key)));
-				System.out.println("Gap improved PWM AUC:"+gimprover.AUCtest(gpwm));
+//				GapPWM gpwm=gimprover.fillDependency(sortedPWMs.get(key));
+//				
+//				System.out.println("PWM AUC:"+gimprover.AUCtest(sortedPWMs.get(key)));
+//				System.out.println("Gap improved PWM AUC:"+gimprover.AUCtest(gpwm));
 			}
 			
 			writer.close();

@@ -55,6 +55,8 @@ public class BGModel implements Serializable{
 	public double Get_LOGPROB(String seq)
 	{
 		seq=seq.toUpperCase();
+		if(seq.contains("X"))
+			return Double.POSITIVE_INFINITY;
 		double logprob=0;
 		int start=0;
 		int i;
