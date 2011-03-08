@@ -3,10 +3,18 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.Map;
+
+import org.biojava.bio.dist.Distribution;
+import org.biojava.bio.dist.DistributionFactory;
+import org.biojava.bio.seq.DNATools;
+import org.biojava.bio.symbol.IllegalAlphabetException;
+import org.biojava.bio.symbol.IllegalSymbolException;
+import org.biojava.utils.ChangeVetoException;
 
 /**
  * @author zhizhuo zhang
@@ -16,7 +24,153 @@ public class common {
 	
 	
 	static double DoubleMinNormal=0.00000000000001;
-	public static LinkedList<PWM> readPWMfile(String pwmfile)
+	
+	
+    public  static List<PWM> LoadPWMFromFile(String file, int topk)
+    {
+        List<PWM> retlist = new List<PWM>();
+        if (file.IndexOf(".pomoda") != -1)
+           retlist= PomodaHandler(file);
+        else if (file.IndexOf(".traw") != -1)
+            retlist = TrawlerHandler(file);
+        else if (file.IndexOf(".trans") != -1)
+            retlist = TransfacHandler(file);
+        else if (file.IndexOf(".admout") != -1)
+            retlist = AmadeusHandler(file);
+        else if (file.IndexOf(".wee") != -1)
+            retlist = WeederHandler(file);
+
+       if(retlist.Count>topk)
+       retlist.RemoveRange(topk,retlist.Count-topk);
+       return retlist;
+       
+    }
+    
+	static List<PWM> WeederHandler(string file)
+    {
+        List<PWM> retlist = new List<PWM>();
+        string line = "";
+        StreamReader sr = new StreamReader(file);
+        while ((line = sr.ReadLine()) != null)
+        {
+            string nname = "Motif_" + retlist.Count.ToString();
+            if (line.IndexOf("All Occurrences") != -1)
+            {
+               
+                sr.ReadLine();
+                List<List<float>> temlist = new List<List<float>>();
+                while ((line = sr.ReadLine()) != null)
+                {
+                    string[] comps = line.Split(new string[] { " " },StringSplitOptions.RemoveEmptyEntries);
+                    if (comps.Length < 4)
+                        break;
+                    List<float> col = new List<float>();
+                    float sum = 0;
+                    for (int i = 0; i < 4; i++)
+                    {
+                        float tt = float.Parse(comps[i + 2]);
+                        sum += tt;
+                        col.Add(tt);
+                    }
+                    for (int i = 0; i < 4; i++)
+                        col[i] /= sum;
+                    temlist.Add(col);
+                }
+
+                int w = temlist.Count;
+                if (w < 5)
+                    continue;
+                PWM candidate = new PWM(w);
+                candidate.Name = nname;
+                for (int i = 0; i < w; i++)
+                {
+                    for (int j = 0; j < 4; j++)
+                        candidate.matrix[i, j] = temlist[i][j];
+                }
+                retlist.Add(candidate);
+
+            }
+        }
+        sr.Close();
+
+        return retlist;
+    }
+	
+	 static LinkedList<PWM> TrawlerHandler(String file)
+     {
+		 LinkedList<PWM> retlist = new LinkedList<PWM>();
+         String line = "";
+      
+      
+         try {
+        	   BufferedReader sr = new BufferedReader(new FileReader(new File(file)));
+			while ((line = sr.readLine()) != null)
+			 {
+			    
+			     while (line.indexOf(">family") != -1)
+			     {
+			         String nname = line.substring(1);
+			       
+			         ArrayList<Distribution> dists=new ArrayList<Distribution>();
+			         while ((line = sr.readLine()) != null)
+			         {
+			             String[] comps = line.split("\t");
+			             if (comps.length < 4)
+			                 break;
+			             ArrayList<Double> col = new ArrayList<Double>();
+			             float sum = 0;
+			             for (int i = 0; i < 4; i++)
+			             {
+			                 Double tt = Double.parseDouble(comps[i]);
+			                 sum += tt;
+			                 col.add(tt);
+			             }
+			             for (int i = 0; i < 4; i++)
+			                 col.set(i, col.get(i)/sum);
+
+			     
+			             Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
+			             di.setWeight(DNATools.a(), col.get(0));
+							di.setWeight(DNATools.c(), col.get(1));
+							di.setWeight(DNATools.g(), col.get(2));
+							di.setWeight(DNATools.t(), col.get(3));
+						dists.add(di);
+			         }
+			         if (line == null)
+			             break;
+
+			         int w = dists.size();
+			         if (w < 5)
+			             continue;
+			         PWM candidate = new PWM(dists.toArray(new Distribution[1]));
+			         candidate.Name = nname;
+			  
+			      
+			     }
+			 }
+			 sr.close();
+		} catch (NumberFormatException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ChangeVetoException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+
+         return retlist;
+     }
+	
+	public static LinkedList<PWM> TransfacHandler(String pwmfile)
 	{
 		LinkedList<PWM> pwmlist=new LinkedList<PWM>();
 		File file = new File(pwmfile);
