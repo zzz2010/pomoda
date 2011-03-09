@@ -560,7 +560,7 @@ public class GapImprover {
 		}
 		
 		GImprover.initialize();
-		LinkedList<PWM> pwmlist=common.readPWMfile(inputPWM);
+		LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
 		Iterator<PWM> iter=pwmlist.iterator();
 		LinkedList<GapPWM> improvedPWMs=new LinkedList<GapPWM>();
 		while(iter.hasNext())
