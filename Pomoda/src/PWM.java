@@ -154,13 +154,42 @@ public class PWM extends SimpleWeightMatrix {
 	    this(alignment2Distribution(alignments));
 		
 	    
-
-		
-
-	    
-	    
 	}
+	 public PWM ReverseComplement()
+     {
+		  PWM rc =null;
+		 try {
+		 ArrayList<Distribution> dists=new ArrayList<Distribution>();
+		 for (int i = 0; i < columns(); i++) {
+			 Distribution di;
+			
+				di = DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
+		
+             Distribution dii=this.getColumn(columns()-i-1);
+			 di.setWeight(DNATools.a(),dii.getWeight(DNATools.t()));
+				di.setWeight(DNATools.c(), dii.getWeight(DNATools.g()));
+				di.setWeight(DNATools.g(), dii.getWeight(DNATools.c()));
+				di.setWeight(DNATools.t(), dii.getWeight(DNATools.a()));
+			dists.add(di);
+		}
+			rc= new PWM(dists.toArray(new Distribution[1]));
+			} catch (IllegalAlphabetException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalSymbolException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ChangeVetoException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+       
 	
+         rc.Name = this.Name+"_RC";
+         return rc;
+     }
+	 
+	  
 	
 	public double scoreWeightMatrix( String seq, ScoreType scoreType)
 	{
@@ -358,6 +387,7 @@ public class PWM extends SimpleWeightMatrix {
 				}
 			}
 			pwm=new PWM(dists.toArray(new Distribution[1]));
+			pwm.Name=pwmName;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

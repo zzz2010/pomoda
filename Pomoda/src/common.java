@@ -26,72 +26,234 @@ public class common {
 	static double DoubleMinNormal=0.00000000000001;
 	
 	
-    public  static List<PWM> LoadPWMFromFile(String file, int topk)
+    public  static LinkedList<PWM> LoadPWMFromFile(String file)
     {
-        List<PWM> retlist = new List<PWM>();
+    	LinkedList<PWM> retlist = new LinkedList<PWM>();
         if (file.indexOf(".pomoda") != -1)
         	retlist = TransfacHandler(file);
         else if (file.indexOf(".traw") != -1)
             retlist = TrawlerHandler(file);
-        else if (file.indexOf(".trans") != -1)
+        else if (file.indexOf(".pwm") != -1)
             retlist = TransfacHandler(file);
-        else if (file.indexOf(".admout") != -1)
-            retlist = AmadeusHandler(file);
-        else if (file.indexOf(".wee") != -1)
+        else if (file.indexOf(".meme") != -1)
+            retlist = MEMEHandler(file);
+        else if (file.indexOf("meme.txt") != -1)
+            retlist = MEMEHandler(file);
+       else if (file.indexOf(".wee") != -1)
             retlist = WeederHandler(file);
 
-       if(retlist.Count>topk)
-       retlist.RemoveRange(topk,retlist.Count-topk);
-       return retlist;
+            return retlist;
        
     }
     
-	static List<PWM> WeederHandler(string file)
+    
+    
+    public static LinkedList<PWM> MEMEHandler(String file) {
+    	 LinkedList<PWM> retlist = new LinkedList<PWM>();
+         String line = "";
+       
+         try {
+         	  BufferedReader sr = new BufferedReader(new FileReader(new File(file)));
+ 			while ((line = sr.readLine()) != null)
+ 			{
+ 			    String nname = "MEME_" + retlist.size();
+ 			    if (line.indexOf("position-specific probability matrix") != -1)
+ 			    {
+ 			       
+ 			        sr.readLine();
+ 			       sr.readLine();
+ 			        ArrayList<Distribution> dists=new ArrayList<Distribution>();
+ 			        while ((line = sr.readLine()) != null)
+ 			        {
+ 			            String[] comps = line.trim().split("[ |\t]+");
+ 			            if (comps.length < 4)
+ 			                break;
+ 			           double[] col = new double[4];
+ 			            float sum = 0;
+ 			            for (int i = 0; i < 4; i++)
+ 			            {
+ 			                double tt = Double.parseDouble(comps[i]);
+ 			                sum += tt;
+ 			                col[i]=tt;
+ 			            }
+ 			            common.Normalize(col);
+ 			            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
+ 			             di.setWeight(DNATools.a(), col[0]);
+ 							di.setWeight(DNATools.c(), col[1]);
+ 							di.setWeight(DNATools.g(), col[2]);
+ 							di.setWeight(DNATools.t(), col[3]);
+ 						dists.add(di);
+ 			        }
+
+ 			        int w = dists.size();
+ 			         if (w < 5)
+ 			             continue;
+ 			         PWM candidate = new PWM(dists.toArray(new Distribution[1]));
+ 			         candidate.Name = nname;
+ 			         retlist.add(candidate);
+
+ 			    }
+ 			}
+ 			sr.close();
+ 		} catch (NumberFormatException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IllegalAlphabetException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IllegalSymbolException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (ChangeVetoException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IOException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		}
+         
+
+         return retlist;
+	}
+
+
+
+	public static double PWM_Divergence(PWM p1, PWM p2)
     {
-        List<PWM> retlist = new List<PWM>();
-        string line = "";
-        StreamReader sr = new StreamReader(file);
-        while ((line = sr.ReadLine()) != null)
-        {
-            string nname = "Motif_" + retlist.Count.ToString();
-            if (line.IndexOf("All Occurrences") != -1)
-            {
+        double divg = 10;
                
-                sr.ReadLine();
-                List<List<float>> temlist = new List<List<float>>();
-                while ((line = sr.ReadLine()) != null)
-                {
-                    string[] comps = line.Split(new string[] { " " },StringSplitOptions.RemoveEmptyEntries);
-                    if (comps.Length < 4)
-                        break;
-                    List<float> col = new List<float>();
-                    float sum = 0;
-                    for (int i = 0; i < 4; i++)
-                    {
-                        float tt = float.Parse(comps[i + 2]);
-                        sum += tt;
-                        col.Add(tt);
-                    }
-                    for (int i = 0; i < 4; i++)
-                        col[i] /= sum;
-                    temlist.Add(col);
-                }
+        AlignmentResult result1=Alignment(p1, p2);
+        divg =result1.alnScore;
+        AlignmentResult result2= Alignment(p1.ReverseComplement(), p2);
+       
+        if (result2.alnScore < divg)
+            divg = result2.alnScore;
+        
+        return divg;
+    }
+    
+    static AlignmentResult Alignment(PWM refmotif, PWM newmotif)
+    {
+    	AlignmentResult ret=new AlignmentResult();
+    	 float alnScore;
+    	int bestoverlap;
+                   float bestscore=10;
+                   int bestaln=0;
+           bestoverlap = 0;
+                   int size=newmotif.core_motiflen;
+                   int size2=refmotif.core_motiflen;
+            alnScore=10;
+                   int minsize=Math.min(refmotif.core_motiflen,newmotif.core_motiflen);
+                   for(int i=0-size+1;i<size2;i++)
+                   {
+                           float  curScore=0;
+               int pp = 0;
+               if (i > 0)
+                   pp = i;
+               int j;
+                           for(j=pp;j-pp<minsize;j++)
+                           {
+                                   if(j>=size2||(j-i)>=size)
+                                           break;
+                                   if(j>=0)
+                                   {
+                       double sump = 0;
+                       for (int p = 0; p < 4; p++)
+                       {
+                           double temp=refmotif.m_matrix[j][p]-newmotif.m_matrix[j-i][p];
+                           temp*=(temp);
+                           sump += (float)temp;
+                       }
+                       curScore +=(float) Math.sqrt( sump);
+                                   }
+                           }
+               //size2=minsize
+                           int overlap=j;
+               ////i>0
+               if (i > 0)
+                   overlap = j - i;
+             
+               curScore /= overlap * (float)Math.sqrt(2);
+                           if(bestscore>curScore&&(overlap>=7||overlap>=minsize-2))
+                           {
+                                   bestscore=curScore;
+                                   bestaln=i;
+                   bestoverlap = overlap;
+                           }
+                   }
+                   alnScore=bestscore;
+                   
+                   ret.bestaln=(bestaln);
+                   ret.alnScore=(alnScore);
+                   ret.bestoverlap=(bestoverlap);
+                   return ret;
+    }
+    
+    
+	static LinkedList<PWM> WeederHandler(String file)
+    {
+		 LinkedList<PWM> retlist = new LinkedList<PWM>();
+        String line = "";
+      
+        try {
+        	  BufferedReader sr = new BufferedReader(new FileReader(new File(file)));
+			while ((line = sr.readLine()) != null)
+			{
+			    String nname = "Weeder_" + retlist.size();
+			    if (line.indexOf("All Occurrences") != -1)
+			    {
+			       
+			        sr.readLine();
+			        ArrayList<Distribution> dists=new ArrayList<Distribution>();
+			        while ((line = sr.readLine()) != null)
+			        {
+			            String[] comps = line.split("[ |\t]+");
+			            if (comps.length < 4)
+			                break;
+			           double[] col = new double[4];
+			            float sum = 0;
+			            for (int i = 0; i < 4; i++)
+			            {
+			                double tt = Double.parseDouble(comps[i + 1]);
+			                sum += tt;
+			                col[i]=tt;
+			            }
+			            common.Normalize(col);
+			            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
+			             di.setWeight(DNATools.a(), col[0]);
+							di.setWeight(DNATools.c(), col[1]);
+							di.setWeight(DNATools.g(), col[2]);
+							di.setWeight(DNATools.t(), col[3]);
+						dists.add(di);
+			        }
 
-                int w = temlist.Count;
-                if (w < 5)
-                    continue;
-                PWM candidate = new PWM(w);
-                candidate.Name = nname;
-                for (int i = 0; i < w; i++)
-                {
-                    for (int j = 0; j < 4; j++)
-                        candidate.matrix[i, j] = temlist[i][j];
-                }
-                retlist.Add(candidate);
+			        int w = dists.size();
+			         if (w < 5)
+			             continue;
+			         PWM candidate = new PWM(dists.toArray(new Distribution[1]));
+			         candidate.Name = nname;
+			         retlist.add(candidate);
 
-            }
-        }
-        sr.Close();
+			    }
+			}
+			sr.close();
+		} catch (NumberFormatException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ChangeVetoException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
 
         return retlist;
     }
@@ -109,7 +271,7 @@ public class common {
 			    
 			     while (line.indexOf(">family") != -1)
 			     {
-			         String nname = line.substring(1);
+			         String nname = "trawler"+line.substring(7);
 			       
 			         ArrayList<Distribution> dists=new ArrayList<Distribution>();
 			         while ((line = sr.readLine()) != null)
@@ -144,7 +306,7 @@ public class common {
 			             continue;
 			         PWM candidate = new PWM(dists.toArray(new Distribution[1]));
 			         candidate.Name = nname;
-			  
+			         retlist.add(candidate);
 			      
 			     }
 			 }
@@ -388,6 +550,13 @@ public class common {
 
 	}
 
+}
+
+class  AlignmentResult
+{
+	  int bestaln;
+      double alnScore;
+      int bestoverlap;
 }
 
 class ValueComparator implements Comparator<Map.Entry<Integer,Double>> {

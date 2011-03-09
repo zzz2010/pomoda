@@ -1,4 +1,11 @@
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -13,12 +20,25 @@ import org.apache.commons.cli.ParseException;
 import org.biojava.bio.dist.DistributionTools;
 import org.biojava.bio.dist.UniformDistribution;
 import org.biojava.bio.seq.DNATools;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.ChartUtilities;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.ui.ApplicationFrame;
+import org.jfree.ui.RectangleInsets;
+import org.jfree.ui.RefineryUtilities;
 
 import auc.AUCCalculator;
 import auc.Confusion;
 
 
-public class PWMevaluator {
+public class PWMevaluator extends ApplicationFrame{
 
 	/**
 	 * @param args
@@ -36,8 +56,13 @@ public class PWMevaluator {
 	public int max_gaplen=8;
 	
 	public BGModel background;
+	
+	HashMap<String,XYSeries> ROCdata=new HashMap<String, XYSeries>();
+	
 	public PWMevaluator(Pomoda motiffinder)
 	{
+		super("");
+
 		SearchEngine=motiffinder.SearchEngine2;
 		sampling_ratio=motiffinder.sampling_ratio;
 		FDR=motiffinder.FDR;
@@ -46,7 +71,7 @@ public class PWMevaluator {
 	}
 	
 	public PWMevaluator()
-	{
+	{super("");
 		
 	}
 	
@@ -80,7 +105,7 @@ public class PWMevaluator {
 		{
 			if(ctrlFasta.isEmpty())
 			{
-		     background.BuildModel(inputFasta, bg_markov_order+1); //3-order bg
+		     background.BuildModel(inputFasta, bg_markov_order+1); //1-order bg
 		     background.SaveModel(inputFasta+".bgobj");
 			}
 			else
@@ -92,9 +117,28 @@ public class PWMevaluator {
 		
 	}
 	
-	public LinkedList<PWM> similarPWMs(PWM query, List<PWM> library,int K )
+	public ArrayList<PWM> similarPWMs(PWM query, List<PWM> library,int K , double[] divergences)
 	{
-		return null;
+		ArrayList<PWM> similarList=new ArrayList<PWM>(K);
+		Iterator<PWM> iter=library.iterator();
+		TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
+		while(iter.hasNext())
+		{
+			PWM p2=iter.next();
+			double divergence=common.PWM_Divergence(query,p2 );
+			sortedPWMs.put(divergence+(sortedPWMs.size()%K)*common.DoubleMinNormal, p2);
+		}
+		
+		for(Double key:sortedPWMs.keySet())
+		{
+			divergences[similarList.size()]=key;
+			similarList.add(sortedPWMs.get(key));
+			
+			if(similarList.size()==K)
+				break;
+		}
+		
+		return similarList;
 	}
 	
 	public double calcAUC(PWM motif,LinkedList<String> sequences)
@@ -200,10 +244,64 @@ public class PWMevaluator {
         	 
         	 //AUCcalc.addROCPoint(fp,(double)seqcount/SearchEngine.getSeqNum());
 	       	Confusion AUCcalc=AUCCalculator.readArrays(labels, scores);	
-	     
+	       	XYSeries series1 = new XYSeries(motif.Name);
+	       	int poscount=0;
+	       	int skip=labels.length/50;
+	       	for (int i = 0; i < labels.length; i++) {
+				if(labels[i]==1)
+					poscount++;
+				if(i%skip==0)
+				series1.add((double)(i+1-poscount)/(labels.length-one), (double)(poscount)/one);
+			}
+	       	ROCdata.put(motif.Name, series1);
+	       	
          double AUCscore=AUCcalc.calculateAUCROC();
          
          return AUCscore;
+
+	}
+	
+	public  void DrawROC(String pngfile)
+	{
+		  XYSeriesCollection dataset = new XYSeriesCollection();
+		 for(String name: ROCdata.keySet())
+		 {
+			 dataset.addSeries(ROCdata.get(name));
+		 }
+		 JFreeChart chart = ChartFactory.createXYLineChart(
+	                "ROC curve", // chart title
+	                "False Positive Rate", // x axis label
+	                "True Positive Rate", // y axis label
+	                dataset, // data
+	                PlotOrientation.VERTICAL,
+	                true, // include legend
+	                true, // tooltips
+	                false // urls
+	                );
+	// NOW DO SOME OPTIONAL CUSTOMISATION OF THE CHART...
+	        chart.setBackgroundPaint(Color.white);
+	// get a reference to the plot for further customisation...
+	        XYPlot plot = (XYPlot) chart.getPlot();
+	        plot.setBackgroundPaint(Color.lightGray);
+	        plot.setAxisOffset(new RectangleInsets(5.0, 5.0, 5.0, 5.0));
+	        plot.setDomainGridlinePaint(Color.white);
+	        plot.setRangeGridlinePaint(Color.white);
+	        XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
+	        renderer.setShapesVisible(true);
+	        renderer.setShapesFilled(true);
+	// change the auto tick unit selection to integer units only...
+	        NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
+	        rangeAxis.setStandardTickUnits(NumberAxis.createStandardTickUnits());
+	        
+	        ChartPanel chartPanel = new ChartPanel(chart);
+	        chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
+	        setContentPane(chartPanel);
+	        try {
+				ChartUtilities.saveChartAsPNG(new File(pngfile), chart, 800, 600);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
 	}
 	
@@ -213,6 +311,9 @@ public class PWMevaluator {
 		options.addOption("i", true, "input fasta file");
 		options.addOption("pwm", true, "input PWM file");
 		options.addOption("c", true, "control fasta file");
+		options.addOption("convert", false, "convert input PWM file to the transfac format");
+		options.addOption("roc", false, "compute AUC and draw ROC curve for the given pwm file");
+		options.addOption("match", true, "match against library (path to the library, e.g., jaspar.pwm)");
 		options.addOption("bgmodel", true, "background model file");
 		options.addOption("prefix", true, "output directory");
 		options.addOption("ratio",true, "sampling ratio (default 1)");
@@ -222,16 +323,15 @@ public class PWMevaluator {
 		String inputPWM;
 		CommandLineParser parser = new GnuParser();
 		PWMevaluator evaluator=new PWMevaluator();
+		boolean rocflag=false;
+		boolean convertflag=false;
+		LinkedList<PWM> PWMLibrary=null;
 		
 		try {
 			CommandLine cmd = parser.parse( options, args);
 			if(cmd.hasOption("i"))
 			{
 				evaluator.inputFasta=cmd.getOptionValue("i");
-			}
-			else
-			{
-				throw new ParseException("no input fasta file");
 			}
 			if(cmd.hasOption("pwm"))
 			{
@@ -248,6 +348,18 @@ public class PWMevaluator {
 			if(cmd.hasOption("bgmodel"))
 			{
 				evaluator.bgmodelFile=cmd.getOptionValue("bgmodel");
+			}
+			if(cmd.hasOption("match"))
+			{
+				PWMLibrary=common.LoadPWMFromFile(cmd.getOptionValue("match"));
+			}
+			if(cmd.hasOption("roc"))
+			{
+				rocflag=true;
+			}
+			if(cmd.hasOption("convert"))
+			{
+				convertflag =true;
 			}
 			if(cmd.hasOption("prefix"))
 			{
@@ -277,8 +389,78 @@ public class PWMevaluator {
 			formatter.printHelp( "PWMevaluator", options );
 			return;
 		}
+		File file = new File(inputPWM+"_eval.txt"); 
+		try {
+			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 		
+		if(rocflag)
+		{
 		evaluator.initialize();
+		
+		LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+		Iterator<PWM> iter=pwmlist.iterator();
+		writer.write("AUC Result:\n");
+		TreeMap<Double,PWM> sortedPWMs=new TreeMap<Double,PWM>();
+		while(iter.hasNext())
+		{
+			PWM p1=iter.next();
+			double auc=evaluator.calcAUC(p1, null);
+			p1.Score=auc;
+			writer.write(p1.Name+"\t"+auc+"\n");
+			sortedPWMs.put(auc, p1);
+		}
+		if(convertflag)
+		{
+			File file2 = new File(inputPWM+"_sorted.pwm"); 
+			BufferedWriter writer2= new BufferedWriter(new FileWriter(file2));
+			for(Double key:sortedPWMs.descendingKeySet())
+			{
+				writer2.write(sortedPWMs.get(key).toString());
+			}
+			writer2.close();
+			convertflag=false;
+		}
+		evaluator.DrawROC(inputPWM+"_roc.png");
+		evaluator.pack();
+	        RefineryUtilities.centerFrameOnScreen(evaluator);
+	        evaluator.setVisible(true);
+		}
+		if(convertflag)
+		{
+			File file2 = new File(inputPWM+"_sorted.pwm"); 
+			BufferedWriter writer2= new BufferedWriter(new FileWriter(file2));
+			LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+			for(PWM p1:pwmlist)
+			{
+				writer2.write(p1.toString());
+			}
+			writer2.close();
+			convertflag=false;
+		}
+	    if(PWMLibrary!=null)
+	    {
+	    	writer.write("Similar Known Motifs:\n");
+	    	LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+			Iterator<PWM> iter=pwmlist.iterator();
+			
+			while(iter.hasNext())
+			{
+				PWM p1=iter.next();
+				int K=5;
+				double [] pwmdivergences=new double[K];
+			    ArrayList<PWM> similars=evaluator.similarPWMs(p1, PWMLibrary, K,pwmdivergences);
+			    writer.write(p1.Name);
+			    for (int i = 0; i < similars.size(); i++) {
+			    	writer.write("\t"+similars.get(i).Name+"|"+pwmdivergences[i]);
+				}
+				writer.write("\n");
+			}
+	    }
+	    writer.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 }
