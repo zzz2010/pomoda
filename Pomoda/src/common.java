@@ -41,6 +41,14 @@ public class common {
             retlist = MEMEHandler(file);
        else if (file.indexOf(".wee") != -1)
             retlist = WeederHandler(file);
+       else if (file.indexOf(".cisf") != -1)
+           retlist = CisFinderHandler(file);
+       else if (file.indexOf("cisfinder") != -1)
+           retlist = CisFinderHandler(file);
+       else if (file.indexOf("thetafinal") != -1)
+           retlist = HMSHandler(file);
+       else if (file.indexOf("ChIPMunk") != -1)
+           retlist = ChIPMunkHandler(file);
 
             return retlist;
        
@@ -48,7 +56,217 @@ public class common {
     
     
     
-    public static LinkedList<PWM> MEMEHandler(String file) {
+    public static LinkedList<PWM> ChIPMunkHandler(String file) {
+    	 LinkedList<PWM> retlist = new LinkedList<PWM>();
+         String line = "";
+       
+         try {
+         	  BufferedReader sr = new BufferedReader(new FileReader(new File(file)));
+         	  
+         		while ((line = sr.readLine()) != null)
+     			{  
+         	if(line.indexOf("KDIC|")!=-1)
+         	{
+         	  double[][] m_matrix=null;
+         	  int row=0;
+         	 int w = 5;
+         	 String nname = "ChIPMunk_" + retlist.size();
+ 			while ((line = sr.readLine()) != null)
+ 			{
+ 			   
+ 			  
+ 			  String[] comps = line.trim().split("[ \\|\t]+");
+ 			  if(comps.length<w)
+ 				  break;
+ 			  w=comps.length-1;
+ 			  if(m_matrix==null)
+ 				  m_matrix=new double[w][4];
+ 			   for (int i = 0; i < w; i++) {
+				m_matrix[i][row]=Double.parseDouble(comps[i+1])+DoubleMinNormal;
+			}
+ 			    row++;
+ 			    if(row==4)
+ 			    	break;
+ 			}
+ 			  ArrayList<Distribution> dists=new ArrayList<Distribution>();
+ 			for (int i = 0; i < m_matrix.length; i++) {
+				double [] col=m_matrix[i];
+ 				  common.Normalize(col);
+		            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
+		             di.setWeight(DNATools.a(), col[0]);
+						di.setWeight(DNATools.c(), col[1]);
+						di.setWeight(DNATools.g(), col[2]);
+						di.setWeight(DNATools.t(), col[3]);
+					dists.add(di);
+			}
+ 			  PWM candidate = new PWM(dists.toArray(new Distribution[1]));
+ 			         candidate.Name = nname;
+ 			         retlist.add(candidate);
+
+         	}
+     			}
+ 			
+ 			sr.close();
+ 		} catch (NumberFormatException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IllegalAlphabetException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IllegalSymbolException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (ChangeVetoException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IOException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		}
+         
+
+         return retlist;
+	}
+
+
+
+	public static LinkedList<PWM> HMSHandler(String file) {
+    	 LinkedList<PWM> retlist = new LinkedList<PWM>();
+         String line = "";
+       
+         try {
+         	  BufferedReader sr = new BufferedReader(new FileReader(new File(file)));
+         	  double[][] m_matrix=null;
+         	  int row=0;
+         	 int w = 5;
+         	 String nname = "HMS_" + retlist.size();
+ 			while ((line = sr.readLine()) != null)
+ 			{
+ 			   
+ 			  
+ 			  String[] comps = line.trim().split("[ |\t]+");
+ 			  if(comps.length<w)
+ 				  break;
+ 			  w=comps.length;
+ 			  if(m_matrix==null)
+ 				  m_matrix=new double[w][4];
+ 			   for (int i = 0; i < comps.length; i++) {
+				m_matrix[i][row]=Double.parseDouble(comps[i])+DoubleMinNormal;
+			}
+ 			    row++;
+ 			    if(row==4)
+ 			    	break;
+ 			}
+ 			  ArrayList<Distribution> dists=new ArrayList<Distribution>();
+ 			for (int i = 0; i < m_matrix.length; i++) {
+				double [] col=m_matrix[i];
+ 				  common.Normalize(col);
+		            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
+		             di.setWeight(DNATools.a(), col[0]);
+						di.setWeight(DNATools.c(), col[1]);
+						di.setWeight(DNATools.g(), col[2]);
+						di.setWeight(DNATools.t(), col[3]);
+					dists.add(di);
+			}
+ 			  PWM candidate = new PWM(dists.toArray(new Distribution[1]));
+ 			         candidate.Name = nname;
+ 			         retlist.add(candidate);
+
+ 			    
+ 			
+ 			sr.close();
+ 		} catch (NumberFormatException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IllegalAlphabetException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IllegalSymbolException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (ChangeVetoException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IOException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		}
+         
+
+         return retlist;
+	}
+
+
+
+	public static LinkedList<PWM> CisFinderHandler(String file) {
+    	 LinkedList<PWM> retlist = new LinkedList<PWM>();
+         String line = "";
+       
+         try {
+         	  BufferedReader sr = new BufferedReader(new FileReader(new File(file)));
+ 			while ((line = sr.readLine()) != null)
+ 			{
+ 			    String nname = "Cisfinder_" + retlist.size();
+ 			    if (line.indexOf(">") != -1)
+ 			    {
+ 			       
+ 			        ArrayList<Distribution> dists=new ArrayList<Distribution>();
+ 			        while ((line = sr.readLine()) != null)
+ 			        {
+ 			            String[] comps = line.trim().split("[ |\t]+");
+ 			            if (comps.length < 4)
+ 			                break;
+ 			           double[] col = new double[4];
+ 			            float sum = 0;
+ 			            for (int i = 0; i < 4; i++)
+ 			            {
+ 			                double tt = Double.parseDouble(comps[i+1])+DoubleMinNormal;
+ 			                sum += tt;
+ 			                col[i]=tt;
+ 			            }
+ 			            common.Normalize(col);
+ 			            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
+ 			             di.setWeight(DNATools.a(), col[0]);
+ 							di.setWeight(DNATools.c(), col[1]);
+ 							di.setWeight(DNATools.g(), col[2]);
+ 							di.setWeight(DNATools.t(), col[3]);
+ 						dists.add(di);
+ 			        }
+
+ 			        int w = dists.size();
+ 			         if (w < 5)
+ 			             continue;
+ 			         PWM candidate = new PWM(dists.toArray(new Distribution[1]));
+ 			         candidate.Name = nname;
+ 			         retlist.add(candidate);
+
+ 			    }
+ 			}
+ 			sr.close();
+ 		} catch (NumberFormatException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IllegalAlphabetException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IllegalSymbolException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (ChangeVetoException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IOException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		}
+         
+
+         return retlist;
+	}
+
+
+
+	public static LinkedList<PWM> MEMEHandler(String file) {
     	 LinkedList<PWM> retlist = new LinkedList<PWM>();
          String line = "";
        
@@ -72,7 +290,7 @@ public class common {
  			            float sum = 0;
  			            for (int i = 0; i < 4; i++)
  			            {
- 			                double tt = Double.parseDouble(comps[i]);
+ 			                double tt = Double.parseDouble(comps[i])+DoubleMinNormal;
  			                sum += tt;
  			                col[i]=tt;
  			            }
@@ -214,7 +432,7 @@ public class common {
 			            float sum = 0;
 			            for (int i = 0; i < 4; i++)
 			            {
-			                double tt = Double.parseDouble(comps[i + 1]);
+			                double tt = Double.parseDouble(comps[i + 1])+DoubleMinNormal;
 			                sum += tt;
 			                col[i]=tt;
 			            }
@@ -283,7 +501,7 @@ public class common {
 			             float sum = 0;
 			             for (int i = 0; i < 4; i++)
 			             {
-			                 Double tt = Double.parseDouble(comps[i]);
+			                 Double tt = Double.parseDouble(comps[i])+DoubleMinNormal;
 			                 sum += tt;
 			                 col.add(tt);
 			             }
@@ -298,16 +516,15 @@ public class common {
 							di.setWeight(DNATools.t(), col.get(3));
 						dists.add(di);
 			         }
-			         if (line == null)
-			             break;
-
+			         
 			         int w = dists.size();
 			         if (w < 5)
 			             continue;
 			         PWM candidate = new PWM(dists.toArray(new Distribution[1]));
 			         candidate.Name = nname;
 			         retlist.add(candidate);
-			      
+			         if(line==null)
+			        	 break;
 			     }
 			 }
 			 sr.close();

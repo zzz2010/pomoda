@@ -99,7 +99,7 @@ public class GapImprover {
 	{
 
 		SearchEngine=new LinearEngine(4);
-		SearchEngine.build_index(this.inputFasta,1000);
+		SearchEngine.build_index(this.inputFasta);
 	
 		background=new BGModel();
 		File file=null;

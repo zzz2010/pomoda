@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,6 +16,7 @@ public class SearchThread extends Thread  {
 	int startSeqId;
 	int mismatch;
 	int dbsize;
+	public HashMap<Integer,HashMap<Integer,ArrayList<Double>>> BGscoreMap;
 	BGModel bgmodel=null;
 	public List<String> db; //in case want to run multi db, before get result
 	boolean PWMflag=false;
@@ -43,7 +46,8 @@ public class SearchThread extends Thread  {
 		if(PWMflag)
 		{
 			int pos=0;
-		
+			boolean bg_buff_ready=true;
+	
 			Iterator<String> iter=db.iterator();
 			int seqid=startSeqId;
 			
@@ -58,7 +62,17 @@ public class SearchThread extends Thread  {
 						double score=motif.scoreWeightMatrix(temp);
 						double bgscore=0;
 						if(bgmodel!=null)
-							bgscore=bgmodel.Get_LOGPROB(temp);
+						{
+							if(BGscoreMap.get(motif.core_motiflen).get(seqid).size()>i)
+							{
+								bgscore=BGscoreMap.get(motif.core_motiflen).get(seqid).get(i);
+							}
+							else
+							{
+								bgscore=bgmodel.Get_LOGPROB(temp);
+								BGscoreMap.get(motif.core_motiflen).get(seqid).add(bgscore);
+							}
+						}
 						
 						boolean reverse=false;
 						double score2=motif.scoreWeightMatrix(common.getReverseCompletementString(temp));
