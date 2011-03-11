@@ -38,7 +38,7 @@ import auc.AUCCalculator;
 import auc.Confusion;
 
 
-public class PWMevaluator extends ApplicationFrame{
+public class PWMevaluator {
 
 	/**
 	 * @param args
@@ -61,7 +61,7 @@ public class PWMevaluator extends ApplicationFrame{
 	
 	public PWMevaluator(Pomoda motiffinder)
 	{
-		super("");
+		//super("");
 
 		SearchEngine=motiffinder.SearchEngine2;
 		sampling_ratio=motiffinder.sampling_ratio;
@@ -71,7 +71,7 @@ public class PWMevaluator extends ApplicationFrame{
 	}
 	
 	public PWMevaluator()
-	{super("");
+	{//super("");
 		
 	}
 	
@@ -81,7 +81,7 @@ public class PWMevaluator extends ApplicationFrame{
 	{
 
 		SearchEngine=new LinearEngine(4);
-		SearchEngine.build_index(this.inputFasta,1000);
+		SearchEngine.build_index(this.inputFasta);
 	
 		background=new BGModel();
 		File file=null;
@@ -295,7 +295,7 @@ public class PWMevaluator extends ApplicationFrame{
 	        
 	        ChartPanel chartPanel = new ChartPanel(chart);
 	        chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
-	        setContentPane(chartPanel);
+	      //  setContentPane(chartPanel);
 	        try {
 				ChartUtilities.saveChartAsPNG(new File(pngfile), chart, 800, 600);
 			} catch (IOException e) {
@@ -421,9 +421,9 @@ public class PWMevaluator extends ApplicationFrame{
 			convertflag=false;
 		}
 		evaluator.DrawROC(inputPWM+"_roc.png");
-		evaluator.pack();
-	        RefineryUtilities.centerFrameOnScreen(evaluator);
-	        evaluator.setVisible(true);
+		//evaluator.pack();
+	     //   RefineryUtilities.centerFrameOnScreen(evaluator);
+	      //  evaluator.setVisible(true);
 		}
 		if(convertflag)
 		{

@@ -54,6 +54,7 @@ public class Pomoda {
 
 	public String outputPrefix="./";
 	public String inputFasta;
+	public int max_iterNum=50;
 	public String ctrlFasta="";
 	public String bgmodelFile="";
 	public int seedlen=5;
@@ -79,7 +80,7 @@ public class Pomoda {
 		//build hash index
 		SearchEngine=new HashEngine(5);
 		SearchEngine.build_index(this.inputFasta);
-		SearchEngine2=new LinearEngine(4);
+		SearchEngine2=new LinearEngine(6);
 		SearchEngine2.build_index(this.inputFasta);
 //		if(SearchEngine_Test())
 //			System.out.println("SearchEngine_Test : pass");
@@ -120,7 +121,7 @@ public class Pomoda {
 //		if(BGModel_Test())
 //			System.out.println("BGModel_Test : pass");
 		pos_prior=new ArrayList<Double>(SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution);
-		
+		SearchEngine2.EnableBackground(background);
 ////		
 //		if(GAP_Test())
 //			System.out.println("PWM_Test : pass");
@@ -512,8 +513,11 @@ public class Pomoda {
 		int flankingLen=2;
 		if(motif.head+flankingLen+motif.core_motiflen>=motif.columns()||motif.head-flankingLen<0)
 			flankingLen=0;
+		int iter_count=0;
+		
 		do
 		{
+			iter_count++;
 			String consensus_core=motif.Consensus(true);
 			int motiflen=consensus_core.length(); 
 			System.out.println(consensus_core+"\t"+String.valueOf(bestscore));
@@ -524,7 +528,7 @@ public class Pomoda {
 			
 			//double log_thresh=motif.getThresh(sampling_ratio, FDR, background);
 			double log_thresh=0;
-			SearchEngine2.EnableBackground(background);
+			
 			double [][]m_matrix=new double [motiflen+flankingLen*2][4];
 			
 			//update the loglik matrix
@@ -703,7 +707,7 @@ public class Pomoda {
 					//not allow to grow in the iterations
 					flankingLen=0;
 					System.out.println("number of occurred sequences: "+String.valueOf(match_seqCount));
-			}while(motif.core_motiflen<max_motiflen);
+			}while(motif.core_motiflen<max_motiflen&&iter_count<=max_iterNum);
 			
 
 		
@@ -1206,7 +1210,7 @@ public class Pomoda {
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp( "Pomoda", options );
+			formatter.printHelp( "JPomoda", options );
 			return;
 		}
 		
@@ -1218,7 +1222,7 @@ public class Pomoda {
 		ArrayList<PWM>  seedPWMs=motifFinder.getSeedMotifs();
 		double topseed_Score=seedPWMs.get(0).Score;
 		topseed_Score=0;//zzz
-		File file = new File(motifFinder.outputPrefix+"pomoda_raw.pwm"); 
+		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
@@ -1248,7 +1252,7 @@ public class Pomoda {
 
 		writer.close();
 		
-		file = new File(motifFinder.outputPrefix+"pomoda_clust.pwm"); 
+		file = new File(motifFinder.outputPrefix+"jpomoda_clust.pwm"); 
 		writer = new BufferedWriter(new FileWriter(file));
 		//clustering motif, re-initialize
 		System.out.println("Clustering...");

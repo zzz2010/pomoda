@@ -3,6 +3,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -23,6 +24,7 @@ public class LinearEngine {
 	//LinkedList<String> ReverseStrand;
 	int num_thread;
 	BGModel background=null;
+	public HashMap<Integer,HashMap<Integer,ArrayList<Double>>> BGscoreMap=null;
     public int forwardCount; //the first n entry in the searchPattern is forward.
 	public int TotalLen=0;
 	public LinearEngine(int num_thread) {
@@ -36,6 +38,7 @@ public class LinearEngine {
 	public void EnableBackground(BGModel bg)
 	{
 		background=bg;
+		BGscoreMap=new HashMap<Integer,HashMap<Integer,ArrayList<Double>>>();
 	}
 	public void DisableBackground()
 	{
@@ -152,7 +155,10 @@ public class LinearEngine {
 	    for (int i = 0; i < num_thread; i++) {
 	    	SearchThread t1 = new SearchThread(pattern, mismatch, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize ) ),i*workSize);
 			if(background!=null)
+			{
 				t1.bgmodel=background;
+				t1.BGscoreMap=this.BGscoreMap;
+			}
 	    	t1.start();
 			threadpool.add(t1);
 		}
@@ -185,11 +191,38 @@ public class LinearEngine {
 	    LinkedList<FastaLocation> search_result=new LinkedList<FastaLocation>();
 	    int count=0;
 	    ArrayList<SearchThread> threadpool=new ArrayList<SearchThread>(num_thread);
+	    if(background!=null)
+		{
+			if(BGscoreMap!=null)
+			{
+				if(BGscoreMap.containsKey(pattern.core_motiflen))
+				{
+					for (int i = 0; i < ForwardStrand.size(); i++) {
+						if(!BGscoreMap.get(pattern.core_motiflen).containsKey(i))
+						{
+							BGscoreMap.get(pattern.core_motiflen).put(i, new  ArrayList<Double>() );
+						}
+					}
+				}
+				else
+				{
+					BGscoreMap.put(pattern.core_motiflen,new HashMap<Integer, ArrayList<Double>>());
+					for (int i = 0; i < ForwardStrand.size(); i++) {
+						BGscoreMap.get(pattern.core_motiflen).put(i, new  ArrayList<Double>() );
+					}
+				}
+			}
+			
+		}
 	    //Forward search
 	    for (int i = 0; i < num_thread; i++) {
 	    	SearchThread t1 = new SearchThread(pattern, thresh, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize )),i*workSize);
 	    	if(background!=null)
+	    	{
 				t1.bgmodel=background;
+				t1.BGscoreMap=this.BGscoreMap;
+				
+	    	}
 	    	t1.start();
 			threadpool.add(t1);
 		}

@@ -39,6 +39,7 @@ public class PWMcluster {
 	{
 		ArrayList<PWM> clusterMoitfs=new ArrayList<PWM>(num_cluster);
 		ArrayList<Thread> threadpool=new ArrayList<Thread>(rawPwms.size()*rawPwms.size());
+		SearchEngine.DisableBackground();
 		for (int i = 0; i <rawPwms.size(); i++) {
 			PWM rawpwm=rawPwms.get(i);
 			System.out.println(rawpwm.Consensus(true)+'\t'+rawpwm.Score);
