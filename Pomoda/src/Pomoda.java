@@ -596,7 +596,7 @@ public class Pomoda {
 							logprior=motif.pos_prior.get(prior_bin)-lognullprior;
 						//double loglik=logprob_theta+logprior-logprob_BG;
 						double loglik=logprob_theta+logprior;
-						double prob_theta=Math.exp(logprior)/10000;//Math.exp(currloc.Score);
+						double prob_theta=Math.exp(logprior)/1000000;//Math.exp(currloc.Score);
 						temp_prior[prior_bin]+=prob_theta;//make smaller
 						if(OOPS)
 							loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
@@ -901,7 +901,7 @@ public class Pomoda {
 				}
 				
 				double boundaryLoss=0.25*Math.min(Math.abs(i-motif.head), Math.abs(motiflen+motif.head-i-1))/(double)avergeSeqlen;
-				if(motif.head<i&&i<motiflen+motif.head)
+				if((motif.head<i&&i<motiflen+motif.head)||OOPS)
 					boundaryLoss=0;
 				
 				//System.out.println(sumtemp);
@@ -981,7 +981,7 @@ public class Pomoda {
 			
 			System.out.println(max_sumNorm);
 			double boundaryLoss=0.25*Math.min(Math.abs(bestCol-motif.head), Math.abs(motiflen+motif.head-bestCol-1))/(double)avergeSeqlen;
-			if(motif.head<bestCol&&bestCol<motiflen+motif.head)
+			if((motif.head<bestCol&&bestCol<motiflen+motif.head)||OOPS)
 				boundaryLoss=0;
 			max_sumNorm*=(1+boundaryLoss);
 			
@@ -1242,7 +1242,7 @@ public class Pomoda {
 				System.out.println("Masking...");
 				motifFinder.Masking(seedPWMs.get(i));
 				topseed_Score=seedPWMs.get(i).Score;
-				
+				motifFinder.SearchEngine2.EnableBackground(motifFinder.background);
 			}
 			//Runtime.getRuntime().gc();
 			writer.write(seedPWMs.get(i).toString());
@@ -1268,6 +1268,7 @@ public class Pomoda {
 			System.out.println("Clustered Motifs:");
 			int c=0;
 //			GapImprover gimprover=new GapImprover(motifFinder);
+			PWMevaluator evaluator=new PWMevaluator(motifFinder);
 			for(Double key:sortedPWMs.descendingKeySet())
 			{
 				sortedPWMs.get(key).Name="Motif_clust"+String.valueOf(c+1);
@@ -1277,7 +1278,7 @@ public class Pomoda {
 				
 //				GapPWM gpwm=gimprover.fillDependency(sortedPWMs.get(key));
 //				
-//				System.out.println("PWM AUC:"+gimprover.AUCtest(sortedPWMs.get(key)));
+				System.out.println("PWM AUC:"+ evaluator.calcAUC(sortedPWMs.get(key),null));
 //				System.out.println("Gap improved PWM AUC:"+gimprover.AUCtest(gpwm));
 			}
 			
