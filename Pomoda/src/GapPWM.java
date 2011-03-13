@@ -1,13 +1,18 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import org.biojava.bio.dist.Distribution;
+import org.biojava.bio.dist.DistributionFactory;
 import org.biojava.bio.dist.UniformDistribution;
 import org.biojava.bio.seq.DNATools;
 import org.biojava.bio.symbol.IllegalAlphabetException;
 import org.biojava.bio.symbol.IllegalSymbolException;
+import org.biojava.utils.ChangeVetoException;
 
 
 public class GapPWM extends PWM {
@@ -25,7 +30,137 @@ public class GapPWM extends PWM {
 		super(dists);
 	}
 	
+	
+	public String toString()
+	{
+		StringBuffer TransStr=new StringBuffer("");
+		String consensus=Consensus(false);
+		TransStr.append("DE\t"+Name+"\t"+consensus+"\t"+String.valueOf(this.Score)+"\n");
+		TransStr.append("PO\tA\tC\tG\tT\n");
+		for (int i = 0; i < this.columns(); i++) {
+			TransStr.append(i+1);
+			TransStr.append('\t');
+			for (int j = 0; j< 4; j++)
+			{  
+				double weight=m_matrix[i][j];
+				TransStr.append(String.valueOf(weight));
+				TransStr.append('\t');
+					
+			}
+			TransStr.append(consensus.charAt(i)+"\n");
+	
+		}
+		TransStr.append("XX\n");
+		for (int i = 0; i < Num_Group; i++) {
+			StringBuffer dpos_str=new StringBuffer("");
+			for (int j = 0; j < GroupId.length; j++) {
+				if(GroupId[j]==i+1)
+				{
+					dpos_str.append(String.valueOf(j));
+					dpos_str.append("-");
+				}
+			}
+			dpos_str.setCharAt(dpos_str.length()-1, ':');
+			HashMap<String, Double> dprob=Dgroup_DmerProb.get(i+1);
+			for(String key : dprob.keySet())
+			{
+				dpos_str.append(key+"|"+dprob.get(key)+"\t");
+			}
+			dpos_str.setCharAt(dpos_str.length()-1, '\n');
+			TransStr.append(dpos_str.toString());
+		}
+		TransStr.append("XXX\n");
+		
+		return TransStr.toString();
+	}
 
+	public static GapPWM parseTransfac(String transfcontent)
+	{
+		String str;
+		BufferedReader reader = new BufferedReader(	new StringReader(transfcontent));
+		ArrayList<Distribution> dists=new ArrayList<Distribution>();
+		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>, HashMap<String,Double>>();
+		GapPWM pwm=null;
+		String pwmName="";
+		boolean pwmrow=true;
+		try {
+			while ((str = reader.readLine()) != null) {
+				if(str.startsWith("DE"))
+				{
+					String[] elms=str.split("\t| ");
+					if(elms.length>1)
+					pwmName=elms[1];
+				}
+				else if(str.startsWith("PO"))
+				{
+					continue;
+				}
+				else if(str.startsWith("XX"))
+				{
+					pwmrow=false;
+				}
+				else if(str.startsWith("XXX"))
+				{
+					break;
+				}
+				else if(str.length()>2 &&pwmrow==true)
+				{
+					String[] elms=str.split("\t| ");
+					Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
+					if(elms.length<5)
+						break;
+					double [] count=new double[4];
+					for (int i = 1; i <= 4; i++) {
+						count[i-1]=Double.parseDouble(elms[i])+common.DoubleMinNormal;
+					}
+					common.Normalize(count);
+				
+						di.setWeight(DNATools.a(), count[0]);
+						di.setWeight(DNATools.c(), count[1]);
+						di.setWeight(DNATools.g(), count[2]);
+						di.setWeight(DNATools.t(), count[3]);
+					dists.add(di);
+					//
+				}
+				else if(str.length()>2 &&pwmrow==false)
+				{
+					String[] elms=str.split(":");
+					String[] dpos=elms[0].split("-");
+					HashSet<Integer> dpos_set=new HashSet<Integer>();
+					HashMap<String, Double> dprob_set=new HashMap<String, Double>();
+					for (int i = 0; i < dpos.length; i++) {
+						dpos_set.add(Integer.parseInt(dpos[i]));
+					}
+					
+					String[] dprob=elms[1].split("\t");
+					for (int i = 0; i < dprob.length; i++) {
+						String[] comp=dprob[i].split("\\|");
+						dprob_set.put(comp[0], Double.parseDouble(comp[1]));
+					}
+					Dmap.put(dpos_set, dprob_set);
+				}
+			}
+			
+			
+			pwm=createGapPWM(new PWM(dists.toArray(new Distribution[1])),Dmap,0);
+			pwm.Name=pwmName;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ChangeVetoException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return pwm;
+	}
+	
 	public static GapPWM createGapPWM(PWM pwm,HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap, int FlankLen )
 	{
 		GapPWM ret=null;

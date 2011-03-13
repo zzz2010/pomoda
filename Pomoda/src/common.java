@@ -29,19 +29,21 @@ public class common {
     public  static LinkedList<PWM> LoadPWMFromFile(String file)
     {
     	LinkedList<PWM> retlist = new LinkedList<PWM>();
-        if (file.indexOf(".pomoda") != -1)
+        if (file.endsWith(".pomoda") )
         	retlist = TransfacHandler(file);
-        else if (file.indexOf(".traw") != -1)
+        else if (file.endsWith(".traw"))
             retlist = TrawlerHandler(file);
-        else if (file.indexOf(".pwm") != -1)
+        else if (file.endsWith(".dpwm"))
+            retlist = GapPWMHandler(file);
+        else if (file.endsWith(".pwm"))
             retlist = TransfacHandler(file);
-        else if (file.indexOf(".meme") != -1)
+        else if (file.endsWith(".meme"))
             retlist = MEMEHandler(file);
         else if (file.indexOf("meme.txt") != -1)
             retlist = MEMEHandler(file);
-       else if (file.indexOf(".wee") != -1)
+       else if (file.endsWith(".wee"))
             retlist = WeederHandler(file);
-       else if (file.indexOf(".cisf") != -1)
+       else if (file.endsWith(".cisf") )
            retlist = CisFinderHandler(file);
        else if (file.indexOf("cisfinder") != -1)
            retlist = CisFinderHandler(file);
@@ -549,6 +551,37 @@ public class common {
          return retlist;
      }
 	
+	 
+	 public static LinkedList<PWM> GapPWMHandler(String pwmfile)
+		{
+			LinkedList<PWM> pwmlist=new LinkedList<PWM>();
+			File file = new File(pwmfile);
+			try {
+				BufferedReader reader = new BufferedReader(new FileReader(file));
+				String text = null;
+				String content="";
+				while ((text = reader.readLine()) != null) {
+				    if(text.startsWith("DE"))
+				    {
+				    	content="";
+				    }
+				    else if(text.startsWith("XXX"))
+				    {
+				    	pwmlist.add(GapPWM.parseTransfac(content));
+				    }
+				    content+=text+'\n';
+				}
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			return pwmlist;
+		}
+	 
 	public static LinkedList<PWM> TransfacHandler(String pwmfile)
 	{
 		LinkedList<PWM> pwmlist=new LinkedList<PWM>();
