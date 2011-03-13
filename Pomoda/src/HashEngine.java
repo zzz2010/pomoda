@@ -372,6 +372,8 @@ public class HashEngine implements ISearchEngine {
 					
 					int pos1;
 					Iterator<Integer> iter1=HashIndex.get(hash1+i).iterator();
+					if(!iter1.hasNext())
+						continue;
 					pos1=iter1.next();
 					while(iter1.hasNext())
 					{
@@ -528,6 +530,8 @@ public class HashEngine implements ISearchEngine {
 			}
 			  ret+=CharText.substring(location, location+len);
 		  }
+		if((location+len)>=CharText.length())
+			return "X";
 		return CharText.substring(location, location+len);
 	}
 	

@@ -31,7 +31,7 @@ public class PWM extends SimpleWeightMatrix {
 	public int tail;
 	public double inst_coverage=1;
 	public double inst_FDR=1;
-	
+	//public ArrayList<Double> debuglist=new ArrayList<Double>(); 
 	public double Score;
 	public ArrayList<Double>pos_prior;
 	public PWM(Distribution[] arg0) throws IllegalAlphabetException {
