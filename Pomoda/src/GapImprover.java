@@ -1,4 +1,7 @@
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -192,7 +195,7 @@ public class GapImprover {
 		}
 		else
 		{
-			 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
+			 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, 0); //enable background in searching
         	 Iterator<FastaLocation> iter=falocs.iterator();
         	 int lastseq=-1;
         	 double seqcount=0;
@@ -388,7 +391,9 @@ public class GapImprover {
 	public double AUCtest(PWM motif)
 	{
       
+		
          LinearEngine BGSearch=new LinearEngine(6);
+         
          Iterator<String> iter2=SearchEngine.ForwardStrand.iterator();
          background.r.setSeed(0);
          while(iter2.hasNext())
@@ -562,17 +567,28 @@ public class GapImprover {
 		GImprover.initialize();
 		LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
 		Iterator<PWM> iter=pwmlist.iterator();
-		LinkedList<GapPWM> improvedPWMs=new LinkedList<GapPWM>();
-		while(iter.hasNext())
-		{
-			PWM rawpwm=iter.next();
-			System.out.println(rawpwm.Consensus(true));
-			GapPWM gpwm=GImprover.fillDependency(rawpwm);
-			
-			GImprover.AUCtest(rawpwm);
-			GImprover.AUCtest(gpwm);
-			
+		//LinkedList<GapPWM> improvedPWMs=new LinkedList<GapPWM>();
+		File file = new File(inputPWM+"_gp.dpwm"); 
+		try {
+			BufferedWriter writer= new BufferedWriter(new FileWriter(file));
+			while(iter.hasNext())
+			{
+				PWM rawpwm=iter.next();
+				System.out.println(rawpwm.Consensus(true));
+				GImprover.SearchEngine.EnableBackground(GImprover.background);
+				GapPWM gpwm=GImprover.fillDependency(rawpwm);
+				gpwm.Name="GPimpover_"+rawpwm.Name;
+				GImprover.SearchEngine.DisableBackground();
+				GImprover.AUCtest(rawpwm);
+				GImprover.AUCtest(gpwm);
+				writer.write(gpwm.toString());
+			}
+			writer.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		
 		
 	}
 
