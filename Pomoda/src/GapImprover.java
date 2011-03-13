@@ -21,6 +21,8 @@ import org.biojava.bio.dist.UniformDistribution;
 import org.biojava.bio.seq.DNATools;
 import org.biojava.bio.symbol.IllegalAlphabetException;
 import org.biojava.bio.symbol.IllegalSymbolException;
+
+import cern.colt.Arrays;
 import auc.AUCCalculator;
 import auc.Confusion;
 
@@ -40,8 +42,8 @@ public class GapImprover {
 	LinearEngine SearchEngine;
 	public double sampling_ratio=1;
 	public double FDR=0.01;
-	public double entropyThresh=1;
-	public int max_gaplen=8;
+	public double entropyThresh=0.5;
+	public int max_gaplen=12;
 	
 	public BGModel background;
 	public GapImprover(Pomoda motiffinder)
@@ -58,7 +60,7 @@ public class GapImprover {
 		
 	}
 	
-	public double KL_Divergence_empirical(List<String> sites,PWM motif)
+	public double KL_Divergence_empirical(List<String> sites,PWM motif,int start)
 	{
 		
 		double KLsum=0;
@@ -68,7 +70,8 @@ public class GapImprover {
 		while(iter.hasNext())
 		{
 			String temp=iter.next();
-			temp=temp.substring((temp.length()-motif.core_motiflen)/2,(temp.length()-motif.core_motiflen)/2+motif.core_motiflen);
+			temp=temp.substring(start,start+motif.core_motiflen);
+		
 			if(temp.contains("N"))
 				continue;
 			if(sitecount.containsKey(temp))
@@ -169,6 +172,8 @@ public class GapImprover {
 				gapend.add(i-motif.head+FlankLen);
 				}
 				start=-1;
+//				if(i-motif.head+FlankLen>18)
+//				break;
 			}
 		}
 		if(start!=-1)
@@ -176,6 +181,10 @@ public class GapImprover {
 			gapstart.add(start);
 			gapend.add(motif.core_motiflen+2*FlankLen);
 		}
+		
+		//debug
+	//	ArrayList<Double> snull = new ArrayList<Double>(),sbest =new ArrayList<Double>();
+		
 		//get a set of instance strings
 		LinkedList<String> sites=new LinkedList<String>();
 		if(!OOPS)
@@ -195,7 +204,11 @@ public class GapImprover {
 		}
 		else
 		{
-			 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, 0); //enable background in searching
+			 LinkedList<FastaLocation> falocs =null;
+			 if(removeBG)
+				 falocs=SearchEngine.searchPattern(motif, 0); //enable background in searching
+			 else
+				 falocs=SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
         	 Iterator<FastaLocation> iter=falocs.iterator();
         	 int lastseq=-1;
         	 double seqcount=0;
@@ -214,7 +227,10 @@ public class GapImprover {
     				if(max_currloc.ReverseStrand)
     					site=common.getReverseCompletementString(site);
     				if(site!=null)
-    				sites.add(site);
+    					sites.add(site);
+    				
+    				//debug
+    				//snull.add(max_currloc.Score+Math.log(0.25));
         			 }
         			 lastseq=currloc.getSeqId(); 
         			 maxseq_score=currloc.Score;
@@ -232,6 +248,8 @@ public class GapImprover {
 				site=common.getReverseCompletementString(site);
 			if(site!=null)
 			sites.add(site);
+			//debug
+			//snull.add(max_currloc.Score+Math.log(0.25));
 		}
 		try {
 		//find the best dependency modeling in each gap region
@@ -272,12 +290,16 @@ public class GapImprover {
 		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>,HashMap<String,Double>>();
 		GapBGModelingThread[] Pos_BestThread=new GapBGModelingThread[motif.core_motiflen+2*FlankLen];
 		
+		
 		while(iter3.hasNext())
 		{
 			GapBGModelingThread t1=iter3.next();	
 				t1.join();
 				if(t1.depend_Pos.size()==0)
+				{
 					System.out.println(t1.toString());
+					//snull=t1.debuglist;
+				}
 				if(t1.gapStart!=start)
 				{
 					start=t1.gapStart;
@@ -330,7 +352,15 @@ public class GapImprover {
 		{
 			Dmap.put(bestThread.depend_Pos, bestThread.DprobMap);
 		System.out.println("best:"+bestThread.toString());
+		//sbest=bestThread.debuglist;
 		}
+		//debug
+//		int scnt=0;
+//		for (int i = 0; i < sbest.size(); i++) {
+//			if((sbest.get(i)-Math.floor(sbest.get(i)))>(snull.get(i)-Math.floor(snull.get(i))))
+//				scnt+=Math.floor(sbest.get(i));
+//		}
+		
 		if(!OOPG)
 		{
 		//fill in multi-dependency in the same gap region	
@@ -362,6 +392,20 @@ public class GapImprover {
 			gapPWM=GapPWM.createGapPWM(motif.subPWM(FlankLen,motif.columns()-FlankLen), Dmap,FlankLen);
 			motif=motif.subPWM(gapPWM.head, gapPWM.head+gapPWM.core_motiflen);
 		}
+		
+		//debug
+//		for(String site : sites)
+//		{
+//			double gs=gapPWM.scoreWeightMatrix(site.substring(2,19));
+//			sbest.add(gs);
+//		}
+//		int scnt=0;
+//		for (int i = 0; i < sbest.size(); i++) {
+//			if(sbest.get(i)>snull.get(i))
+//				scnt+=1;
+//		}
+		
+		
 //		String testStr="agagaagaagaaagaaagaaagaagaaaggaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaaagaaagaaagaa";
 //		testStr=common.getReverseCompletementString(testStr);
 //		for (int i = 0; i < testStr.length()-gapPWM.core_motiflen; i++) {
@@ -370,7 +414,7 @@ public class GapImprover {
 //			double score2=motif.scoreWeightMatrix(temp);
 //			System.out.println(score1+"\t"+score2);
 //		}
-		System.out.println(KL_Divergence_empirical(sites, motif) +"\t"+KL_Divergence_empirical(sites, gapPWM));
+		System.out.println(KL_Divergence_empirical(sites, motif,gapPWM.head) +"\t"+KL_Divergence_empirical(sites, gapPWM,gapPWM.head));
 		
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
@@ -568,20 +612,30 @@ public class GapImprover {
 		LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
 		Iterator<PWM> iter=pwmlist.iterator();
 		//LinkedList<GapPWM> improvedPWMs=new LinkedList<GapPWM>();
-		File file = new File(inputPWM+"_gp.dpwm"); 
+		 File directory=new File(inputPWM);
+		 String outdir=directory.getParent();
+		File file = new File(outdir+"/GPimprover_sorted.dpwm"); 
+		TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		try {
 			BufferedWriter writer= new BufferedWriter(new FileWriter(file));
 			while(iter.hasNext())
 			{
 				PWM rawpwm=iter.next();
 				System.out.println(rawpwm.Consensus(true));
-				GImprover.SearchEngine.EnableBackground(GImprover.background);
+				if(GImprover.removeBG)
+					GImprover.SearchEngine.EnableBackground(GImprover.background);
 				GapPWM gpwm=GImprover.fillDependency(rawpwm);
 				gpwm.Name="GPimpover_"+rawpwm.Name;
 				GImprover.SearchEngine.DisableBackground();
 				GImprover.AUCtest(rawpwm);
-				GImprover.AUCtest(gpwm);
-				writer.write(gpwm.toString());
+				double score=GImprover.AUCtest(gpwm);
+				gpwm.Score=score;
+				sortedPWMs.put(score, gpwm);
+				
+			}
+			for(Double key:sortedPWMs.descendingKeySet())
+			{
+				writer.write(sortedPWMs.get(key).toString());
 			}
 			writer.close();
 		} catch (IOException e) {

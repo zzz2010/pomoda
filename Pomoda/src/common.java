@@ -564,10 +564,14 @@ public class common {
 				    if(text.startsWith("DE"))
 				    {
 				    	content="";
-				    }
+				    }				    
 				    else if(text.startsWith("XXX"))
 				    {
 				    	pwmlist.add(GapPWM.parseTransfac(content));
+				    }
+				    else if(text.startsWith("XX")&&!text.startsWith("XXD"))
+				    {
+				    	pwmlist.add(PWM.parseTransfac(content));
 				    }
 				    content+=text+'\n';
 				}

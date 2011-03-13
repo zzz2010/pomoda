@@ -18,6 +18,7 @@ public class GapBGModelingThread extends Thread {
 	public double lamda=1;
 	public HashSet<Integer> depend_Pos;
 	public PWM gapPWM;
+	//public ArrayList<Double>  debuglist=new ArrayList<Double>();
 	public double KL_Divergence;
 	public HashMap<String,Double> DprobMap;
 	public BGModel background;
@@ -144,18 +145,21 @@ public class GapBGModelingThread extends Thread {
 			double[] gapmerCount=new double[gapmerSize];
 			double[] dmerCount=new double[dmerSize];
 			double[] Pt = new double[dmerSize];
+			Integer[] sorteddpos=depend_Pos.toArray(new Integer[1]);
+			Arrays.sort(sorteddpos);
 			for (int j = 0; j < gapstr.length; j++) {
 				String dmer="";
-				Iterator<Integer> iter2=depend_Pos.iterator();
+				//Iterator<Integer> iter2=depend_Pos.iterator();
 				if(gapstr[j].contains("N"))
 					continue;
 				int whash=common.getHashing(gapstr[j], 0, gapstr[j].length());
 				gapmerCount[whash]+=1;
-				while(iter2.hasNext())
-				{
-					int dpos=iter2.next()-gapStart;
+				if(sorteddpos[0]!=null)
+				for (int k = 0; k < sorteddpos.length; k++) {
+					int dpos=sorteddpos[k]-gapStart;
 					dmer+=gapstr[j].charAt(dpos);
 				}
+
 				if(depend_Pos.size()>1)
 				{
 				int hash=common.getHashing(dmer, 0, depend_Pos.size());
@@ -225,7 +229,7 @@ public class GapBGModelingThread extends Thread {
 			DprobMap.put("N", (1-sumprob)/(dmerSize-4*depend_Pos.size()+1));
 //				if((1-sumprob)<=(num_top*num_top)*common.DoubleMinNormal)
 //				{
-//					KL_Divergence=Double.MAX_VALUE; //overfit!
+//					KL_Divergence=Double.MAX_VALUE; //overfit!\
 //					return;
 //				}
 			}
@@ -243,12 +247,13 @@ public class GapBGModelingThread extends Thread {
 				if(depend_Pos.size()>1)
 				{
 					String dmer="";
-					Iterator<Integer> iter2=depend_Pos.iterator();
-					while(iter2.hasNext())
-					{
-						int dpos=iter2.next()-gapStart;
-						dmer+=gapstrj.charAt(dpos);
-					}
+		
+					if(sorteddpos[0]!=null)
+						for (int k = 0; k < sorteddpos.length; k++) {
+							int dpos=sorteddpos[k]-gapStart;
+							dmer+=gapstrj.charAt(dpos);
+						}
+
 					
 					if(DprobMap.containsKey(dmer))
 						logq+=Math.log(DprobMap.get(dmer));
@@ -256,8 +261,10 @@ public class GapBGModelingThread extends Thread {
 						logq+=Math.log(DprobMap.get("N"));
 					
 					int di=common.getHashing(dmer, 0, dmer.length()); 
+					//compute the real prob, when considering bgprob inside the observed prob
 
 					p=p*Pt[di]/dmerCount[di];
+
 				}
 				if(p==0.0)
 					continue;
@@ -269,7 +276,7 @@ public class GapBGModelingThread extends Thread {
 					
 				}
 				sum_plogp_p+=p*(Math.log(p) -logq);
-				
+				//debuglist.add(Math.floor( Sites.size()*p)+Math.exp(logq));
 			}
 			
 			KL_Divergence=sum_plogp_p;

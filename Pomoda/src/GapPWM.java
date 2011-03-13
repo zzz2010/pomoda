@@ -50,7 +50,7 @@ public class GapPWM extends PWM {
 			TransStr.append(consensus.charAt(i)+"\n");
 	
 		}
-		TransStr.append("XX\n");
+		TransStr.append("XXD\n");
 		for (int i = 0; i < Num_Group; i++) {
 			StringBuffer dpos_str=new StringBuffer("");
 			for (int j = 0; j < GroupId.length; j++) {
@@ -176,8 +176,8 @@ public class GapPWM extends PWM {
 		try {
 			ret=new GapPWM(dists);
 			ret.core_motiflen=pwm.core_motiflen;
-			ret.head=pwm.head;
-			ret.tail=pwm.tail;
+			ret.head=pwm.head+FlankLen;
+			ret.tail=pwm.tail+FlankLen;
 			ret.Name=pwm.Name;
 			ret.pos_prior=(ArrayList<Double>) pwm.pos_prior.clone();
 			int gid=1;
@@ -190,8 +190,9 @@ public class GapPWM extends PWM {
 				{
 					int dpos=iter.next();
 					ret.GroupId[dpos]=gid;					
-					ret.head=Math.min(dpos, pwm.head+FlankLen);
-					ret.tail=Math.min(ret.columns()-dpos-1,pwm.tail+FlankLen);
+					ret.head=Math.min(dpos, ret.head);
+					ret.tail=Math.min(ret.columns()-dpos-1,ret.tail);
+					
 				}
 				if(Dmap.get(key).size()>0)
 				{
