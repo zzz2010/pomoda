@@ -91,6 +91,7 @@ Output:
 jpomoda_raw.pwm : a set of redundant enriched PWM motifs (before clustering)
 jpomoda_clust.pwm: a set of redundant enriched PWM motifs (after clustering)
 Motif_clustX.logo.png: PWM logo
+Motif_clust_dist.logo.png: PWM positional distribution around the chipseq peak
 jpomoda_clust.pwm_eval.txt: AUC result, and similar known motifs in JASPAR library
 jpomoda_clust.pwm_roc.png: ROC curve figure
 jpomoda_clust.pwm_sorted.pwm: PWM motifs sorted by AUC value
