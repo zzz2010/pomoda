@@ -2,6 +2,7 @@
  * @author zhizhuo zhang
  * zzz2010@gmail.com
  */
+import java.awt.Color;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -37,6 +38,17 @@ import org.biojava.bio.symbol.IllegalSymbolException;
 import org.biojava.bio.symbol.Location;
 import org.biojava.bio.symbol.SimpleAlignment;
 import org.biojava.utils.ChangeVetoException;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.ChartUtilities;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.ui.RectangleInsets;
 import org.pr.clustering.hierarchical.LinkageCriterion;
 
 import cern.jet.random.Binomial;
@@ -465,7 +477,55 @@ public class Pomoda {
 	}
 	
 
-	
+	public void DrawDistribution(ArrayList<Double> dist,String pngfile)
+	{
+		if(dist==null)
+			return;
+		  XYSeriesCollection dataset = new XYSeriesCollection();
+		  XYSeries series1 = new XYSeries("");
+		  for (int i = 0; i <dist.size(); i++) {
+			double x=this.resolution*i-dist.size()*this.resolution/2;
+			series1.add(x, dist.get(i));
+		}
+			 dataset.addSeries(series1);
+		
+		 JFreeChart chart = ChartFactory.createXYLineChart(
+	                "Distribution curve", // chart title
+	                "Position", // x axis label
+	                "Probability", // y axis label
+	                dataset, // data
+	                PlotOrientation.VERTICAL,
+	                true, // include legend
+	                true, // tooltips
+	                false // urls
+	                );
+	// NOW DO SOME OPTIONAL CUSTOMISATION OF THE CHART...
+	        chart.setBackgroundPaint(Color.white);
+	// get a reference to the plot for further customisation...
+	        XYPlot plot = (XYPlot) chart.getPlot();
+	        plot.setBackgroundPaint(Color.white);
+	        plot.setAxisOffset(new RectangleInsets(5.0, 5.0, 5.0, 5.0));
+	        plot.setDomainGridlinePaint(Color.white);
+	        plot.setRangeGridlinePaint(Color.white);
+	        XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
+	        renderer.setShapesVisible(true);
+	        renderer.setShapesFilled(true);
+	// change the auto tick unit selection to integer units only...
+	        NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
+	        rangeAxis.setStandardTickUnits(NumberAxis.createStandardTickUnits());
+	        
+	        ChartPanel chartPanel = new ChartPanel(chart);
+	        chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
+	      //  setContentPane(chartPanel);
+	        try {
+	        	if(pngfile!=null)
+				ChartUtilities.saveChartAsPNG(new File(pngfile), chart, 800, 600);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+	}
 
 	
 	public PWM Relax_Seed_(PWM motif)
@@ -596,7 +656,7 @@ public class Pomoda {
 							logprior=motif.pos_prior.get(prior_bin)-lognullprior;
 						//double loglik=logprob_theta+logprior-logprob_BG;
 						double loglik=logprob_theta+logprior;
-						double prob_theta=Math.exp(logprior)/1000000;//Math.exp(currloc.Score);
+						double prob_theta=Math.exp(loglik)/1000000;//Math.exp(currloc.Score);
 						temp_prior[prior_bin]+=prob_theta;//make smaller
 						if(OOPS)
 							loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
@@ -675,7 +735,7 @@ public class Pomoda {
 //							if(lastscore!=1)
 //								motif.Score*=bestscore/lastscore;
 //							else
-						motif.Score=bestscore;
+						motif.Score=bestscore-Math.log(SearchEngine2.getSeqNum())*2*motif.core_motiflen;
 						lastscore=bestscore;
 						}
 						
@@ -1275,7 +1335,7 @@ public class Pomoda {
 				c++;
 				System.out.println(sortedPWMs.get(key).Consensus(true)+'\t'+sortedPWMs.get(key).Score);
 				writer.write(sortedPWMs.get(key).toString());
-				
+				motifFinder.DrawDistribution(sortedPWMs.get(key).pos_prior,sortedPWMs.get(key).Name+"_dist.png");
 //				GapPWM gpwm=gimprover.fillDependency(sortedPWMs.get(key));
 //				
 				System.out.println("PWM AUC:"+ evaluator.calcAUC(sortedPWMs.get(key),null));

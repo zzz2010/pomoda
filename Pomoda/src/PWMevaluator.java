@@ -313,7 +313,7 @@ public class PWMevaluator {
 		options.addOption("c", true, "control fasta file");
 		options.addOption("convert", false, "convert input PWM file to the transfac format");
 		options.addOption("roc", false, "compute AUC and draw ROC curve for the given pwm file");
-		options.addOption("match", true, "match against library (path to the library, e.g., jaspar.pwm)");
+		options.addOption("match", true, "find similar motifs in known PWM library (path to the library, e.g., jaspar.pwm)");
 		options.addOption("bgmodel", true, "background model file");
 		options.addOption("prefix", true, "output directory");
 		options.addOption("ratio",true, "sampling ratio (default 1)");

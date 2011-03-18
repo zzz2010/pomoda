@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.commons.cli.CommandLine;
@@ -35,14 +36,15 @@ public class GapImprover {
 	public String outputPrefix="./";
 	public String inputFasta;
 	public String ctrlFasta="";
-	public boolean OOPS=true; //only one dependence per sequence
+	public boolean OOPS=false; //only one dependence per sequence
 	public boolean OOPG=false; //only one occurrence per sequence
-	public boolean removeBG=true; //false:uniform BG assume
+	public boolean removeBG=false; //false:uniform BG assume
 	public String bgmodelFile="";
 	LinearEngine SearchEngine;
 	public double sampling_ratio=1;
 	public double FDR=0.01;
-	public double entropyThresh=0.5;
+	public double entropyThresh=1;
+	public int FlankLen=0;
 	public int max_gaplen=12;
 	
 	public BGModel background;
@@ -142,13 +144,143 @@ public class GapImprover {
 
 		
 	}
+	
+	
+	public HashMap<HashSet<Integer>,HashMap<String,Double>> FindBest(List<GapBGModelingThread> list)
+	{
+
+		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>,HashMap<String,Double>>();
+		Iterator<GapBGModelingThread> iter3=list.iterator();
+		int start=-1;
+		double minKL=Double.MAX_VALUE;
+		double baseScore=0;
+		double bestScore=0;
+		GapBGModelingThread bestThread=null;
+		HashSet<Integer> bestDgroups=null;
+		try {
+
+		while(iter3.hasNext())
+		{
+			GapBGModelingThread t1=iter3.next();	
+			t1.join();
+				if(t1.depend_Pos.size()==0)
+				{
+					System.out.println(t1.toString());
+					baseScore=t1.KL_Divergence;
+					
+					
+				}
+		}
+		iter3=list.iterator();	
+		//filter the negative threads
+		ArrayList<GapBGModelingThread> positiveThread=new ArrayList<GapBGModelingThread>(list.size()/2);
+		
+		 LinkedList< HashSet<Integer> > queue=new LinkedList< HashSet<Integer> >();
+		for(GapBGModelingThread t2:list)
+		{
+			if(t2.KL_Divergence<baseScore)
+			{
+				t2.KL_Divergence=baseScore-t2.KL_Divergence;
+				positiveThread.add(t2);
+				if(t2.KL_Divergence>bestScore)
+				{
+					bestDgroups=new HashSet<Integer>();
+					bestDgroups.add(positiveThread.size()-1);
+					bestScore=t2.KL_Divergence;
+				}
+				
+			}
+		}
+		
+		// build graph
+		
+		HashSet[] adjgraph=new HashSet[positiveThread.size()];
+		for (int i = 0; i < positiveThread.size()-1; i++) {
+			HashSet<Integer> s1=positiveThread.get(i).depend_Pos;
+			for (int j = i+1; j < positiveThread.size(); j++) 
+			{
+				HashSet<Integer> s2=positiveThread.get(j).depend_Pos;
+				boolean overlap=false;
+				HashSet<Integer> intersect=new HashSet<Integer>(s2);
+				intersect.retainAll(s1);
+				if(intersect.size()>0)
+					overlap=true;
+				
+				if(overlap==false)
+				{
+					if(adjgraph[i]==null)
+						adjgraph[i]=new HashSet<Integer>();
+					if(adjgraph[j]==null)
+						adjgraph[j]=new HashSet<Integer>();
+					adjgraph[i].add(j);
+					adjgraph[j].add(i);
+					HashSet<Integer> set=new HashSet<Integer>();
+					set.add(i);
+					set.add(j);
+					queue.add(set);
+				}
+			}
+		}
+		
+		//enumerate all possible number of group
+		 HashSet<Integer> topElm=null;
+		 
+		while((topElm=queue.poll())!=null)
+		{
+			double currscore=0;
+			Iterator<Integer> iter=topElm.iterator();
+			HashSet<Integer> commonThirdPoint=null;
+			
+			while(iter.hasNext())
+			{
+				int id=iter.next();
+				currscore+=positiveThread.get(id).KL_Divergence;
+				if(commonThirdPoint==null)
+				{
+					commonThirdPoint=new HashSet<Integer>(adjgraph[id]);
+				}
+				else
+				{
+					commonThirdPoint.retainAll(adjgraph[id]);
+				}
+				
+			}
+			//push queue
+			iter=commonThirdPoint.iterator();
+			while(iter.hasNext())
+			{
+				HashSet<Integer> newCombine=new HashSet<Integer>(topElm);
+				newCombine.add(iter.next());
+				queue.add(newCombine);
+			}
+			if(currscore>bestScore)
+			{
+				bestDgroups=topElm;
+				bestScore=currscore;
+			}
+			
+		}
+		
+		if(bestDgroups!=null)
+		for(Integer id : bestDgroups)
+		{
+			System.out.println("best:"+positiveThread.get(id).toString());
+			Dmap.put(positiveThread.get(id).depend_Pos,positiveThread.get(id).DprobMap);
+		}
+				
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return Dmap;
+	}
 	public GapPWM fillDependency(PWM motif)
 	{
 		GapPWM gapPWM=null;
 		String Consensus=motif.Consensus(true);
 		ArrayList<Integer> gapstart=new ArrayList<Integer>(motif.core_motiflen/2);
 		ArrayList<Integer> gapend=new ArrayList<Integer>(motif.core_motiflen/2);
-		int FlankLen=2;//Math.min(Math.min(motif.head, motif.tail), 2);
+		
 		//detect gap range
 		int start=-1;
 		for (int i = motif.head-FlankLen; i < motif.head+motif.core_motiflen+FlankLen; i++) {
@@ -254,7 +386,10 @@ public class GapImprover {
 		try {
 		//find the best dependency modeling in each gap region
 		LinkedList<GapBGModelingThread> threadPool=new LinkedList<GapBGModelingThread>();
+		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>,HashMap<String,Double>>();
 		if(sites.size()>0)
+		{
+		
 		for (int i = 0; i <gapstart.size(); i++) {
 			int gstart=gapstart.get(i);
 			int gend=gapend.get(i);
@@ -276,21 +411,26 @@ public class GapImprover {
 					t1=new GapBGModelingThread(gstart, gend, sites, dpos,background);//null mean not considering BG
 				else
 					t1=new GapBGModelingThread(gstart, gend, sites, dpos,null);//null mean not considering BG
-				t1.run();
+				t1.start();
 				threadPool.add(t1);
+			}
+			if(!OOPG)
+			{
+			Dmap.putAll( FindBest(threadPool.subList(0, threadPool.size())));
+			threadPool.clear();
 			}
 		}
 		
-		
+		}
 	
 		Iterator<GapBGModelingThread> iter3=threadPool.iterator();
 		 start=-1;
 		double minKL=Double.MAX_VALUE;
 		GapBGModelingThread bestThread=null;
-		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>,HashMap<String,Double>>();
+		
 		GapBGModelingThread[] Pos_BestThread=new GapBGModelingThread[motif.core_motiflen+2*FlankLen];
 		
-		
+		if(OOPG)
 		while(iter3.hasNext())
 		{
 			GapBGModelingThread t1=iter3.next();	
@@ -354,36 +494,31 @@ public class GapImprover {
 		System.out.println("best:"+bestThread.toString());
 		//sbest=bestThread.debuglist;
 		}
-		//debug
-//		int scnt=0;
-//		for (int i = 0; i < sbest.size(); i++) {
-//			if((sbest.get(i)-Math.floor(sbest.get(i)))>(snull.get(i)-Math.floor(snull.get(i))))
-//				scnt+=Math.floor(sbest.get(i));
-//		}
+
 		
-		if(!OOPG)
-		{
-		//fill in multi-dependency in the same gap region	
-		for (int i = 0; i < Pos_BestThread.length; i++) {
-			if(Pos_BestThread[i]!=null&&Pos_BestThread[i].depend_Pos.size()>1)
-			{
-				boolean maxCover=true;
-				for(Integer ii:Pos_BestThread[i].depend_Pos)
-				{
-					if(Pos_BestThread[ii].hashCode()!=Pos_BestThread[i].hashCode())
-					{
-						maxCover=false;
-						break;
-					}
-				}
-				if(maxCover)
-				{
-				Dmap.put(Pos_BestThread[i].depend_Pos, Pos_BestThread[i].DprobMap);
-				System.out.println(Pos_BestThread[i]);
-				}
-			}
-		}
-		}
+//		if(!OOPG)
+//		{
+//		//fill in multi-dependency in the same gap region	
+//		for (int i = 0; i < Pos_BestThread.length; i++) {
+//			if(Pos_BestThread[i]!=null&&Pos_BestThread[i].depend_Pos.size()>1)
+//			{
+//				boolean maxCover=true;
+//				for(Integer ii:Pos_BestThread[i].depend_Pos)
+//				{
+//					if(Pos_BestThread[ii].hashCode()!=Pos_BestThread[i].hashCode())
+//					{
+//						maxCover=false;
+//						break;
+//					}
+//				}
+//				if(maxCover)
+//				{
+//				Dmap.put(Pos_BestThread[i].depend_Pos, Pos_BestThread[i].DprobMap);
+//				System.out.println(Pos_BestThread[i]);
+//				}
+//			}
+//		}
+//		}
 	
 		gapPWM=GapPWM.createGapPWM(motif.subPWM( motif.head,motif.head+motif.core_motiflen), Dmap,FlankLen);
 		if(gapPWM.core_motiflen!=motif.core_motiflen&&sites.size()>0)
@@ -545,9 +680,13 @@ public class GapImprover {
 		options.addOption("c", true, "control fasta file");
 		options.addOption("bgmodel", true, "background model file");
 		options.addOption("prefix", true, "output directory");
+		options.addOption("flank", true, "the numboer of flanking positions around PWM to include(default 0)");
 		options.addOption("ratio",true, "sampling ratio (default 1)");
-		options.addOption("thresh",true, "minimum entropy threshold for considering a position as a gap(default 0.5)");
-		options.addOption("maxlen",true,"maxmimum length of gap (default 8)");
+		options.addOption("thresh",true, "minimum entropy threshold for considering a position as a gap(default 1)");
+		options.addOption("oops",false,"whether assuming only one occurrence per sequence (default false)");
+		options.addOption("oopg",false,"whether assuming only one dependence per gap region (default false)");
+		options.addOption("rmbg",false,"whether considering the background probility in learning and evaluating the dependences (default false)");
+		options.addOption("maxlen",true,"maxmimum length of gap (default 12)");
 		options.addOption("FDR",true,"fasle positive rate");
 		String inputPWM;
 		CommandLineParser parser = new GnuParser();
@@ -583,6 +722,10 @@ public class GapImprover {
 			{
 				GImprover.outputPrefix=cmd.getOptionValue("prefix");
 			}
+			if(cmd.hasOption("flank"))
+			{
+				GImprover.FlankLen=Integer.parseInt(cmd.getOptionValue("flank"));
+			}
 
 			if(cmd.hasOption("ratio"))
 			{
@@ -599,6 +742,18 @@ public class GapImprover {
 			if(cmd.hasOption("FDR"))
 			{
 				GImprover.FDR=Double.parseDouble(cmd.getOptionValue("FDR"));
+			}
+			if(cmd.hasOption("oops"))
+			{
+				GImprover.OOPS=true;
+			}
+			if(cmd.hasOption("oopg"))
+			{
+				GImprover.OOPG=true;
+			}
+			if(cmd.hasOption("rmbg"))
+			{
+				GImprover.removeBG=true;
 			}
 
 		} catch (ParseException e) {
