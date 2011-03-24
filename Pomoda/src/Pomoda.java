@@ -624,6 +624,7 @@ public class Pomoda {
 			bestscore=0;
 			double[] temp_prior=new double[num_priorbin];
 			double[] temp_dnase=new double[2*DnaseWindow];
+			Double[] max_temp_dnase2=null;
 			ArrayList<Integer> statNB=new ArrayList<Integer>(SearchEngine2.getSeqNum());
 			double a_sumpl=0;
 			double sumRlpl=0;
@@ -708,7 +709,7 @@ public class Pomoda {
 							for (int i = 0; i <2*DnaseWindow ; i++) {
 								if(currloc.ReverseStrand)
 								{
-									temp_dnase2[i]=dnaseseq[dnaseseq.length-prior_bin-i-1];
+									temp_dnase2[i]=dnaseseq[prior_bin+motif.Dnase_prob.size()-i-1];
 								}
 								else
 								{
@@ -723,6 +724,72 @@ public class Pomoda {
 						double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);
 						if(Double.isNaN(prob_theta))
 							prob_theta=1;//upper flow
+
+						if(OOPS)
+							loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
+						if(!OOPS)
+							bestscore+=loglik;
+						if(OOPS&&currloc.getSeqId()!=lastseq)
+						{
+							match_seqCount++;
+							bestscore+=max_seqloglik;
+							lastseq=currloc.getSeqId();
+							max_seqloglik=0;
+							//System.out.println(max_seqsite.toUpperCase());
+							if(max_seqsite.length()==motiflen+flankingLen*2)
+							{
+								for (int i = 0; i < motiflen+flankingLen*2; i++) {
+									int symid=common.acgt(max_seqsite.charAt(i));
+									if(symid>3)
+										{
+											for (int j = 0; j < 4; j++) {
+												m_matrix[i][j]+=max_seqprob_theta;
+											}
+										
+										}
+									else
+									m_matrix[i][symid]+=max_seqprob_theta;
+								}
+								
+								temp_prior[prior_bin]+=max_seqprob_theta;//make smaller
+								if(motif.Dnase_prob!=null)
+								{
+									a_sumpl+=max_seqprob_theta*motif.DnaseFG.getGamma();
+									
+									double Rl=0;
+									for (int i = 0; i <2*DnaseWindow ; i++) {
+										double temp=max_temp_dnase2[i];
+	
+										Rl+=temp;
+										temp=prob_theta*temp;
+										temp_dnase[i]+=temp;
+										sumRlpl+=temp;
+									}
+									statNB.add((int)Rl);
+									
+								}
+							}
+							max_temp_dnase2=temp_dnase2;
+						}
+						
+						if(max_seqloglik<loglik)
+						{
+							max_seqloglik=loglik;
+							max_seqprob_theta=prob_theta;
+							max_seqsite=site;
+							max_temp_dnase2=temp_dnase2;
+							if(prob_theta>1000000)
+								continue;
+						}
+						
+						if(!OOPS)
+						{
+						for (int i = 0; i < motiflen+flankingLen*2; i++) {
+							int symid=common.acgt(site.charAt(i));
+							if(symid>3)
+								continue;
+							m_matrix[i][symid]+=prob_theta;//prob_theta;
+						}
 						temp_prior[prior_bin]+=prob_theta;//make smaller
 						if(motif.Dnase_prob!=null)
 						{
@@ -740,47 +807,6 @@ public class Pomoda {
 							statNB.add((int)Rl);
 							
 						}
-						if(OOPS)
-							loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
-						if(!OOPS)
-							bestscore+=loglik;
-						if(OOPS&&currloc.getSeqId()!=lastseq)
-						{
-							match_seqCount++;
-							bestscore+=max_seqloglik;
-							lastseq=currloc.getSeqId();
-							max_seqloglik=0;
-							//System.out.println(max_seqsite.toUpperCase());
-							if(max_seqsite.length()==motiflen+flankingLen*2)
-							for (int i = 0; i < motiflen+flankingLen*2; i++) {
-								int symid=common.acgt(max_seqsite.charAt(i));
-								if(symid>3)
-									{
-										for (int j = 0; j < 4; j++) {
-											m_matrix[i][j]+=max_seqprob_theta;
-										}
-									
-									}
-								else
-								m_matrix[i][symid]+=max_seqprob_theta;
-							}
-						}
-						
-						if(max_seqloglik<loglik)
-						{
-							max_seqloglik=loglik;
-							max_seqprob_theta=prob_theta;
-							max_seqsite=site;
-							if(prob_theta>1000000)
-								continue;
-						}
-						
-						if(!OOPS)
-						for (int i = 0; i < motiflen+flankingLen*2; i++) {
-							int symid=common.acgt(site.charAt(i));
-							if(symid>3)
-								continue;
-							m_matrix[i][symid]+=prob_theta;//prob_theta;
 						}
 					}
 					
@@ -852,14 +878,17 @@ public class Pomoda {
 								motif.Dnase_prob.add(temp_dnase[i]);
 							}
 							double newP=a_sumpl/(a_sumpl+sumRlpl);
-							double[] paras=NegativeBinomialDist.getMLE1(ArrayUtils.toPrimitive(statNB.toArray(new Integer[1])) , statNB.size(), newP);
-							motif.DnaseFG=new NegativeBinomialDist( paras[0],newP);
+							//double[] paras=NegativeBinomialDist.getMLE1(ArrayUtils.toPrimitive(statNB.toArray(new Integer[1])) , statNB.size(), newP);
+							double[] paras=NegativeBinomialDist.getMLE(ArrayUtils.toPrimitive(statNB.toArray(new Integer[1])) , statNB.size());
+							newP=paras[1];
+							 motif.DnaseFG=new NegativeBinomialDist( paras[0],newP);
 						}
 						
 					}
 				
 					//not allow to grow in the iterations
 					flankingLen=0;
+					DrawDistribution(motif.Dnase_prob,"Dnase_plot.png");
 					System.out.println("number of occurred sequences: "+String.valueOf(match_seqCount));
 			}while(motif.core_motiflen<max_motiflen&&iter_count<=max_iterNum);
 			
@@ -988,7 +1017,7 @@ public class Pomoda {
 						for (int i = 0; i <2*DnaseWindow ; i++) {
 							if(currloc.ReverseStrand)
 							{
-								temp_dnase2[i]=dnaseseq[dnaseseq.length-posbin-i-1];
+								temp_dnase2[i]=dnaseseq[posbin+motif.Dnase_prob.size()-i-1];
 							}
 							else
 							{
@@ -1477,7 +1506,7 @@ public class Pomoda {
 				topseed_Score=seedPWMs.get(i).Score;
 				motifFinder.SearchEngine2.EnableBackground(motifFinder.background);
 			}
-			//Runtime.getRuntime().gc();
+			
 			writer.write(seedPWMs.get(i).toString());
 		
 		
@@ -1492,8 +1521,9 @@ public class Pomoda {
 		motifFinder.SearchEngine2.build_index(motifFinder.inputFasta);
 		sortedPWMs.clear();
 		PWMcluster clustering=new PWMcluster(motifFinder);
-		
+		Runtime.getRuntime().gc();
 			ArrayList<PWM>  clusterPWMs=clustering.Clustering(seedPWMs,motifFinder.num_motif);
+		Runtime.getRuntime().gc();
 			for(PWM pwm:clusterPWMs)
 			{
 				sortedPWMs.put(pwm.Score, pwm); //desc order
@@ -1511,7 +1541,10 @@ public class Pomoda {
 				motifFinder.DrawDistribution(sortedPWMs.get(key).pos_prior,sortedPWMs.get(key).Name+"_dist.png");
 //				GapPWM gpwm=gimprover.fillDependency(sortedPWMs.get(key));
 //				
-				System.out.println("PWM AUC:"+ evaluator.calcAUC(sortedPWMs.get(key),null));
+				if(motifFinder.DnaseLib==null)
+					System.out.println("PWM AUC:"+ evaluator.calcAUC(sortedPWMs.get(key),null));
+				else
+					System.out.println("PWM AUC:"+ evaluator.calcAUC(sortedPWMs.get(key),motifFinder.DnaseLib,null));
 //				System.out.println("Gap improved PWM AUC:"+gimprover.AUCtest(gpwm));
 			}
 			

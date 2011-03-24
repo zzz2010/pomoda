@@ -120,7 +120,7 @@ public class FastaMask {
 			{
 				writer.write(">mask"+ii+"\n");
 				ii++;
-				writer.write(iter.next()+"\n");
+				writer.write(iter.next().toUpperCase()+"\n");
 			}
 			writer.close();
 		}
