@@ -21,6 +21,10 @@ import org.biojava.bio.seq.DNATools;
 import org.biojava.bio.symbol.*;
 import org.biojava.utils.ChangeVetoException;
 
+import umontreal.iro.lecuyer.probdist.NegativeBinomialDist;
+import umontreal.iro.lecuyer.probdist.NormalDist;
+import umontreal.iro.lecuyer.util.Num;
+
 public class PWM extends SimpleWeightMatrix {
 
 	double[][]  m_matrix;
@@ -34,6 +38,10 @@ public class PWM extends SimpleWeightMatrix {
 	//public ArrayList<Double> debuglist=new ArrayList<Double>(); 
 	public double Score;
 	public ArrayList<Double>pos_prior;
+	public ArrayList<Double>Dnase_prob=null;
+	public NegativeBinomialDist DnaseBG=null;
+	public NegativeBinomialDist DnaseFG=null;
+	
 	public PWM(Distribution[] arg0) throws IllegalAlphabetException {
 		super(arg0);
 		// TODO Auto-generated constructor stub
@@ -67,7 +75,23 @@ public class PWM extends SimpleWeightMatrix {
 		}
 	}
 	
-	
+	public double calcLogDnaseProb(Double[] data, int start)
+	{
+		double sum=0;
+		for (int i = start; i < start+Dnase_prob.size(); i++) {
+			sum+=data[i];
+		}
+		double p1=sum*Math.log(1-DnaseFG.getP())+DnaseFG.getGamma()*Math.log(DnaseFG.getP())+Num.lnGamma(sum+DnaseFG.getGamma())-Num.lnGamma(DnaseFG.getGamma());
+		p1-=sum*Math.log(1-DnaseBG.getP())+DnaseBG.getGamma()*Math.log(DnaseBG.getP())+Num.lnGamma(sum+DnaseBG.getGamma())-Num.lnGamma(DnaseBG.getGamma());
+		double p2=0;
+		for (int i = start; i <start+Dnase_prob.size(); i++) {
+			p2+=Math.log((Dnase_prob.get(i-start)*Dnase_prob.size()))*data[i];
+		}
+		if(Double.isInfinite(p2+p1)||Double.isNaN(p2+1))
+			return 0;
+		
+		return p2+p1;
+	}
 	
 	public static final Distribution[] alignment2Distribution(String[] alignments) throws IllegalSymbolException, IllegalAlphabetException
 	{
