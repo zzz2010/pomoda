@@ -84,11 +84,11 @@ public class PWM extends SimpleWeightMatrix {
 		double p1=sum*Math.log(1-DnaseFG.getP())+DnaseFG.getGamma()*Math.log(DnaseFG.getP())+Num.lnGamma(sum+DnaseFG.getGamma())-Num.lnGamma(DnaseFG.getGamma());
 		p1-=sum*Math.log(1-DnaseBG.getP())+DnaseBG.getGamma()*Math.log(DnaseBG.getP())+Num.lnGamma(sum+DnaseBG.getGamma())-Num.lnGamma(DnaseBG.getGamma());
 		double p2=0;
-		for (int i = start; i <start+Dnase_prob.size(); i++) {
-			p2+=Math.log((Dnase_prob.get(i-start)*Dnase_prob.size()))*data[i];
-		}
-		if(Double.isInfinite(p2+p1)||Double.isNaN(p2+1))
-			return 0;
+//		for (int i = start; i <start+Dnase_prob.size(); i++) {
+//			p2+=Math.log((Dnase_prob.get(i-start)*Dnase_prob.size()))*data[i];
+//		}
+//		if(Double.isInfinite(p2+p1)||Double.isNaN(p2+1))
+//			return 0;
 		
 		return p2+p1;
 	}

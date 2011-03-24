@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -54,6 +55,7 @@ public class PWMevaluator {
 	public double FDR=0.01;
 	public double entropyThresh=1;
 	public int max_gaplen=8;
+	public int resolution=10;
 	
 	public BGModel background;
 	
@@ -67,6 +69,7 @@ public class PWMevaluator {
 		sampling_ratio=motiffinder.sampling_ratio;
 		FDR=motiffinder.FDR;
 		background=motiffinder.background;
+		resolution=motiffinder.resolution;
 		
 	}
 	
@@ -225,6 +228,174 @@ public class PWMevaluator {
 	    		 if(maxseq_score<currloc.Score)
 	    		 {
 	    			 maxseq_score=currloc.Score;
+	    		 }
+	    		 
+	    	 }
+	       	Sorted_labels.put(maxseq_score-seqcount*common.DoubleMinNormal, 0);
+	       	 int[]  labels=new int[Sorted_labels.size()];
+	       	double[]  scores=new double[Sorted_labels.size()];
+	       	 int ii=0;
+	       	 int one=0;
+	       	 for(Double key:Sorted_labels.descendingKeySet())
+	       	 {
+	       		 labels[ii]=Sorted_labels.get(key);
+	       		 if(labels[ii]==1)
+	       			 one++;
+	       		 scores[ii]=key;
+	       		        ii++;
+	       	 }
+        	 
+        	 //AUCcalc.addROCPoint(fp,(double)seqcount/SearchEngine.getSeqNum());
+	       	Confusion AUCcalc=AUCCalculator.readArrays(labels, scores);	
+	       	XYSeries series1 = new XYSeries(motif.Name);
+	       	int poscount=0;
+	       	int skip=labels.length/50;
+	       	for (int i = 0; i < labels.length; i++) {
+				if(labels[i]==1)
+					poscount++;
+				if(i%skip==0)
+				series1.add((double)(i+1-poscount)/(labels.length-one), (double)(poscount)/one);
+			}
+	       	ROCdata.put(motif.Name, series1);
+	       	
+         double AUCscore=AUCcalc.calculateAUCROC();
+         
+         return AUCscore;
+
+	}
+	
+	public double calcAUC(PWM motif,ArrayList<Double[]> DnaseLib, LinkedList<String> sequences)
+	{
+		 LinearEngine SearEngine=null;
+		 if(sequences==null)
+			 SearEngine=this.SearchEngine;
+		 else
+		 {
+			 SearEngine=new LinearEngine(6);
+			 SearEngine.ForwardStrand=sequences;
+		 }
+		 LinearEngine BGSearch=new LinearEngine(6);
+         Iterator<String> iter2=SearchEngine.ForwardStrand.iterator();
+         background.r.setSeed(0);
+         while(iter2.hasNext())
+         {
+        	 int len=iter2.next().length();
+        	 String bgstr="";
+        	 if(removeBG)
+        	 {
+	        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
+	        	 bgstr=bgstr_p.value;
+        	 }
+        	 else
+        	 {
+	        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
+	        	 bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
+        	 }
+        	 BGSearch.ForwardStrand.add(bgstr);	 
+        	 BGSearch.TotalLen+=bgstr.length();
+         }
+
+     	TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
+         
+        	 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
+        	 Iterator<FastaLocation> iter=falocs.iterator();
+        	 int lastseq=-1;
+        	 double seqcount=0;
+        	 double maxseq_score=	Double.NEGATIVE_INFINITY;
+        	 FastaLocation max_loc=null;
+        	 int motiflen=motif.core_motiflen;
+        	 while(iter.hasNext())
+        	 {
+        		 FastaLocation currloc=iter.next();
+        		 if(lastseq!=currloc.getSeqId())
+        		 {
+        			 seqcount+=1;
+        			 if(lastseq!=-1)
+        			 {
+        				 Double[] temp_dnase2=null;
+        				 double logDnaseProb=0;
+     					if(motif.Dnase_prob!=null)
+     					{
+     						int posbin=(int)(motif.pos_prior.size()*((max_loc.getSeqPos()+motiflen/2)%max_loc.getSeqLen()/(double)max_loc.getSeqLen()));
+     						temp_dnase2=new Double[motif.Dnase_prob.size()];
+     						Arrays.fill(temp_dnase2, new Double(0));
+     						Double[] dnaseseq=DnaseLib.get(max_loc.getSeqId());
+     						for (int i = 0; i <motif.Dnase_prob.size(); i++) {
+     							if(max_loc.ReverseStrand)
+     							{
+     								temp_dnase2[i]=dnaseseq[posbin+motif.Dnase_prob.size()-i-1];
+     							}
+     							else
+     							{
+     								temp_dnase2[i]=dnaseseq[posbin+i];
+     							}
+     						}
+     						
+     						logDnaseProb=motif.calcLogDnaseProb(temp_dnase2,0);
+     					}
+        				 Sorted_labels.put(maxseq_score+logDnaseProb+seqcount*common.DoubleMinNormal, 1);
+        			 }
+        				 lastseq=currloc.getSeqId();
+        			 maxseq_score=currloc.Score;
+        			 max_loc=currloc;
+        		 }
+        		 if(maxseq_score<currloc.Score)
+        		 {
+        			 maxseq_score=currloc.Score;
+        			 max_loc=currloc;
+
+        		 }
+        	 }
+        	 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
+        	 
+        	 //bg sequences
+        	 falocs =BGSearch.searchPattern(motif, Double.NEGATIVE_INFINITY);
+        	 iter=falocs.iterator();
+        	lastseq=-1;
+        	 seqcount=0;
+        	maxseq_score=Double.NEGATIVE_INFINITY;
+	       	 while(iter.hasNext())
+	    	 {
+	    		 FastaLocation currloc=iter.next();
+
+	    		 if(lastseq!=currloc.getSeqId())
+	    		 {
+	    			 seqcount+=1;
+	    			
+	    			 if(lastseq!=-1)
+	    			 {
+	    				 Double[] temp_dnase2=null;
+        				 double logDnaseProb=0;
+     					if(motif.Dnase_prob!=null)
+     					{
+     						int posbin=(int)(motif.pos_prior.size()*((max_loc.getSeqPos()+motiflen/2)%max_loc.getSeqLen()/(double)max_loc.getSeqLen()));
+     						temp_dnase2=new Double[motif.Dnase_prob.size()];
+     						Arrays.fill(temp_dnase2, new Double(0));
+     						Double[] dnaseseq=DnaseLib.get(max_loc.getSeqId());
+     						for (int i = 0; i <motif.Dnase_prob.size(); i++) {
+     							if(max_loc.ReverseStrand)
+     							{
+     								temp_dnase2[i]=dnaseseq[dnaseseq.length-posbin-i-1];
+     							}
+     							else
+     							{
+     								temp_dnase2[i]=dnaseseq[posbin+i];
+     							}
+     						}
+     						
+     						logDnaseProb=motif.calcLogDnaseProb(temp_dnase2,0);
+     					}
+	    			 Sorted_labels.put(maxseq_score+logDnaseProb-seqcount*common.DoubleMinNormal, 0);
+	    			
+	    			 }
+	    			 maxseq_score=currloc.Score;
+	    			 max_loc=currloc;
+	    			 lastseq=currloc.getSeqId();
+	    		 }
+	    		 if(maxseq_score<currloc.Score)
+	    		 {
+	    			 maxseq_score=currloc.Score;
+	    			 max_loc=currloc;
 	    		 }
 	    		 
 	    	 }
