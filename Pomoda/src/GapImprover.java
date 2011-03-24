@@ -411,7 +411,7 @@ public class GapImprover {
 					t1=new GapBGModelingThread(gstart, gend, sites, dpos,background);//null mean not considering BG
 				else
 					t1=new GapBGModelingThread(gstart, gend, sites, dpos,null);//null mean not considering BG
-				t1.start();
+				t1.run();
 				threadPool.add(t1);
 			}
 			if(!OOPG)

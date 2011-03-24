@@ -36,6 +36,35 @@ public class common {
 	
 	static double DoubleMinNormal=0.00000000000001;
 	
+	public static ArrayList<Double[]> ReadDelimitedFile(String sep, String file)
+	{
+		ArrayList<Double[]> ret=new ArrayList<Double[]>();
+		
+		try {
+			BufferedReader readbuffer = new BufferedReader(new FileReader(file));
+			String strRead;
+			while ((strRead=readbuffer.readLine())!=null){
+				String splitarray[] = strRead.split(sep);
+				Double[] arr=new Double[splitarray.length];
+				for (int i = 0; i < arr.length; i++) {
+					arr[i]=Double.parseDouble(splitarray[i]);
+				}
+				ret.add(arr);
+				}
+
+				
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return ret;
+		
+	}
 	
     public  static LinkedList<PWM> LoadPWMFromFile(String file)
     {
@@ -152,38 +181,46 @@ public class common {
          	  double[][] m_matrix=null;
          	  int row=0;
          	 int w = 5;
-         	 String nname = "HMS_" + retlist.size();
+         	
  			while ((line = sr.readLine()) != null)
  			{
  			   
- 			  
+ 				 String nname = "HMS_" + retlist.size();
  			  String[] comps = line.trim().split("[ |\t]+");
+ 			 if(row%4==0)
+ 			 {
+ 				 w=5;
+ 				m_matrix=null;
+ 				 
+ 			 }
  			  if(comps.length<w)
  				  break;
  			  w=comps.length;
  			  if(m_matrix==null)
  				  m_matrix=new double[w][4];
  			   for (int i = 0; i < comps.length; i++) {
-				m_matrix[i][row]=Double.parseDouble(comps[i])+DoubleMinNormal;
+				m_matrix[i][row%4]=Double.parseDouble(comps[i])+DoubleMinNormal;
 			}
  			    row++;
- 			    if(row==4)
- 			    	break;
+ 			    if(row%4==0)
+ 			    {
+ 		 			  ArrayList<Distribution> dists=new ArrayList<Distribution>();
+ 		  			for (int i = 0; i < m_matrix.length; i++) {
+ 		 				double [] col=m_matrix[i];
+ 		  				  common.Normalize(col);
+ 		 		            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
+ 		 		             di.setWeight(DNATools.a(), col[0]);
+ 		 						di.setWeight(DNATools.c(), col[1]);
+ 		 						di.setWeight(DNATools.g(), col[2]);
+ 		 						di.setWeight(DNATools.t(), col[3]);
+ 		 					dists.add(di);
+ 		 			}
+ 		  			  PWM candidate = new PWM(dists.toArray(new Distribution[1]));
+ 		  			         candidate.Name = nname;
+ 		  			         retlist.add(candidate);
+ 			    }
  			}
- 			  ArrayList<Distribution> dists=new ArrayList<Distribution>();
- 			for (int i = 0; i < m_matrix.length; i++) {
-				double [] col=m_matrix[i];
- 				  common.Normalize(col);
-		            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
-		             di.setWeight(DNATools.a(), col[0]);
-						di.setWeight(DNATools.c(), col[1]);
-						di.setWeight(DNATools.g(), col[2]);
-						di.setWeight(DNATools.t(), col[3]);
-					dists.add(di);
-			}
- 			  PWM candidate = new PWM(dists.toArray(new Distribution[1]));
- 			         candidate.Name = nname;
- 			         retlist.add(candidate);
+
 
  			    
  			
@@ -732,6 +769,13 @@ public class common {
 		double sum=0;
 		for (int i = 0; i < Arr.length; i++) {
 			sum+=Arr[i];
+		}
+		if(sum==0)
+		{
+			for (int i = 0; i < Arr.length; i++) {
+				Arr[i]=1.0/ Arr.length;
+			}
+			return Arr;
 		}
 		for (int i = 0; i < Arr.length; i++) {
 			Arr[i]/=sum;
