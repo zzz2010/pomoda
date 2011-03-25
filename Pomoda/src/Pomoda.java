@@ -153,8 +153,6 @@ public class Pomoda {
 				int seqlen=iter.next().length();
 				Double[] dnaseArr=DnaseLib.get(seqid);
 				DnaseWindow=Math.min(DnaseWindow, (dnaseArr.length-seqlen)/2);
-				if(seqid==715)
-					seqid=seqid-0;
 				
 				Double[] m_dnaseArr=new Double[dnaseArr.length/resolution];
 				
@@ -162,9 +160,7 @@ public class Pomoda {
 				Arrays.fill(m_dnaseArr, new Double(0));
 				for (int i = 0; i < dnaseArr.length; i++) {
 					if(i/resolution<m_dnaseArr.length)
-						m_dnaseArr[i/resolution]+=dnaseArr[i];
-					else
-						m_dnaseArr[m_dnaseArr.length-1]+=dnaseArr[i];
+						m_dnaseArr[i/resolution]+=dnaseArr[i]/100;
 				}
 				DnaseLib.set(seqid, m_dnaseArr);
 				seqid++;
@@ -180,7 +176,7 @@ public class Pomoda {
 			double mean=0;
 			double variance=0;
 			double count=0;
-			ArrayList<Double> stat=new ArrayList<Double>(SearchEngine2.TotalLen);
+			ArrayList<Integer> stat=new ArrayList<Integer>(SearchEngine2.TotalLen);
 			for (int i = 0; i < DnaseLib.size(); i++) {
 				  Double[] arr=DnaseLib.get(i);
 				  for (int j = 0; j < arr.length-2*DnaseWindow; j++) {
@@ -188,8 +184,9 @@ public class Pomoda {
 					for (int k = 0; k < 2*DnaseWindow; k++) {
 						sum+=arr[k+j];
 					}
-				
+					
 					mean+=sum;
+					stat.add((int)sum);
 					count++;
 					variance+=sum*sum;
 				}
@@ -201,6 +198,7 @@ public class Pomoda {
 			double p,r;
 			p=mean/variance;
 			r=p*mean/(1-p);
+			//double[] paras=NegativeBinomialDist.getMLE(ArrayUtils.toPrimitive(stat.toArray(new Integer[1])),stat.size());
 			dnaseBG=new NegativeBinomialDist(r, p);
 		}
 		
@@ -625,8 +623,10 @@ public class Pomoda {
 			double[] temp_prior=new double[num_priorbin];
 			double[] temp_dnase=new double[2*DnaseWindow];
 			Double[] max_temp_dnase2=null;
-			ArrayList<Integer> statNB=new ArrayList<Integer>(SearchEngine2.getSeqNum());
-			double a_sumpl=0;
+			ArrayList<Integer> Rl_stat=new ArrayList<Integer>(SearchEngine2.getSeqNum());
+			ArrayList<Double> Ez_stat=new ArrayList<Double>(SearchEngine2.getSeqNum());
+			double sumpl=0;
+			
 			double sumRlpl=0;
 			double lognullprior=Math.log(1.0/num_priorbin);
 	
@@ -754,7 +754,7 @@ public class Pomoda {
 								temp_prior[prior_bin]+=max_seqprob_theta;//make smaller
 								if(motif.Dnase_prob!=null)
 								{
-									a_sumpl+=max_seqprob_theta*motif.DnaseFG.getGamma();
+									sumpl+=max_seqprob_theta;
 									
 									double Rl=0;
 									for (int i = 0; i <2*DnaseWindow ; i++) {
@@ -765,7 +765,8 @@ public class Pomoda {
 										temp_dnase[i]+=temp;
 										sumRlpl+=temp;
 									}
-									statNB.add((int)Rl);
+									Rl_stat.add((int)Rl);
+									Ez_stat.add(max_seqprob_theta);
 									
 								}
 							}
@@ -793,7 +794,7 @@ public class Pomoda {
 						temp_prior[prior_bin]+=prob_theta;//make smaller
 						if(motif.Dnase_prob!=null)
 						{
-							a_sumpl+=prob_theta*motif.DnaseFG.getGamma();
+							sumpl+=prob_theta;
 							
 							double Rl=0;
 							for (int i = 0; i <2*DnaseWindow ; i++) {
@@ -804,7 +805,8 @@ public class Pomoda {
 								temp_dnase[i]+=temp;
 								sumRlpl+=temp;
 							}
-							statNB.add((int)Rl);
+							Rl_stat.add((int)Rl);
+							Ez_stat.add(prob_theta);
 							
 						}
 						}
@@ -873,15 +875,27 @@ public class Pomoda {
 						if(DnaseLib!=null)
 						{
 							motif.Dnase_prob.clear();
+							double sumRl=0;
+							for (int i = 0; i < temp_dnase.length; i++) {
+								sumRl+=temp_dnase[i];
+							}
 							temp_dnase=common.Normalize(temp_dnase);
 							for (int i = 0; i < temp_dnase.length; i++) {
 								motif.Dnase_prob.add(temp_dnase[i]);
 							}
-							double newP=a_sumpl/(a_sumpl+sumRlpl);
-							//double[] paras=NegativeBinomialDist.getMLE1(ArrayUtils.toPrimitive(statNB.toArray(new Integer[1])) , statNB.size(), newP);
-							double[] paras=NegativeBinomialDist.getMLE(ArrayUtils.toPrimitive(statNB.toArray(new Integer[1])) , statNB.size());
-							newP=paras[1];
-							 motif.DnaseFG=new NegativeBinomialDist( paras[0],newP);
+							double newP=motif.DnaseFG.getGamma()*sumpl/(motif.DnaseFG.getGamma()*sumpl+sumRlpl);
+							
+							
+							 NegBinFunction solver=new NegBinFunction(Rl_stat, Ez_stat, newP);
+							 double new_gamma=solver.run();
+							 motif.DnaseFG=new NegativeBinomialDist( new_gamma,newP);
+							 double newP_bg=(Ez_stat.size()-motif.DnaseBG.getGamma()*sumpl)/(sumRl+(Ez_stat.size()-motif.DnaseBG.getGamma()*sumpl)-sumRlpl);
+							 for (int i = 0; i < Ez_stat.size(); i++) {
+								Ez_stat.set(i, 1-Ez_stat.get(i));
+								solver=new NegBinFunction(Rl_stat, Ez_stat, newP_bg);
+								double new_gamma_0=solver.run();
+							}
+							 
 						}
 						
 					}
@@ -922,7 +936,7 @@ public class Pomoda {
 		
 		double[] temp_dnase=new double[2*DnaseWindow];
 		ArrayList<Integer> statNB=new ArrayList<Integer>(SearchEngine2.getSeqNum());
-		double a_sumpl=0;
+		double sumpl=0;
 		double sumRlpl=0;
 		
 		double lognullprior=Math.log(1.0/num_priorbin);
@@ -1024,8 +1038,8 @@ public class Pomoda {
 								temp_dnase2[i]=dnaseseq[posbin+i];
 							}
 						}
-						
-						logDnaseProb=motif.calcLogDnaseProb(temp_dnase2,0);
+					//ignore dnase information in extending	
+					//	logDnaseProb=motif.calcLogDnaseProb(temp_dnase2,0);
 					}
 					double loglik=logprob_theta+logprior-logprob_BG+logDnaseProb;
 					double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);
@@ -1035,7 +1049,7 @@ public class Pomoda {
 					temp_prior[posbin]+=prob_theta;
 					if(motif.Dnase_prob!=null)
 					{
-						a_sumpl+=prob_theta*motif.DnaseFG.getGamma();
+						sumpl+=prob_theta;
 						
 						double Rl=0;
 						for (int i = 0; i <2*DnaseWindow ; i++) {
@@ -1252,7 +1266,7 @@ public class Pomoda {
 				for (int i = 0; i < temp_dnase.length; i++) {
 					motif.Dnase_prob.add(temp_dnase[i]);
 				}
-				double newP=a_sumpl/(a_sumpl+sumRlpl);
+				double newP=motif.DnaseFG.getGamma()*sumpl/(motif.DnaseFG.getGamma()*sumpl+sumRlpl);
 				double[] paras=NegativeBinomialDist.getMLE1(ArrayUtils.toPrimitive(statNB.toArray(new Integer[1])) , statNB.size(), newP);
 				
 				motif.DnaseFG=new NegativeBinomialDist(paras[0],newP);
