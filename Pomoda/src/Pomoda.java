@@ -160,7 +160,9 @@ public class Pomoda {
 				Arrays.fill(m_dnaseArr, new Double(0));
 				for (int i = 0; i < dnaseArr.length; i++) {
 					if(i/resolution<m_dnaseArr.length)
-						m_dnaseArr[i/resolution]+=dnaseArr[i]/100;
+
+						m_dnaseArr[i/resolution]+=dnaseArr[i];
+
 				}
 				DnaseLib.set(seqid, m_dnaseArr);
 				seqid++;
@@ -602,6 +604,7 @@ public class Pomoda {
 		}
 		
 		//EM full site iteration
+		double Prior_EZ=0.5;
 		double bestscore=motif.Score;
 		double lastscore=1;
 		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
@@ -720,7 +723,7 @@ public class Pomoda {
 							logDnaseProb=motif.calcLogDnaseProb(temp_dnase2,0);
 						}
 						//double loglik=logprob_theta+logprior-logprob_BG;
-						double loglik=logprob_theta+logprior+logDnaseProb;
+						double loglik=logprob_theta+logprior+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
 						double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);
 						if(Double.isNaN(prob_theta))
 							prob_theta=1;//upper flow
@@ -883,18 +886,33 @@ public class Pomoda {
 							for (int i = 0; i < temp_dnase.length; i++) {
 								motif.Dnase_prob.add(temp_dnase[i]);
 							}
-							double newP=motif.DnaseFG.getGamma()*sumpl/(motif.DnaseFG.getGamma()*sumpl+sumRlpl);
+							//double newP=motif.DnaseFG.getGamma()*sumpl/(motif.DnaseFG.getGamma()*sumpl+sumRlpl);
+							Prior_EZ=sumpl/Ez_stat.size();
+							if(Prior_EZ>0.9999)
+								Prior_EZ=0.9999;
 							
+							 NegBinFunction solver=new NegBinFunction(Rl_stat, Ez_stat, 0);
+							 double[] paras=null;
+							 if(motif.DnaseFG.getGamma()==motif.DnaseBG.getGamma())
+								 paras=solver.run(null);
+							 else
+							 {
+								 double[] preParas=new double[]{Math.log(motif.DnaseBG.getGamma()),NegBinFunction.qlogis(motif.DnaseBG.getP()),Math.log(motif.DnaseFG.getGamma()),NegBinFunction.qlogis(motif.DnaseFG.getP())};
+								 System.out.println(Arrays.toString(preParas));
+								 paras=solver.run(preParas);
+							 }
+							 motif.DnaseBG=new NegativeBinomialDist(Math.exp( paras[0]),NegBinFunction.plogis( paras[1]));
+							 motif.DnaseFG=new NegativeBinomialDist(Math.exp( paras[2]),NegBinFunction.plogis( paras[3]));
+//							 double newP_bg=(Ez_stat.size()-motif.DnaseBG.getGamma()*sumpl)/(sumRl+(Ez_stat.size()-motif.DnaseBG.getGamma()*sumpl)-sumRlpl);
+//							 if(newP_bg>0.9)
+//								 newP_bg=0.9;
+//							 for (int i = 0; i < Ez_stat.size(); i++) {
+//								Ez_stat.set(i, 1-Ez_stat.get(i));
+//							 }
+//								solver=new NegBinFunction(Rl_stat, Ez_stat, newP_bg);
+//								double new_gamma_bg=solver.run();
+//								motif.DnaseBG=new NegativeBinomialDist( new_gamma_bg,newP_bg);
 							
-							 NegBinFunction solver=new NegBinFunction(Rl_stat, Ez_stat, newP);
-							 double new_gamma=solver.run();
-							 motif.DnaseFG=new NegativeBinomialDist( new_gamma,newP);
-							 double newP_bg=(Ez_stat.size()-motif.DnaseBG.getGamma()*sumpl)/(sumRl+(Ez_stat.size()-motif.DnaseBG.getGamma()*sumpl)-sumRlpl);
-							 for (int i = 0; i < Ez_stat.size(); i++) {
-								Ez_stat.set(i, 1-Ez_stat.get(i));
-								solver=new NegBinFunction(Rl_stat, Ez_stat, newP_bg);
-								double new_gamma_0=solver.run();
-							}
 							 
 						}
 						
@@ -923,7 +941,7 @@ public class Pomoda {
 		HashSet<Integer> extendedCols=new HashSet<Integer>();
 		HashSet<Integer> stateCodes=new HashSet<Integer>();
 		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
-		
+		double Prior_EZ=0.5;
 		int inst_hash=-1;
 		do
 		{
@@ -935,7 +953,8 @@ public class Pomoda {
 		double[] temp_prior=new double[num_priorbin];
 		
 		double[] temp_dnase=new double[2*DnaseWindow];
-		ArrayList<Integer> statNB=new ArrayList<Integer>(SearchEngine2.getSeqNum());
+		ArrayList<Integer> Rl_stat=new ArrayList<Integer>(SearchEngine2.getSeqNum());
+		ArrayList<Double> Ez_stat=new ArrayList<Double>(SearchEngine2.getSeqNum());
 		double sumpl=0;
 		double sumRlpl=0;
 		
@@ -1038,10 +1057,10 @@ public class Pomoda {
 								temp_dnase2[i]=dnaseseq[posbin+i];
 							}
 						}
-					//ignore dnase information in extending	
-					//	logDnaseProb=motif.calcLogDnaseProb(temp_dnase2,0);
+						
+						logDnaseProb=motif.calcLogDnaseProb(temp_dnase2,0);
 					}
-					double loglik=logprob_theta+logprior-logprob_BG+logDnaseProb;
+					double loglik=logprob_theta+logprior-logprob_BG+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
 					double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);
 					if(Double.isNaN(prob_theta))
 						prob_theta=1;
@@ -1060,7 +1079,8 @@ public class Pomoda {
 							temp_dnase[i]+=temp;
 							sumRlpl+=temp;
 						}
-						statNB.add((int)Rl);
+						Rl_stat.add((int)Rl);
+						Ez_stat.add(prob_theta);
 						
 					}
 					if(OOPS)
@@ -1266,10 +1286,22 @@ public class Pomoda {
 				for (int i = 0; i < temp_dnase.length; i++) {
 					motif.Dnase_prob.add(temp_dnase[i]);
 				}
-				double newP=motif.DnaseFG.getGamma()*sumpl/(motif.DnaseFG.getGamma()*sumpl+sumRlpl);
-				double[] paras=NegativeBinomialDist.getMLE1(ArrayUtils.toPrimitive(statNB.toArray(new Integer[1])) , statNB.size(), newP);
+				Prior_EZ=sumpl/Ez_stat.size();
+				if(Prior_EZ>0.9999)
+					Prior_EZ=0.9999;
 				
-				motif.DnaseFG=new NegativeBinomialDist(paras[0],newP);
+				 NegBinFunction solver=new NegBinFunction(Rl_stat, Ez_stat, 0);
+				 double[] paras=null;
+				 if(motif.DnaseFG.getGamma()==motif.DnaseBG.getGamma())
+					 paras=solver.run(null);
+				 else
+				 {
+					 double[] preParas=new double[]{Math.log(motif.DnaseBG.getGamma()),NegBinFunction.qlogis(motif.DnaseBG.getP()),Math.log(motif.DnaseFG.getGamma()),NegBinFunction.qlogis(motif.DnaseFG.getP())};
+					 System.out.println(Arrays.toString(preParas));
+					 paras=solver.run(preParas);
+				 }
+				 motif.DnaseBG=new NegativeBinomialDist(Math.exp( paras[0]),NegBinFunction.plogis( paras[1]));
+				 motif.DnaseFG=new NegativeBinomialDist(Math.exp( paras[2]),NegBinFunction.plogis( paras[3]));
 				DrawDistribution(motif.Dnase_prob,"Dnase_plot.png");
 			}
 			if(debug)
