@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 
 import java.util.Iterator;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.biojava.bio.dist.Distribution;
 import org.biojava.bio.dist.DistributionFactory;
 import org.biojava.bio.dist.DistributionTools;
@@ -84,13 +85,14 @@ public class PWM extends SimpleWeightMatrix {
 		double p1=sum*Math.log(1-DnaseFG.getP())+DnaseFG.getGamma()*Math.log(DnaseFG.getP())+Num.lnGamma(sum+DnaseFG.getGamma())-Num.lnGamma(DnaseFG.getGamma());
 		p1-=sum*Math.log(1-DnaseBG.getP())+DnaseBG.getGamma()*Math.log(DnaseBG.getP())+Num.lnGamma(sum+DnaseBG.getGamma())-Num.lnGamma(DnaseBG.getGamma());
 		double p2=0;
-//		for (int i = start; i <start+Dnase_prob.size(); i++) {
-//			p2+=Math.log((Dnase_prob.get(i-start)*Dnase_prob.size()))*data[i];
-//		}
-//		if(Double.isInfinite(p2+p1)||Double.isNaN(p2+1))
-//			return 0;
+		double[] data_1=common.Normalize(ArrayUtils.toPrimitive( data));
+		for (int i = start; i <start+Dnase_prob.size(); i++) {
+			p2+=Math.log((Dnase_prob.get(i-start)*Dnase_prob.size()))*data_1[i];
+		}
+		if(Double.isInfinite(p2+p1)||Double.isNaN(p2+1))
+			return 0;
 		
-		return p2+p1;
+		return p1+p2;
 	}
 	
 	public static final Distribution[] alignment2Distribution(String[] alignments) throws IllegalSymbolException, IllegalAlphabetException
