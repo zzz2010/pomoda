@@ -92,7 +92,7 @@ public class PWM extends SimpleWeightMatrix {
 		if(Double.isInfinite(p2+p1)||Double.isNaN(p2+1))
 			return 0;
 		
-		return p1+p2;
+		return p2;
 	}
 	
 	public static final Distribution[] alignment2Distribution(String[] alignments) throws IllegalSymbolException, IllegalAlphabetException
