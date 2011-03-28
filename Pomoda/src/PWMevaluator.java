@@ -333,6 +333,7 @@ public class PWMevaluator {
      						
      						logDnaseProb=motif.calcLogDnaseProb(temp_dnase2,0);
      					}
+     					
         				 Sorted_labels.put(maxseq_score+logDnaseProb+seqcount*common.DoubleMinNormal, 1);
         			 }
         				 lastseq=currloc.getSeqId();
@@ -385,6 +386,7 @@ public class PWMevaluator {
      						
      						logDnaseProb=motif.calcLogDnaseProb(temp_dnase2,0);
      					}
+     					
 	    			 Sorted_labels.put(maxseq_score+logDnaseProb-seqcount*common.DoubleMinNormal, 0);
 	    			
 	    			 }
