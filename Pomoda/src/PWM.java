@@ -76,7 +76,42 @@ public class PWM extends SimpleWeightMatrix {
 		}
 	}
 	
+//	public double calcLogDnaseProb(Double[] data, int start)
+//	{
+//		double sum=0;
+//		for (int i = start; i < start+Dnase_prob.size(); i++) {
+//			sum+=data[i];
+//		}
+//		double p1=sum*Math.log(1-DnaseFG.getP())+DnaseFG.getGamma()*Math.log(DnaseFG.getP())+Num.lnGamma(sum+DnaseFG.getGamma())-Num.lnGamma(DnaseFG.getGamma());
+//		p1-=sum*Math.log(1-DnaseBG.getP())+DnaseBG.getGamma()*Math.log(DnaseBG.getP())+Num.lnGamma(sum+DnaseBG.getGamma())-Num.lnGamma(DnaseBG.getGamma());
+//		double p2=0;
+//		double[] data_1=common.Normalize(ArrayUtils.toPrimitive( data));
+//		for (int i = start; i <start+Dnase_prob.size(); i++) {
+//			p2+=Math.log((Dnase_prob.get(i-start)*Dnase_prob.size()))*data_1[i];
+//		}
+//		if(Double.isInfinite(p2+p1)||Double.isNaN(p2+p1))
+//			return 0;
+//		
+//		return p1;
+//	}
+	
+	double NegBinConfidence=1;
+	double MultiNomConfidence=1;
 	public double calcLogDnaseProb(Double[] data, int start)
+	{
+
+		double p1= calcLogDnaseNegBinProb(data, start);
+		double p2=calcLogDnaseMultiNomProb(data, start);
+
+	
+		
+		if(Double.isInfinite(p2+p1)||Double.isNaN(p2+p1))
+			return 0;
+		
+		return p1+p2;
+	}
+	
+	public double calcLogDnaseNegBinProb(Double[] data, int start)
 	{
 		double sum=0;
 		for (int i = start; i < start+Dnase_prob.size(); i++) {
@@ -84,17 +119,24 @@ public class PWM extends SimpleWeightMatrix {
 		}
 		double p1=sum*Math.log(1-DnaseFG.getP())+DnaseFG.getGamma()*Math.log(DnaseFG.getP())+Num.lnGamma(sum+DnaseFG.getGamma())-Num.lnGamma(DnaseFG.getGamma());
 		p1-=sum*Math.log(1-DnaseBG.getP())+DnaseBG.getGamma()*Math.log(DnaseBG.getP())+Num.lnGamma(sum+DnaseBG.getGamma())-Num.lnGamma(DnaseBG.getGamma());
+		
+		p1=p1*NegBinConfidence;
+		return p1;
+	}
+	
+	public double calcLogDnaseMultiNomProb(Double[] data, int start)
+	{
 		double p2=0;
 		double[] data_1=common.Normalize(ArrayUtils.toPrimitive( data));
 		for (int i = start; i <start+Dnase_prob.size(); i++) {
 			p2+=Math.log((Dnase_prob.get(i-start)*Dnase_prob.size()))*data_1[i];
 		}
-		if(Double.isInfinite(p2+p1)||Double.isNaN(p2+1))
-			return 0;
 		
+		p2=p2*MultiNomConfidence;
 		return p2;
 	}
 	
+
 	public static final Distribution[] alignment2Distribution(String[] alignments) throws IllegalSymbolException, IllegalAlphabetException
 	{
 		Map<String, SymbolList> map = new HashMap<String, SymbolList>();
