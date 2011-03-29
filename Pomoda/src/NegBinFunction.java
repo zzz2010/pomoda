@@ -76,7 +76,9 @@ public class NegBinFunction implements GradientOptimizableFunction {
 				TNR+=Ez.get(i);
 				
 		}
-		FeatureConfidence=(TPR+TNR)/Ez.size();
+		FeatureConfidence=2*(TPR+TNR)/Ez.size()-1;
+		if(FeatureConfidence<0)
+			FeatureConfidence=0;
 		return new double[]{NegBinPar0[0],NegBinPar0[1],NegBinPar1[0],NegBinPar1[1]};
 		
 	}
