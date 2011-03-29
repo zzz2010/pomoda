@@ -902,12 +902,18 @@ public class Pomoda {
 								 double[] preParas=new double[]{Math.log(motif.DnaseBG.getGamma()),NegBinFunction.qlogis(motif.DnaseBG.getP()),Math.log(motif.DnaseFG.getGamma()),NegBinFunction.qlogis(motif.DnaseFG.getP())};
 								 System.out.println(Arrays.toString(preParas));
 								 paras=solver.run(preParas);
+								 
 							 }
 							 motif.DnaseBG=new NegativeBinomialDist(Math.exp( paras[0]),NegBinFunction.plogis( paras[1]));
 							 motif.DnaseFG=new NegativeBinomialDist(Math.exp( paras[2]),NegBinFunction.plogis( paras[3]));
-								System.out.println(motif.DnaseFG+"\t"+motif.DnaseFG.getMean());
-								System.out.println(motif.DnaseBG+"\t"+motif.DnaseBG.getMean());
-								System.out.println(Prior_EZ);
+							 motif.NegBinConfidence=solver.FeatureConfidence;
+							 System.out.println(motif.DnaseFG+"\t"+motif.DnaseFG.getMean());
+								
+							 System.out.println(motif.DnaseBG+"\t"+motif.DnaseBG.getMean());
+								
+							 System.out.println(Prior_EZ);
+							
+							 System.out.println( solver.FeatureConfidence);
 							 
 						}
 						
@@ -1299,10 +1305,12 @@ public class Pomoda {
 				 }
 				 motif.DnaseBG=new NegativeBinomialDist(Math.exp( paras[0]),NegBinFunction.plogis( paras[1]));
 				 motif.DnaseFG=new NegativeBinomialDist(Math.exp( paras[2]),NegBinFunction.plogis( paras[3]));
+				 motif.NegBinConfidence=solver.FeatureConfidence;
 				DrawDistribution(motif.Dnase_prob,"Dnase_plot.png");
 				System.out.println(motif.DnaseFG+"\t"+motif.DnaseFG.getMean());
 				System.out.println(motif.DnaseBG+"\t"+motif.DnaseBG.getMean());
 				System.out.println(Prior_EZ);
+				System.out.println(solver.FeatureConfidence);
 			}
 			if(debug)
 				motif.print();

@@ -19,6 +19,7 @@ public class NegBinFunction implements GradientOptimizableFunction {
 	
 	ArrayList<Integer> Rl;
 	ArrayList<Double> Ez;
+	double FeatureConfidence=0.5;
 	double DampNegBin;
 	int Num_Thread=1;
 	
@@ -47,7 +48,7 @@ public class NegBinFunction implements GradientOptimizableFunction {
 		opt.setFunctionAssembler(new AdditiveFunctionAssembler());
 		opt.optimizeFunction(this);
 		NegBinPar1=opt.getOptimum();
-		
+//		double sumFGprob=opt.getFunctionAtOptimum();
 		
 		//compute BG model
 		for (int i = 0; i < Ez.size(); i++) {
@@ -62,8 +63,20 @@ public class NegBinFunction implements GradientOptimizableFunction {
 		opt.setFunctionAssembler(new AdditiveFunctionAssembler());
 		opt.optimizeFunction(this);
 		NegBinPar0=opt.getOptimum();
+//		double sumBGprob=opt.getFunctionAtOptimum();
 		
-
+		double TPR=0; //true positive rate
+		double TNR=0; //true negative rate
+		for (int i = 0; i < Ez.size(); i++) {
+			double FGprob=Prob(NegBinPar1,Rl.get(i));
+			double BGprob=Prob(NegBinPar0,Rl.get(i));
+			if(FGprob>BGprob)
+				TPR+=1-Ez.get(i);
+			else
+				TNR+=Ez.get(i);
+				
+		}
+		FeatureConfidence=(TPR+TNR)/Ez.size();
 		return new double[]{NegBinPar0[0],NegBinPar0[1],NegBinPar1[0],NegBinPar1[1]};
 		
 	}
@@ -166,6 +179,14 @@ public class NegBinFunction implements GradientOptimizableFunction {
 	public int getNumberOfProcessingBlocks() {
 		// TODO Auto-generated method stub
 		return Num_Thread;
+	}
+	
+	
+	public static double Prob(double[] x, int R)
+	{
+		 double A = Math.exp(x[0]);
+	      double  logitB = x[1];
+		return Num.lnGamma(A+R)-Num.lnGamma(A)+A*logitB-(A+R)*Math.log(1+Math.exp(logitB));//
 	}
 	@Override
 	public double evaluate(double[] x, int block) {
@@ -273,6 +294,8 @@ public class NegBinFunction implements GradientOptimizableFunction {
 			System.out.println(DnaseFG);
 			System.out.println(DnaseBG);
 			System.out.println(Prior_Ez);
+			System.out.println(solver.FeatureConfidence);
+			
 			if(Arrays.equals(oldparas, paras))
 				break;
 			oldparas=paras;
