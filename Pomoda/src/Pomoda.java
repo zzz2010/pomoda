@@ -735,7 +735,27 @@ public class Pomoda {
 						double prob_theta_only=Math.exp(logprob_theta+logprior)/(Math.exp(logprob_theta+logprior)+1);
 						if(Double.isNaN(prob_theta))
 							prob_theta=1;//upper flow
+						if(motif.Dnase_prob!=null)
+						{
+							sumpl+=prob_theta;
+							Double min = (Double) Collections.min(Arrays.asList(temp_dnase2));
+							double Rl=0;
+							for (int i = 0; i <2*DnaseWindow ; i++) {
+								double temp=temp_dnase2[i]-min;
 
+								Rl+=temp;
+								temp=prob_theta*temp;
+								temp_dnase[i]+=temp;
+								sumRlpl+=temp;
+							}
+							Rl_stat.add((int)Rl);
+							Ez_stat.add(prob_theta_only);
+							if(logDnaseMNProb>0)
+								MultiNomConfidence+=prob_theta_only;
+							else
+								MultiNomConfidence+=1-prob_theta_only;
+							
+						}
 						if(OOPS)
 							loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
 						if(!OOPS)
@@ -763,26 +783,26 @@ public class Pomoda {
 								}
 								
 								temp_prior[prior_bin]+=max_seqprob_theta;//make smaller
-								if(motif.Dnase_prob!=null)
-								{
-									sumpl+=max_seqprob_theta;
-									
-									double Rl=0;
-									for (int i = 0; i <2*DnaseWindow ; i++) {
-										double temp=max_temp_dnase2[i];
-										Rl+=temp;
-										temp=prob_theta*temp;
-										temp_dnase[i]+=temp;
-										sumRlpl+=temp;
-									}
-									Rl_stat.add((int)Rl);
-									Ez_stat.add(max_seqprob_theta_only);
-									if(max_logDnaseMNProb>0)
-										MultiNomConfidence+=max_seqprob_theta_only;
-									else
-										MultiNomConfidence+=1-max_seqprob_theta_only;
-									
-								}
+//								if(motif.Dnase_prob!=null)
+//								{
+//									sumpl+=max_seqprob_theta;
+//									
+//									double Rl=0;
+//									for (int i = 0; i <2*DnaseWindow ; i++) {
+//										double temp=max_temp_dnase2[i];
+//										Rl+=temp;
+//										temp=prob_theta*temp;
+//										temp_dnase[i]+=temp;
+//										sumRlpl+=temp;
+//									}
+//									Rl_stat.add((int)Rl);
+//									Ez_stat.add(max_seqprob_theta_only);
+//									if(max_logDnaseMNProb>0)
+//										MultiNomConfidence+=max_seqprob_theta_only;
+//									else
+//										MultiNomConfidence+=1-max_seqprob_theta_only;
+//									
+//								}
 							}
 							max_temp_dnase2=temp_dnase2;
 						}
@@ -808,27 +828,7 @@ public class Pomoda {
 							m_matrix[i][symid]+=prob_theta;//prob_theta;
 						}
 						temp_prior[prior_bin]+=prob_theta;//make smaller
-						if(motif.Dnase_prob!=null)
-						{
-							sumpl+=prob_theta;
-							
-							double Rl=0;
-							for (int i = 0; i <2*DnaseWindow ; i++) {
-								double temp=temp_dnase2[i];
 
-								Rl+=temp;
-								temp=prob_theta*temp;
-								temp_dnase[i]+=temp;
-								sumRlpl+=temp;
-							}
-							Rl_stat.add((int)Rl);
-							Ez_stat.add(prob_theta_only);
-							if(logDnaseMNProb>0)
-								MultiNomConfidence+=prob_theta_only;
-							else
-								MultiNomConfidence+=1-prob_theta_only;
-							
-						}
 						}
 					}
 					
@@ -1079,7 +1079,7 @@ public class Pomoda {
 						}
 						logDnaseNBProb=motif.calcLogDnaseNegBinProb(temp_dnase2, 0);
 						logDnaseMNProb=motif.calcLogDnaseMultiNomProb(temp_dnase2, 0);
-						logDnaseProb=logDnaseNBProb+logDnaseMNProb;
+						//logDnaseProb=logDnaseNBProb+logDnaseMNProb;
 					}
 					double loglik=logprob_theta+logprior-logprob_BG+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
 					if(loglik>200)
@@ -1098,10 +1098,10 @@ public class Pomoda {
 					if(motif.Dnase_prob!=null)
 					{
 						sumpl+=prob_theta;
-						
+						Double min = (Double) Collections.min(Arrays.asList(temp_dnase2));
 						double Rl=0;
 						for (int i = 0; i <2*DnaseWindow ; i++) {
-							double temp=temp_dnase2[i];
+							double temp=temp_dnase2[i]-min;
 
 							Rl+=temp;
 							temp=prob_theta*temp;
