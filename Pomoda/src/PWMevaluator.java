@@ -6,10 +6,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 import java.util.TreeMap;
 
 import org.apache.commons.cli.CommandLine;
@@ -18,6 +20,7 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang.ArrayUtils;
 import org.biojava.bio.dist.DistributionTools;
 import org.biojava.bio.dist.UniformDistribution;
 import org.biojava.bio.seq.DNATools;
@@ -373,14 +376,10 @@ public class PWMevaluator {
      						temp_dnase2=new Double[motif.Dnase_prob.size()];
      						Arrays.fill(temp_dnase2, new Double(0));
      						Double[] dnaseseq=DnaseLib.get(max_loc.getSeqId());
+     						Random r=new Random();
      						for (int i = 0; i <motif.Dnase_prob.size(); i++) {
-     							if(max_loc.ReverseStrand)
      							{
-     								temp_dnase2[i]=dnaseseq[dnaseseq.length-posbin-i-1];
-     							}
-     							else
-     							{
-     								temp_dnase2[i]=dnaseseq[posbin+i];
+     								temp_dnase2[i]= dnaseseq[r.nextInt(dnaseseq.length)];//posbin+i
      							}
      						}
      						

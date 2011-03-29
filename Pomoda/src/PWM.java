@@ -114,25 +114,27 @@ public class PWM extends SimpleWeightMatrix {
 	public double calcLogDnaseNegBinProb(Double[] data, int start)
 	{
 		double sum=0;
+		Double min = (Double) Collections.min(Arrays.asList(data));
 		for (int i = start; i < start+Dnase_prob.size(); i++) {
-			sum+=data[i];
+			sum+=data[i]-min;
 		}
 		double p1=sum*Math.log(1-DnaseFG.getP())+DnaseFG.getGamma()*Math.log(DnaseFG.getP())+Num.lnGamma(sum+DnaseFG.getGamma())-Num.lnGamma(DnaseFG.getGamma());
 		p1-=sum*Math.log(1-DnaseBG.getP())+DnaseBG.getGamma()*Math.log(DnaseBG.getP())+Num.lnGamma(sum+DnaseBG.getGamma())-Num.lnGamma(DnaseBG.getGamma());
 		
-		p1=p1*NegBinConfidence;
+		//p1=p1*NegBinConfidence;
 		return p1;
 	}
 	
 	public double calcLogDnaseMultiNomProb(Double[] data, int start)
 	{
 		double p2=0;
+		Double min = (Double) Collections.min(Arrays.asList(data));
 		double[] data_1=common.Normalize(ArrayUtils.toPrimitive( data));
 		for (int i = start; i <start+Dnase_prob.size(); i++) {
-			p2+=Math.log((Dnase_prob.get(i-start)*Dnase_prob.size()))*data_1[i];
+			p2+=Math.log((Dnase_prob.get(i-start)*Dnase_prob.size()))*(data[i]-min);
 		}
 		
-		p2=p2*MultiNomConfidence;
+		//p2=p2*MultiNomConfidence;
 		return p2;
 	}
 	
