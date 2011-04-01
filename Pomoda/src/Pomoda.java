@@ -80,7 +80,7 @@ public class Pomoda {
 	public int starting_windowsize=200;
 	public int ending_windowsize=600;
 	public double FDR=0.001;
-	public int max_motiflen=25;
+	public int max_motiflen=60;
 	public int num_motif=5;
 	public double sampling_ratio=1;
 	public double min_support_ratio=0.1;
@@ -629,6 +629,9 @@ public class Pomoda {
 			Double[] max_temp_dnase2=null;
 			ArrayList<Integer> Rl_stat=new ArrayList<Integer>(SearchEngine2.getSeqNum());
 			ArrayList<Double> Ez_stat=new ArrayList<Double>(SearchEngine2.getSeqNum());
+			ArrayList<Double> PWMscore=new ArrayList<Double>(SearchEngine2.getSeqNum());
+			ArrayList<Double> NBscore=new ArrayList<Double>(SearchEngine2.getSeqNum());
+			ArrayList<Double> MNscore=new ArrayList<Double>(SearchEngine2.getSeqNum());
 			double sumpl=0;
 			
 			double sumRlpl=0;
@@ -636,13 +639,14 @@ public class Pomoda {
 	
 			
 			//double log_thresh=motif.getThresh(sampling_ratio, FDR, background);
-			double log_thresh=0;
+			double log_thresh=9.2;
 			
 			double [][]m_matrix=new double [motiflen+flankingLen*2][4];
 			
 			//update the loglik matrix
 			LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
 			System.out.println("number of occurrences: "+String.valueOf(Falocs.size()));
+			Prior_EZ=Math.min(SearchEngine2.ForwardStrand.size()/(double)Falocs.size(),Prior_EZ);
 					Iterator<FastaLocation> iter2=Falocs.iterator();
 					int count=0;
 					int match_seqCount=0;
@@ -742,14 +746,16 @@ public class Pomoda {
 							double Rl=0;
 							for (int i = 0; i <2*DnaseWindow ; i++) {
 								double temp=temp_dnase2[i]-min;
-
 								Rl+=temp;
 								temp=prob_theta*temp;
 								temp_dnase[i]+=temp;
 								sumRlpl+=temp;
 							}
 							Rl_stat.add((int)Rl);
-							Ez_stat.add(prob_theta_only);
+							Ez_stat.add(prob_theta);
+							PWMscore.add(logprob_theta+logprior);
+							NBscore.add(logDnaseNBProb/motif.NegBinConfidence);
+							MNscore.add(logDnaseMNProb/motif.MultiNomConfidence);
 							if(logDnaseMNProb>0)
 								MultiNomConfidence+=prob_theta_only;
 							else
@@ -856,9 +862,9 @@ public class Pomoda {
 						}
 					}
 					
-					if(lastscore>=bestscore||match_seqCount<min_support_ratio*SearchEngine2.getSeqNum())
-						break;
-					else
+//					if(lastscore>=bestscore||match_seqCount<min_support_ratio*SearchEngine2.getSeqNum())
+//						break;
+//					else
 					{
 						if(flankingLen==0)
 						{
@@ -874,10 +880,10 @@ public class Pomoda {
 						
 							
 						
-						if(Falocs.size()==0|| stateCodes.contains(Falocs.hashCode()))
-							return motif;
-						else
-							stateCodes.add(Falocs.hashCode());
+//						if(Falocs.size()==0|| stateCodes.contains(Falocs.hashCode()))
+//							return motif;
+//						else
+//							stateCodes.add(Falocs.hashCode());
 						
 						//motif=new PWM((String[])(MatchSite.toArray(new  String[1])));
 
@@ -910,9 +916,9 @@ public class Pomoda {
 							
 							 NegBinFunction solver=new NegBinFunction(Rl_stat, Ez_stat, 0);
 							 double[] paras=null;
-//							 if(motif.DnaseFG.getGamma()==motif.DnaseBG.getGamma())
-//								 paras=solver.run(null);
-//							 else
+							 if(motif.DnaseFG.getGamma()==motif.DnaseBG.getGamma())
+								 paras=solver.run(null);
+							 else
 							 {
 								 double[] preParas=new double[]{Math.log(motif.DnaseBG.getGamma()),NegBinFunction.qlogis(motif.DnaseBG.getP()),Math.log(motif.DnaseFG.getGamma()),NegBinFunction.qlogis(motif.DnaseFG.getP())};
 								 System.out.println(Arrays.toString(preParas));
@@ -921,15 +927,18 @@ public class Pomoda {
 							 }
 							 motif.DnaseBG=new NegativeBinomialDist(Math.exp( paras[0]),NegBinFunction.plogis( paras[1]));
 							 motif.DnaseFG=new NegativeBinomialDist(Math.exp( paras[2]),NegBinFunction.plogis( paras[3]));
-							 motif.NegBinConfidence=solver.FeatureConfidence;
-							 motif.MultiNomConfidence=2*MultiNomConfidence/Ez_stat.size()-1;
+							 LogitFunction logitSolver=new LogitFunction(Ez_stat, PWMscore, NBscore, MNscore);
+							 double[] beta=logitSolver.run(new double[]{motif.NegBinConfidence,motif.MultiNomConfidence});
+							 
+							 motif.NegBinConfidence=beta[0];//solver.FeatureConfidence;
+							 motif.MultiNomConfidence=beta[1];//2*MultiNomConfidence/Ez_stat.size()-1;
 							 System.out.println(motif.DnaseFG+"\t"+motif.DnaseFG.getMean());
 								
 							 System.out.println(motif.DnaseBG+"\t"+motif.DnaseBG.getMean());
 								
 							 System.out.println(Prior_EZ);
 							
-							 System.out.println( solver.FeatureConfidence);
+							 System.out.println( motif.NegBinConfidence);
 							 System.out.println( motif.MultiNomConfidence);
 							 
 						}
@@ -1329,10 +1338,10 @@ public class Pomoda {
 					 System.out.println(Arrays.toString(preParas));
 					 paras=solver.run(preParas);
 				 }
-				 motif.DnaseBG=new NegativeBinomialDist(Math.exp( paras[0]),NegBinFunction.plogis( paras[1]));
-				 motif.DnaseFG=new NegativeBinomialDist(Math.exp( paras[2]),NegBinFunction.plogis( paras[3]));
-				 motif.NegBinConfidence=solver.FeatureConfidence;
-				 motif.MultiNomConfidence=2*MultiNomConfidence/Ez_stat.size()-1;
+//				 motif.DnaseBG=new NegativeBinomialDist(Math.exp( paras[0]),NegBinFunction.plogis( paras[1]));
+//				 motif.DnaseFG=new NegativeBinomialDist(Math.exp( paras[2]),NegBinFunction.plogis( paras[3]));
+//				 motif.NegBinConfidence=solver.FeatureConfidence;
+//				 motif.MultiNomConfidence=2*MultiNomConfidence/Ez_stat.size()-1;
 				DrawDistribution(motif.Dnase_prob,"Dnase_plot.png");
 				System.out.println(motif.DnaseFG+"\t"+motif.DnaseFG.getMean());
 				System.out.println(motif.DnaseBG+"\t"+motif.DnaseBG.getMean());
