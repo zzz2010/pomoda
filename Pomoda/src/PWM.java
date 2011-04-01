@@ -95,8 +95,8 @@ public class PWM extends SimpleWeightMatrix {
 //		return p1;
 //	}
 	
-	double NegBinConfidence=1;
-	double MultiNomConfidence=1;
+	double NegBinConfidence=0.0001;
+	double MultiNomConfidence=0.0001;
 	public double calcLogDnaseProb(Double[] data, int start)
 	{
 
@@ -121,7 +121,7 @@ public class PWM extends SimpleWeightMatrix {
 		double p1=sum*Math.log(1-DnaseFG.getP())+DnaseFG.getGamma()*Math.log(DnaseFG.getP())+Num.lnGamma(sum+DnaseFG.getGamma())-Num.lnGamma(DnaseFG.getGamma());
 		p1-=sum*Math.log(1-DnaseBG.getP())+DnaseBG.getGamma()*Math.log(DnaseBG.getP())+Num.lnGamma(sum+DnaseBG.getGamma())-Num.lnGamma(DnaseBG.getGamma());
 		
-		//p1=p1*NegBinConfidence;
+		p1=p1*NegBinConfidence;
 		return p1;
 	}
 	
@@ -134,7 +134,7 @@ public class PWM extends SimpleWeightMatrix {
 			p2+=Math.log((Dnase_prob.get(i-start)*Dnase_prob.size()))*(data[i]-min);
 		}
 		
-		//p2=p2*MultiNomConfidence;
+		p2=p2*MultiNomConfidence;
 		return p2;
 	}
 	
