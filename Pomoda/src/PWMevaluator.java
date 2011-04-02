@@ -57,7 +57,7 @@ public class PWMevaluator {
 	public double sampling_ratio=1;
 	public double FDR=0.01;
 	public double entropyThresh=1;
-	public int max_gaplen=8;
+	
 	public int resolution=10;
 	
 	public BGModel background;
@@ -490,7 +490,6 @@ public class PWMevaluator {
 		options.addOption("prefix", true, "output directory");
 		options.addOption("ratio",true, "sampling ratio (default 1)");
 		options.addOption("thresh",true, "minimum entropy threshold for considering a position as a gap(default 0.5)");
-		options.addOption("maxlen",true,"maxmimum length of gap (default 8)");
 		options.addOption("FDR",true,"fasle positive rate");
 		String inputPWM;
 		CommandLineParser parser = new GnuParser();
@@ -545,10 +544,6 @@ public class PWMevaluator {
 			if(cmd.hasOption("thresh"))
 			{
 				evaluator.entropyThresh=Double.parseDouble(cmd.getOptionValue("thresh"));
-			}
-			if(cmd.hasOption("maxlen"))
-			{
-				evaluator.max_gaplen=Integer.parseInt(cmd.getOptionValue("maxlen"));
 			}
 			if(cmd.hasOption("FDR"))
 			{

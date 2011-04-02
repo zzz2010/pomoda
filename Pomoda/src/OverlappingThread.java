@@ -48,6 +48,8 @@ public class OverlappingThread extends Thread {
 	//return the overlapping point
 	public LinkedList<Integer> getResult()
 	{
+		list1.clear();
+		list2.clear();
 		return result;
 	}
 	

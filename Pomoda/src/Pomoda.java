@@ -1612,9 +1612,9 @@ public class Pomoda {
 		motifFinder.SearchEngine2.build_index(motifFinder.inputFasta);
 		sortedPWMs.clear();
 		PWMcluster clustering=new PWMcluster(motifFinder);
-		Runtime.getRuntime().gc();
+	
 			ArrayList<PWM>  clusterPWMs=clustering.Clustering(seedPWMs,motifFinder.num_motif);
-		Runtime.getRuntime().gc();
+	
 			for(PWM pwm:clusterPWMs)
 			{
 				sortedPWMs.put(pwm.Score, pwm); //desc order

@@ -424,6 +424,7 @@ public class PWM extends SimpleWeightMatrix {
 		ArrayList<Distribution> dists=new ArrayList<Distribution>();
 		PWM pwm=null;
 		String pwmName="";
+		double score=0;
 		try {
 			while ((str = reader.readLine()) != null) {
 				if(str.startsWith("DE"))
@@ -431,6 +432,17 @@ public class PWM extends SimpleWeightMatrix {
 					String[] elms=str.split("\t| ");
 					if(elms.length>1)
 					pwmName=elms[1];
+					if(elms.length>3)
+					{
+						try
+						{
+							score=Double.valueOf(elms[3]);
+						}
+						catch(Exception e)
+						{
+							score=0;
+						}
+					}
 				}
 				else if(str.startsWith("PO"))
 				{
@@ -458,6 +470,7 @@ public class PWM extends SimpleWeightMatrix {
 			}
 			pwm=new PWM(dists.toArray(new Distribution[1]));
 			pwm.Name=pwmName;
+			pwm.Score=score;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
