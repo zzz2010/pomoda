@@ -119,7 +119,7 @@ public class PWMcluster {
 				for (int i = 0; i < rawPwms.size()-1; i++) {
 					for (int j = i+1; j < rawPwms.size(); j++) {
 						OverlappingThread t2=new OverlappingThread(PosSet.get(i), PosSet.get(j), 10);
-						t2.start();
+						t2.run();
 						t2.setName(String.valueOf(i*rawPwms.size()+j));
 						threadpool.add(t2);
 					}
