@@ -270,6 +270,8 @@ public class PWMevaluator {
 	public double calcAUC(PWM motif,ArrayList<Double[]> DnaseLib, LinkedList<String> sequences)
 	{
 		 LinearEngine SearEngine=null;
+		 boolean noPWMscore=true;
+		 
 		 if(sequences==null)
 			 SearEngine=this.SearchEngine;
 		 else
@@ -336,8 +338,9 @@ public class PWMevaluator {
      						
      						logDnaseProb=motif.calcLogDnaseProb(temp_dnase2,0);
      					}
-     					
-        				 Sorted_labels.put(maxseq_score+logDnaseProb+seqcount*common.DoubleMinNormal, 1);
+     					if(noPWMscore)
+     						maxseq_score=0;
+        				 Sorted_labels.put(maxseq_score+logDnaseProb-seqcount*common.DoubleMinNormal, 1);
         			 }
         				 lastseq=currloc.getSeqId();
         			 maxseq_score=currloc.Score;
@@ -350,7 +353,9 @@ public class PWMevaluator {
 
         		 }
         	 }
-        	 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
+				if(noPWMscore)
+						maxseq_score=0;
+        	 Sorted_labels.put(maxseq_score-seqcount*common.DoubleMinNormal, 1);
         	 
         	 //bg sequences
         	 falocs =BGSearch.searchPattern(motif, Double.NEGATIVE_INFINITY);
@@ -385,8 +390,9 @@ public class PWMevaluator {
      						
      						logDnaseProb=motif.calcLogDnaseProb(temp_dnase2,0);
      					}
-     					
-	    			 Sorted_labels.put(maxseq_score+logDnaseProb-seqcount*common.DoubleMinNormal, 0);
+     					if(noPWMscore)
+     						maxseq_score=0;
+	    			 Sorted_labels.put(maxseq_score+logDnaseProb+seqcount*common.DoubleMinNormal, 0);
 	    			
 	    			 }
 	    			 maxseq_score=currloc.Score;
@@ -400,7 +406,9 @@ public class PWMevaluator {
 	    		 }
 	    		 
 	    	 }
-	       	Sorted_labels.put(maxseq_score-seqcount*common.DoubleMinNormal, 0);
+				if(noPWMscore)
+						maxseq_score=0;
+	       	Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 0);
 	       	 int[]  labels=new int[Sorted_labels.size()];
 	       	double[]  scores=new double[Sorted_labels.size()];
 	       	 int ii=0;

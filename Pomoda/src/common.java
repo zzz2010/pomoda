@@ -806,6 +806,18 @@ public class common {
 			System.out.println( Arrays.toString(max_loglik_matrix[i]));
 		}
 	}
+	
+	static String Array2String(Object[] arr , char sep)
+	{
+		StringBuffer sb=new StringBuffer("");
+		for (int i = 0; i < arr.length; i++) {
+			if(i>0)
+				sb.append(sep);
+			sb.append(arr[i]);
+		}
+		
+		return sb.toString();
+	}
 
 	public static String replaceCharAt(String s, int pos, char c) {
 	   return s.substring(0,pos) + c + s.substring(pos+1);
