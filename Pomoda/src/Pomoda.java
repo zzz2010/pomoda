@@ -80,8 +80,8 @@ public class Pomoda {
 	public int resolution=10;
 	public int starting_windowsize=200;
 	public int ending_windowsize=600;
-	public double FDR=0.05;
-	public int max_motiflen=60;
+	public double FDR=0.001;
+	public int max_motiflen=31;
 	public int num_motif=5;
 	public double sampling_ratio=1;
 	public double min_support_ratio=0.1;
@@ -655,7 +655,7 @@ public class Pomoda {
 	
 			
 			double log_thresh=motif.getThresh(sampling_ratio, FDR, background)- motiflen*log025;
-			//double log_thresh=0;
+			//double log_thresh=4.0;
 			
 			double [][]m_matrix=new double [motiflen+flankingLen*2][4];
 			
@@ -782,6 +782,8 @@ public class Pomoda {
 //								MultiNomConfidence+=1-prob_theta_only;
 //							
 //						}
+						
+						temp_prior[prior_bin]+=prob_theta;//make smaller
 						if(OOPS)
 							loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
 						if(!OOPS)
@@ -808,7 +810,7 @@ public class Pomoda {
 									m_matrix[i][symid]+=max_seqprob_theta;
 								}
 								
-								temp_prior[prior_bin]+=max_seqprob_theta;//make smaller
+								
 //								if(motif.Dnase_prob!=null)
 //								{
 //									sumpl+=max_seqprob_theta;
@@ -853,7 +855,7 @@ public class Pomoda {
 								continue;
 							m_matrix[i][symid]+=prob_theta;//prob_theta;
 						}
-						temp_prior[prior_bin]+=prob_theta;//make smaller
+						
 
 						}
 					}
