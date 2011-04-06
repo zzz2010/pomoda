@@ -42,8 +42,6 @@ public class OverlappingThread extends Thread {
 			else if(pos2<(pos1-windowsize))
 				pos2=iter2.next();
 		}
-		list1.clear();
-		list2.clear();
 		
 	}
 	

@@ -69,10 +69,6 @@ import cern.jet.random.engine.RandomEngine;
 
 public class Pomoda {
 
-
-
-
-
 	public String outputPrefix="./";
 	public String inputFasta;
 	public int max_iterNum=50;
@@ -84,7 +80,7 @@ public class Pomoda {
 	public int resolution=10;
 	public int starting_windowsize=200;
 	public int ending_windowsize=600;
-	public double FDR=0.001;
+	public double FDR=0.05;
 	public int max_motiflen=60;
 	public int num_motif=5;
 	public double sampling_ratio=1;
@@ -483,7 +479,7 @@ public class Pomoda {
 			if(pos_prior.size()==0&&!OOPS)
 				score=positionlist.size()*(-common.DoubleMinNormal*seedlen-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
 			else
-				score=CenterDistributionScore(LocList,-common.DoubleMinNormal*seedlen,logprob_bg);
+				score=sumLLR(LocList,-common.DoubleMinNormal*seedlen,logprob_bg);
 			seedScores.put(hash, score);
 		}
 		//sort by score
@@ -495,7 +491,7 @@ public class Pomoda {
 		    	if(SeedMotifs.size()==max_num_Seeds)
 		    		break;
 			    String toppattern=common.Hash2ACGT(pair.getKey(),seedlen);
-			    //System.out.println(pair.getValue());
+			    System.out.println(toppattern+"\t"+pair.getValue());
 			    StringBuffer sb=new StringBuffer(toppattern);
 			    for (int j = 0; j < (max_motiflen-seedlen)/2; j++) {
 			    	sb.insert(0, '-');
@@ -575,6 +571,7 @@ public class Pomoda {
 	
 	public PWM Relax_Seed_(PWM motif)
 	{
+		double log025=Math.log(0.25);
 		//relax the conserved column 
 		String consensus=motif.Consensus(false);
 		double main_prop=Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
@@ -612,8 +609,15 @@ public class Pomoda {
 		double Prior_EZ=0.5;
 		double bestscore=motif.Score;
 		double lastscore=1;
-		int num_priorbin=motif.pos_prior.size();
-	
+		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
+		if(motif.pos_prior.size()==0)
+		{
+			for (int i = 0; i <num_priorbin ; i++) {
+				motif.pos_prior.add(1.0/num_priorbin);
+			}
+		}
+		
+		
 		HashSet<Integer> stateCodes=new HashSet<Integer>();
 	
 		int flankingLen=2;
@@ -631,26 +635,27 @@ public class Pomoda {
 				}
 			iter_count++;
 			String consensus_core=motif.Consensus(true);
-			double MultiNomConfidence=0;
+			
 			int motiflen=consensus_core.length(); 
 			System.out.println(consensus_core+"\t"+String.valueOf(bestscore));
 			bestscore=0;
 			double[] temp_prior=new double[num_priorbin];
-			double[] temp_dnase=new double[2*DnaseWindow];
-			Double[] max_temp_dnase2=null;
-			ArrayList<Integer> Rl_stat=new ArrayList<Integer>(SearchEngine2.getSeqNum());
-			ArrayList<Double> Ez_stat=new ArrayList<Double>(SearchEngine2.getSeqNum());
-			ArrayList<Double> PWMscore=new ArrayList<Double>(SearchEngine2.getSeqNum());
-			ArrayList<Double> NBscore=new ArrayList<Double>(SearchEngine2.getSeqNum());
-			ArrayList<Double> MNscore=new ArrayList<Double>(SearchEngine2.getSeqNum());
-			double sumpl=0;
+//			double[] temp_dnase=new double[2*DnaseWindow];
+//			Double[] max_temp_dnase2=null;
+//			double MultiNomConfidence=0;
+//			ArrayList<Integer> Rl_stat=new ArrayList<Integer>(SearchEngine2.getSeqNum());
+//			ArrayList<Double> Ez_stat=new ArrayList<Double>(SearchEngine2.getSeqNum());
+//			ArrayList<Double> PWMscore=new ArrayList<Double>(SearchEngine2.getSeqNum());
+//			ArrayList<Double> NBscore=new ArrayList<Double>(SearchEngine2.getSeqNum());
+//			ArrayList<Double> MNscore=new ArrayList<Double>(SearchEngine2.getSeqNum());
+//			double sumpl=0;
+//			double sumRlpl=0;
 			
-			double sumRlpl=0;
 			double lognullprior=Math.log(1.0/num_priorbin);
 	
 			
-			//double log_thresh=motif.getThresh(sampling_ratio, FDR, background);
-			double log_thresh=4.6;
+			double log_thresh=motif.getThresh(sampling_ratio, FDR, background)- motiflen*log025;
+			//double log_thresh=0;
 			
 			double [][]m_matrix=new double [motiflen+flankingLen*2][4];
 			
@@ -721,62 +726,62 @@ public class Pomoda {
 						if(motif.pos_prior.size()!=0)
 							logprior=motif.pos_prior.get(prior_bin)-lognullprior;
 						double logDnaseProb=0;
-					double	logDnaseNBProb=0,logDnaseMNProb=0;
-						Double[] temp_dnase2=null;
-						if(motif.Dnase_prob!=null)
-						{
-							temp_dnase2=new Double[2*DnaseWindow];
-							Arrays.fill(temp_dnase2, new Double(0));
-							Double[] dnaseseq=DnaseLib.get(currloc.getSeqId());
-							for (int i = 0; i <2*DnaseWindow ; i++) {
-								if(currloc.ReverseStrand)
-								{
-									temp_dnase2[i]=dnaseseq[prior_bin+motif.Dnase_prob.size()-i-1];
-								}
-								else
-								{
-									temp_dnase2[i]=dnaseseq[prior_bin+i];
-								}
-							}
-							logDnaseNBProb=motif.calcLogDnaseNegBinProb(temp_dnase2, 0);
-							logDnaseMNProb=motif.calcLogDnaseMultiNomProb(temp_dnase2, 0);
-							logDnaseProb=logDnaseNBProb+logDnaseMNProb;
-						}
+//					double	logDnaseNBProb=0,logDnaseMNProb=0;
+//						Double[] temp_dnase2=null;
+//						if(motif.Dnase_prob!=null)
+//						{
+//							temp_dnase2=new Double[2*DnaseWindow];
+//							Arrays.fill(temp_dnase2, new Double(0));
+//							Double[] dnaseseq=DnaseLib.get(currloc.getSeqId());
+//							for (int i = 0; i <2*DnaseWindow ; i++) {
+//								if(currloc.ReverseStrand)
+//								{
+//									temp_dnase2[i]=dnaseseq[prior_bin+motif.Dnase_prob.size()-i-1];
+//								}
+//								else
+//								{
+//									temp_dnase2[i]=dnaseseq[prior_bin+i];
+//								}
+//							}
+//							logDnaseNBProb=motif.calcLogDnaseNegBinProb(temp_dnase2, 0);
+//							logDnaseMNProb=motif.calcLogDnaseMultiNomProb(temp_dnase2, 0);
+//							logDnaseProb=logDnaseNBProb+logDnaseMNProb;
+//						}
 						//double loglik=logprob_theta+logprior-logprob_BG;
-						double loglik=-Math.log(motiflen-4)+logprob_theta+logprior+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
+						double loglik=logprob_theta+logprior+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
 						if(loglik>200)
 							loglik=200;
 						double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);
 						double prob_theta_only=Math.exp(logprob_theta+logprior)/(Math.exp(logprob_theta+logprior)+1);
 						if(Double.isNaN(prob_theta))
 							prob_theta=1;//upper flow
-						if(motif.Dnase_prob!=null)
-						{
-							sumpl+=prob_theta;
-							Double min = (Double) Collections.min(Arrays.asList(temp_dnase2));
-							System.err.println( common.Array2String(temp_dnase2,'\t'));
-							double Rl=0;
-							for (int i = 0; i <2*DnaseWindow ; i++) {
-								double temp=temp_dnase2[i]-min;
-								Rl+=temp;
-								temp=prob_theta*temp;
-								
-								sumRlpl+=temp;
-							}
-							for (int i = 0; i <2*DnaseWindow ; i++) {
-								temp_dnase[i]+=prob_theta*(temp_dnase2[i]-min);
-							}
-							Rl_stat.add((int)Rl);
-							Ez_stat.add(prob_theta);
-							PWMscore.add(logprob_theta+logprior);
-							NBscore.add(logDnaseNBProb/motif.NegBinConfidence);
-							MNscore.add(logDnaseMNProb/motif.MultiNomConfidence);
-							if(logDnaseMNProb>0)
-								MultiNomConfidence+=prob_theta_only;
-							else
-								MultiNomConfidence+=1-prob_theta_only;
-							
-						}
+//						if(motif.Dnase_prob!=null)
+//						{
+//							sumpl+=prob_theta;
+//							Double min = (Double) Collections.min(Arrays.asList(temp_dnase2));
+//							System.err.println( common.Array2String(temp_dnase2,'\t'));
+//							double Rl=0;
+//							for (int i = 0; i <2*DnaseWindow ; i++) {
+//								double temp=temp_dnase2[i]-min;
+//								Rl+=temp;
+//								temp=prob_theta*temp;
+//								
+//								sumRlpl+=temp;
+//							}
+//							for (int i = 0; i <2*DnaseWindow ; i++) {
+//								temp_dnase[i]+=prob_theta*(temp_dnase2[i]-min);
+//							}
+//							Rl_stat.add((int)Rl);
+//							Ez_stat.add(prob_theta);
+//							PWMscore.add(logprob_theta+logprior);
+//							NBscore.add(logDnaseNBProb/motif.NegBinConfidence);
+//							MNscore.add(logDnaseMNProb/motif.MultiNomConfidence);
+//							if(logDnaseMNProb>0)
+//								MultiNomConfidence+=prob_theta_only;
+//							else
+//								MultiNomConfidence+=1-prob_theta_only;
+//							
+//						}
 						if(OOPS)
 							loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
 						if(!OOPS)
@@ -825,19 +830,19 @@ public class Pomoda {
 //									
 //								}
 							}
-							max_temp_dnase2=temp_dnase2;
+//							max_temp_dnase2=temp_dnase2;
 						}
 						
 						if(max_seqloglik<loglik)
 						{
 							max_seqloglik=loglik;
-							max_logDnaseMNProb=logDnaseMNProb;
+//							max_logDnaseMNProb=logDnaseMNProb;
 							max_seqprob_theta=prob_theta;
 							max_seqprob_theta_only=prob_theta_only;
 							max_seqsite=site;
-							max_temp_dnase2=temp_dnase2;
-							if(prob_theta>1000000)
-								continue;
+//							max_temp_dnase2=temp_dnase2;
+//							if(prob_theta>1000000)
+//								continue;
 						}
 						
 						if(!OOPS)
@@ -913,50 +918,50 @@ public class Pomoda {
 							motif.pos_prior.add(temp_prior[i]);
 						}
 						
-						if(DnaseLib!=null)
-						{
-							motif.Dnase_prob.clear();
-							double sumRl=0;
-							for (int i = 0; i < temp_dnase.length; i++) {
-								sumRl+=temp_dnase[i];
-							}
-							temp_dnase=common.Normalize(temp_dnase);
-							for (int i = 0; i < temp_dnase.length; i++) {
-								motif.Dnase_prob.add(temp_dnase[i]);
-							}
-							//double newP=motif.DnaseFG.getGamma()*sumpl/(motif.DnaseFG.getGamma()*sumpl+sumRlpl);
-							Prior_EZ=sumpl/Ez_stat.size();
-							if(Prior_EZ>0.9999)
-								Prior_EZ=0.9999;
-							
-							 NegBinFunction solver=new NegBinFunction(Rl_stat, Ez_stat, 0);
-							 double[] paras=null;
-							 if(motif.DnaseFG.getGamma()==motif.DnaseBG.getGamma())
-								 paras=solver.run(null);
-							 else
-							 {
-								 double[] preParas=new double[]{Math.log(motif.DnaseBG.getGamma()),NegBinFunction.qlogis(motif.DnaseBG.getP()),Math.log(motif.DnaseFG.getGamma()),NegBinFunction.qlogis(motif.DnaseFG.getP())};
-								 System.out.println(Arrays.toString(preParas));
-								 paras=solver.run(preParas);								 
-							 }
-							 motif.DnaseBG=new NegativeBinomialDist(Math.exp( paras[0]),NegBinFunction.plogis( paras[1]));
-							 motif.DnaseFG=new NegativeBinomialDist(Math.exp( paras[2]),NegBinFunction.plogis( paras[3]));
-							// LogitFunction logitSolver=new LogitFunction(Ez_stat, PWMscore, NBscore, MNscore);
-							// double[] beta=logitSolver.run(new double[]{motif.NegBinConfidence,motif.MultiNomConfidence});
-							 
-							 motif.NegBinConfidence=0;//beta[0];//solver.FeatureConfidence;
-							 motif.MultiNomConfidence=1;//beta[1];//2*MultiNomConfidence/Ez_stat.size()-1;
-							 System.out.println(motif.DnaseFG+"\t"+motif.DnaseFG.getMean());
-								
-							 System.out.println(motif.DnaseBG+"\t"+motif.DnaseBG.getMean());
-								
-							 System.out.println(Prior_EZ);
-							
-							 System.out.println( motif.NegBinConfidence);
-							 System.out.println( motif.MultiNomConfidence);
-							 DrawDistribution(motif.Dnase_prob,"Dnase_plot.png");
-							 
-						}
+//						if(DnaseLib!=null)
+//						{
+//							motif.Dnase_prob.clear();
+//							double sumRl=0;
+//							for (int i = 0; i < temp_dnase.length; i++) {
+//								sumRl+=temp_dnase[i];
+//							}
+//							temp_dnase=common.Normalize(temp_dnase);
+//							for (int i = 0; i < temp_dnase.length; i++) {
+//								motif.Dnase_prob.add(temp_dnase[i]);
+//							}
+//							//double newP=motif.DnaseFG.getGamma()*sumpl/(motif.DnaseFG.getGamma()*sumpl+sumRlpl);
+//							Prior_EZ=sumpl/Ez_stat.size();
+//							if(Prior_EZ>0.9999)
+//								Prior_EZ=0.9999;
+//							
+//							 NegBinFunction solver=new NegBinFunction(Rl_stat, Ez_stat, 0);
+//							 double[] paras=null;
+//							 if(motif.DnaseFG.getGamma()==motif.DnaseBG.getGamma())
+//								 paras=solver.run(null);
+//							 else
+//							 {
+//								 double[] preParas=new double[]{Math.log(motif.DnaseBG.getGamma()),NegBinFunction.qlogis(motif.DnaseBG.getP()),Math.log(motif.DnaseFG.getGamma()),NegBinFunction.qlogis(motif.DnaseFG.getP())};
+//								 System.out.println(Arrays.toString(preParas));
+//								 paras=solver.run(preParas);								 
+//							 }
+//							 motif.DnaseBG=new NegativeBinomialDist(Math.exp( paras[0]),NegBinFunction.plogis( paras[1]));
+//							 motif.DnaseFG=new NegativeBinomialDist(Math.exp( paras[2]),NegBinFunction.plogis( paras[3]));
+//							// LogitFunction logitSolver=new LogitFunction(Ez_stat, PWMscore, NBscore, MNscore);
+//							// double[] beta=logitSolver.run(new double[]{motif.NegBinConfidence,motif.MultiNomConfidence});
+//							 
+//							 motif.NegBinConfidence=0;//beta[0];//solver.FeatureConfidence;
+//							 motif.MultiNomConfidence=1;//beta[1];//2*MultiNomConfidence/Ez_stat.size()-1;
+//							 System.out.println(motif.DnaseFG+"\t"+motif.DnaseFG.getMean());
+//								
+//							 System.out.println(motif.DnaseBG+"\t"+motif.DnaseBG.getMean());
+//								
+//							 System.out.println(Prior_EZ);
+//							
+//							 System.out.println( motif.NegBinConfidence);
+//							 System.out.println( motif.MultiNomConfidence);
+//							 DrawDistribution(motif.Dnase_prob,"Dnase_plot.png");
+//							 
+//						}
 						
 					}
 				
@@ -995,12 +1000,12 @@ public class Pomoda {
 		System.out.println(consensus_core+"\t"+String.valueOf(bestscore));
 		bestscore=0;
 		double[] temp_prior=new double[num_priorbin];
-		double MultiNomConfidence=0;
-		double[] temp_dnase=new double[2*DnaseWindow];
-		ArrayList<Integer> Rl_stat=new ArrayList<Integer>(SearchEngine2.getSeqNum());
-		ArrayList<Double> Ez_stat=new ArrayList<Double>(SearchEngine2.getSeqNum());
-		double sumpl=0;
-		double sumRlpl=0;
+//		double MultiNomConfidence=0;
+//		double[] temp_dnase=new double[2*DnaseWindow];
+//		ArrayList<Integer> Rl_stat=new ArrayList<Integer>(SearchEngine2.getSeqNum());
+//		ArrayList<Double> Ez_stat=new ArrayList<Double>(SearchEngine2.getSeqNum());
+//		double sumpl=0;
+//		double sumRlpl=0;
 		
 		double lognullprior=Math.log(1.0/num_priorbin);
 		double thresh=motif.getThresh(this.sampling_ratio, this.FDR, this.background);
@@ -1085,60 +1090,60 @@ public class Pomoda {
 					if(motif.pos_prior.size()!=0)
 						logprior=motif.pos_prior.get(posbin)-lognullprior;
 					double logDnaseProb=0;
-					double logDnaseNBProb=0;
-					double logDnaseMNProb=0;
-					Double[] temp_dnase2=null;
-					if(motif.Dnase_prob!=null)
-					{
-						temp_dnase2=new Double[2*DnaseWindow];
-						Arrays.fill(temp_dnase2, new Double(0));
-						Double[] dnaseseq=DnaseLib.get(currloc.getSeqId());
-						for (int i = 0; i <2*DnaseWindow ; i++) {
-							if(currloc.ReverseStrand)
-							{
-								temp_dnase2[i]=dnaseseq[posbin+motif.Dnase_prob.size()-i-1];
-							}
-							else
-							{
-								temp_dnase2[i]=dnaseseq[posbin+i];
-							}
-						}
-						logDnaseNBProb=motif.calcLogDnaseNegBinProb(temp_dnase2, 0);
-						logDnaseMNProb=motif.calcLogDnaseMultiNomProb(temp_dnase2, 0);
-						logDnaseProb=logDnaseNBProb+logDnaseMNProb;
-					}
-					double loglik=-Math.log(motiflen-4)+logprob_theta+logprior-logprob_BG+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
+//					double logDnaseNBProb=0;
+//					double logDnaseMNProb=0;
+//					Double[] temp_dnase2=null;
+//					if(motif.Dnase_prob!=null)
+//					{
+//						temp_dnase2=new Double[2*DnaseWindow];
+//						Arrays.fill(temp_dnase2, new Double(0));
+//						Double[] dnaseseq=DnaseLib.get(currloc.getSeqId());
+//						for (int i = 0; i <2*DnaseWindow ; i++) {
+//							if(currloc.ReverseStrand)
+//							{
+//								temp_dnase2[i]=dnaseseq[posbin+motif.Dnase_prob.size()-i-1];
+//							}
+//							else
+//							{
+//								temp_dnase2[i]=dnaseseq[posbin+i];
+//							}
+//						}
+//						logDnaseNBProb=motif.calcLogDnaseNegBinProb(temp_dnase2, 0);
+//						logDnaseMNProb=motif.calcLogDnaseMultiNomProb(temp_dnase2, 0);
+//						logDnaseProb=logDnaseNBProb+logDnaseMNProb;
+//					}
+					double loglik=logprob_theta+logprior-logprob_BG+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
 					if(loglik>200)
 						loglik=200;
 					double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);
-					double prob_theta_only=Math.exp(logprob_theta+logprior)/(Math.exp(logprob_theta+logprior)+1);
-					if(logDnaseMNProb>0)
-						MultiNomConfidence+=prob_theta_only;
-					else
-						MultiNomConfidence+=1-prob_theta_only;
+					//double prob_theta_only=Math.exp(logprob_theta+logprior)/(Math.exp(logprob_theta+logprior)+1);
+//					if(logDnaseMNProb>0)
+//						MultiNomConfidence+=prob_theta_only;
+//					else
+//						MultiNomConfidence+=1-prob_theta_only;
 					
 					if(Double.isNaN(prob_theta))
 						prob_theta=1;
 					
 					temp_prior[posbin]+=prob_theta;
-					if(motif.Dnase_prob!=null)
-					{
-						sumpl+=prob_theta;
-						Double min = (Double) Collections.min(Arrays.asList(temp_dnase2));
-						double Rl=0;
-					
-						for (int i = 0; i <2*DnaseWindow ; i++) {
-							double temp=temp_dnase2[i]-min;
-
-							Rl+=temp;
-							temp=prob_theta*temp;
-							temp_dnase[i]+=loglik*(temp_dnase2[i]-min);
-							sumRlpl+=temp;
-						}
-						Rl_stat.add((int)Rl);
-						Ez_stat.add(prob_theta);
-						
-					}
+//					if(motif.Dnase_prob!=null)
+//					{
+//						sumpl+=prob_theta;
+//						Double min = (Double) Collections.min(Arrays.asList(temp_dnase2));
+//						double Rl=0;
+//					
+//						for (int i = 0; i <2*DnaseWindow ; i++) {
+//							double temp=temp_dnase2[i]-min;
+//
+//							Rl+=temp;
+//							temp=prob_theta*temp;
+//							temp_dnase[i]+=loglik*(temp_dnase2[i]-min);
+//							sumRlpl+=temp;
+//						}
+//						Rl_stat.add((int)Rl);
+//						Ez_stat.add(prob_theta);
+//						
+//					}
 					if(OOPS)
 						loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
 					if(!OOPS)
@@ -1146,10 +1151,7 @@ public class Pomoda {
 					if(OOPS&&currloc.getSeqId()!=lastseq)
 					{
 						if(lastseq!=-1)
-							for (int i = 0; i < site.length(); i++) {
-//								if(consensus.charAt(i)!='N')
-//									continue;
-								
+							for (int i = 0; i < site.length(); i++) {							
 	                         for (int symid = 0; symid < 4; symid++) {
 	                        	 if(max_loglik_matrix[i][symid]!=Double.MIN_VALUE)
 	                        	 {
@@ -1335,51 +1337,51 @@ public class Pomoda {
 				temp_prior[i]/=sumPrior;
 				motif.pos_prior.add(temp_prior[i]);
 			}
-			if(DnaseLib!=null)
-			{
-				motif.Dnase_prob.clear();
-				temp_dnase=common.Normalize(temp_dnase);
-				for (int i = 0; i < temp_dnase.length; i++) {
-					motif.Dnase_prob.add(temp_dnase[i]);
-				}
-				Prior_EZ=sumpl/Ez_stat.size();
-				if(Prior_EZ>0.9999)
-					Prior_EZ=0.9999;
-				
-				 NegBinFunction solver=new NegBinFunction(Rl_stat, Ez_stat, 0);
-				 double[] paras=null;
-				 if(motif.DnaseFG.getGamma()==motif.DnaseBG.getGamma())
-					 paras=solver.run(null);
-				 else
-				 {
-					 double[] preParas=new double[]{Math.log(motif.DnaseBG.getGamma()),NegBinFunction.qlogis(motif.DnaseBG.getP()),Math.log(motif.DnaseFG.getGamma()),NegBinFunction.qlogis(motif.DnaseFG.getP())};
-					 System.out.println(Arrays.toString(preParas));
-					 paras=solver.run(preParas);
-				 }
-				 motif.DnaseBG=new NegativeBinomialDist(Math.exp( paras[0]),NegBinFunction.plogis( paras[1]));
-				 motif.DnaseFG=new NegativeBinomialDist(Math.exp( paras[2]),NegBinFunction.plogis( paras[3]));
-				 motif.NegBinConfidence=0;//solver.FeatureConfidence;
-				 motif.MultiNomConfidence=1;//2*MultiNomConfidence/Ez_stat.size()-1;
-//				 motif.samplesize=Ez_stat.size();
-//			
-//				 double[] ones=new double[motif.Dnase_prob.size()];
-//				 Arrays.fill(ones, 1.0);
-//				 double sum=0;
-//				 motif.Log_Fab_ratio=0;
-//					for (int i = 0; i <motif.Dnase_prob.size(); i++) {
-//						double alpha=motif.Dnase_prob.get(i) *motif.samplesize;
-//						 motif.Log_Fab_ratio-=Num.lnGamma(alpha);
-//						sum+=alpha;
-//					}
-//					 motif.Log_Fab_ratio+=Num.lnGamma(sum);
-					
-				DrawDistribution(motif.Dnase_prob,"Dnase_plot.png");
-				System.out.println(motif.DnaseFG+"\t"+motif.DnaseFG.getMean());
-				System.out.println(motif.DnaseBG+"\t"+motif.DnaseBG.getMean());
-				System.out.println(Prior_EZ);
-				System.out.println(solver.FeatureConfidence);
-				System.out.println( motif.MultiNomConfidence);
-			}
+//			if(DnaseLib!=null)
+//			{
+//				motif.Dnase_prob.clear();
+//				temp_dnase=common.Normalize(temp_dnase);
+//				for (int i = 0; i < temp_dnase.length; i++) {
+//					motif.Dnase_prob.add(temp_dnase[i]);
+//				}
+//				Prior_EZ=sumpl/Ez_stat.size();
+//				if(Prior_EZ>0.9999)
+//					Prior_EZ=0.9999;
+//				
+//				 NegBinFunction solver=new NegBinFunction(Rl_stat, Ez_stat, 0);
+//				 double[] paras=null;
+//				 if(motif.DnaseFG.getGamma()==motif.DnaseBG.getGamma())
+//					 paras=solver.run(null);
+//				 else
+//				 {
+//					 double[] preParas=new double[]{Math.log(motif.DnaseBG.getGamma()),NegBinFunction.qlogis(motif.DnaseBG.getP()),Math.log(motif.DnaseFG.getGamma()),NegBinFunction.qlogis(motif.DnaseFG.getP())};
+//					 System.out.println(Arrays.toString(preParas));
+//					 paras=solver.run(preParas);
+//				 }
+//				 motif.DnaseBG=new NegativeBinomialDist(Math.exp( paras[0]),NegBinFunction.plogis( paras[1]));
+//				 motif.DnaseFG=new NegativeBinomialDist(Math.exp( paras[2]),NegBinFunction.plogis( paras[3]));
+//				 motif.NegBinConfidence=0;//solver.FeatureConfidence;
+//				 motif.MultiNomConfidence=1;//2*MultiNomConfidence/Ez_stat.size()-1;
+////				 motif.samplesize=Ez_stat.size();
+////			
+////				 double[] ones=new double[motif.Dnase_prob.size()];
+////				 Arrays.fill(ones, 1.0);
+////				 double sum=0;
+////				 motif.Log_Fab_ratio=0;
+////					for (int i = 0; i <motif.Dnase_prob.size(); i++) {
+////						double alpha=motif.Dnase_prob.get(i) *motif.samplesize;
+////						 motif.Log_Fab_ratio-=Num.lnGamma(alpha);
+////						sum+=alpha;
+////					}
+////					 motif.Log_Fab_ratio+=Num.lnGamma(sum);
+//					
+//				DrawDistribution(motif.Dnase_prob,"Dnase_plot.png");
+//				System.out.println(motif.DnaseFG+"\t"+motif.DnaseFG.getMean());
+//				System.out.println(motif.DnaseBG+"\t"+motif.DnaseBG.getMean());
+//				System.out.println(Prior_EZ);
+//				System.out.println(solver.FeatureConfidence);
+//				System.out.println( motif.MultiNomConfidence);
+//			}
 			if(debug)
 				motif.print();
 			
@@ -1393,7 +1395,7 @@ public class Pomoda {
 	
 	
 	//for fix PWM score and BG score, but there is position prior
-	double CenterDistributionScore(LinkedList<FastaLocation> LocList,double pwmloglik,double bgloglik)
+	double sumLLR(LinkedList<FastaLocation> LocList,double pwmloglik,double bgloglik)
 	{
 		double score=0;
 		
@@ -1419,8 +1421,9 @@ public class Pomoda {
 				lastseq=currloc.getSeqId();
 				max_seqloglik=Double.MIN_VALUE;
 			}
-			if(OOPS&&loglik>max_seqloglik)
+			if(OOPS)
 			{
+				if(loglik>max_seqloglik)
 				max_seqloglik=loglik;
 				continue;
 			}
@@ -1430,11 +1433,12 @@ public class Pomoda {
 		if(OOPS)
 			score+=max_seqloglik;
 		
+
 		return score;
 	}
 	
 	//for fix PWM score but there is 'N' inside the pattern
-	double CenterDistributionScore(LinkedList<FastaLocation> LocList,double pwmloglik,int motiflen)
+	double sumLLR(LinkedList<FastaLocation> LocList,double pwmloglik,int motiflen)
 	{
 		double score=0;
 		int count=0;
@@ -1491,7 +1495,7 @@ public class Pomoda {
 		options.addOption("maxw",true, "maximum size of motif binding region (default 600bp)");
 		options.addOption("mask",false,"whether marking the top motif location in order to find co-motif");
 		options.addOption("oops",false,"whether assuming only one occurrence per sequence");
-		options.addOption("FDR",true,"fasle positive rate");
+		options.addOption("FDR",true,"fasle positive rate (default 0.05)");
 		options.addOption("clust",true,"linkage type of hierachical clustering:"+Arrays.toString(LinkageCriterion.values()) );
 		
 		CommandLineParser parser = new GnuParser();
@@ -1602,15 +1606,16 @@ public class Pomoda {
 		//extend and refine motifs
 		for (int i = 0; i < seedPWMs.size(); i++) {
 			PWM motif=seedPWMs.get(i);
-			if(motifFinder.DnaseLib!=null)
-			{
-				motif.DnaseBG=motifFinder.dnaseBG;
-				motif.DnaseFG=new NegativeBinomialDist(motifFinder.dnaseBG.getGamma(), motifFinder.dnaseBG.getP());
-				motif.Dnase_prob=new ArrayList<Double>(motifFinder.DnaseWindow*2);
-				for (int j = 0; j < motifFinder.DnaseWindow*2; j++) {
-					motif.Dnase_prob.add( 1.0/(motifFinder.DnaseWindow*2));
-				}
-			}
+			motif.Score=0;
+//			if(motifFinder.DnaseLib!=null)
+//			{
+//				motif.DnaseBG=motifFinder.dnaseBG;
+//				motif.DnaseFG=new NegativeBinomialDist(motifFinder.dnaseBG.getGamma(), motifFinder.dnaseBG.getP());
+//				motif.Dnase_prob=new ArrayList<Double>(motifFinder.DnaseWindow*2);
+//				for (int j = 0; j < motifFinder.DnaseWindow*2; j++) {
+//					motif.Dnase_prob.add( 1.0/(motifFinder.DnaseWindow*2));
+//				}
+//			}
 			
 			System.out.println("Extending...");
 			seedPWMs.set(i,motifFinder.Column_Replacement_(motif));
