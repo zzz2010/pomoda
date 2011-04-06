@@ -8,6 +8,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -92,6 +94,7 @@ public class PWMcluster {
 		ArrayList<PWM> clusterMoitfs=new ArrayList<PWM>(num_cluster);
 		ArrayList<Thread> threadpool=new ArrayList<Thread>(rawPwms.size()*rawPwms.size());
 		SearchEngine.DisableBackground();
+		 ExecutorService executor = Executors.newFixedThreadPool(6);
 		for (int i = 0; i <rawPwms.size(); i++) {
 			PWM rawpwm=rawPwms.get(i);
 			System.out.println(rawpwm.Consensus(true)+'\t'+rawpwm.Score);
@@ -104,26 +107,38 @@ public class PWMcluster {
 				pos.add((iter.next().getMin()+rawpwm.columns()/2));
 			}
 			SortingThread t1=new SortingThread(pos);
-			t1.start();
+			executor.execute(t1);
+			//t1.start();
 			threadpool.add(t1);
 			
 		}
 		try {
+			executor.shutdown();
+			// Wait until all threads are finish
+			while (!executor.isTerminated()) {
+				Thread.sleep(3000);
+			}
 				ArrayList<LinkedList<Integer>> PosSet=new ArrayList<LinkedList<Integer>>(rawPwms.size());
 				for (int i = 0; i < threadpool.size(); i++) {
 				  SortingThread t1=(SortingThread)threadpool.get(i);
-				  t1.join();
+				
 				PosSet.add((LinkedList<Integer>)t1.getResult());
 				}
+				executor = Executors.newFixedThreadPool(6);
 				threadpool.clear();
 				for (int i = 0; i < rawPwms.size()-1; i++) {
 					for (int j = i+1; j < rawPwms.size(); j++) {
 						OverlappingThread t2=new OverlappingThread(PosSet.get(i), PosSet.get(j), 10);
-						t2.run();
+						executor.execute(t2);
 						t2.setName(String.valueOf(i*rawPwms.size()+j));
 						threadpool.add(t2);
 					}
 					Runtime.getRuntime().gc();
+				}
+				executor.shutdown();
+				// Wait until all threads are finish
+				while (!executor.isTerminated()) {
+					Thread.sleep(3000);
 				}
 				double[][] dist=new double[rawPwms.size()][rawPwms.size()];
 				for (int i = 0; i < threadpool.size(); i++) {
@@ -131,8 +146,8 @@ public class PWMcluster {
 					int pairid=Integer.parseInt(t2.getName());
 					int row=pairid/rawPwms.size();
 					int col=pairid%rawPwms.size();						
-					t2.join();
-					double temp=t2.getResult().size()/(double)Math.min(PosSet.get(row).size(), PosSet.get(col).size());
+					//t2.join();
+					double temp=t2.getResult().size()/(double)Math.min(PosSet.get(row).size()+1, PosSet.get(col).size()+1);
 					dist[row][col]=1-temp; //distance
 					dist[col][row]=1-temp;
 					
