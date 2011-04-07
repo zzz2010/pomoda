@@ -791,7 +791,7 @@ public class Pomoda {
 						if(OOPS&&currloc.getSeqId()!=lastseq)
 						{
 							match_seqCount++;
-							bestscore+=max_seqloglik;
+							bestscore+= NegBinFunction.plogis(max_seqloglik);
 							lastseq=currloc.getSeqId();
 							max_seqloglik=0;
 							//System.out.println(max_seqsite.toUpperCase());
@@ -865,7 +865,7 @@ public class Pomoda {
 					if(OOPS)
 					{
 						match_seqCount++;
-						bestscore+=max_seqloglik;
+						bestscore+= NegBinFunction.plogis(max_seqloglik);
 						
 						max_seqloglik=0;
 						//System.out.println(max_seqsite.toUpperCase());
@@ -893,7 +893,7 @@ public class Pomoda {
 //							if(lastscore!=1)
 //								motif.Score*=bestscore/lastscore;
 //							else
-						motif.Score=bestscore-Math.log(SearchEngine2.getSeqNum())*2*motif.core_motiflen;
+						motif.Score=bestscore;//-Math.log(SearchEngine2.getSeqNum())*2*motif.core_motiflen;
 						lastscore=bestscore;
 						}
 						
@@ -1608,7 +1608,7 @@ public class Pomoda {
 		//extend and refine motifs
 		for (int i = 0; i < seedPWMs.size(); i++) {
 			PWM motif=seedPWMs.get(i);
-			motif.Score=0;
+			motif.Score=1;
 //			if(motifFinder.DnaseLib!=null)
 //			{
 //				motif.DnaseBG=motifFinder.dnaseBG;
@@ -1651,7 +1651,7 @@ public class Pomoda {
 		sortedPWMs.clear();
 		PWMcluster clustering=new PWMcluster(motifFinder);
 	
-			ArrayList<PWM>  clusterPWMs=clustering.Clustering(seedPWMs,motifFinder.num_motif);
+			ArrayList<PWM>  clusterPWMs=clustering.Clustering_(seedPWMs,motifFinder.num_motif);
 	
 			for(PWM pwm:clusterPWMs)
 			{

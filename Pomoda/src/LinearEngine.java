@@ -27,11 +27,12 @@ public class LinearEngine {
 	public HashMap<Integer,HashMap<Integer,ArrayList<Double>>> BGscoreMap=null;
     public int forwardCount; //the first n entry in the searchPattern is forward.
 	public int TotalLen=0;
+	public ArrayList<Integer> accSeqLen;
 	public LinearEngine(int num_thread) {
 		this.num_thread=num_thread;
 		ForwardStrand=new LinkedList<String>();
 		//ReverseStrand=new LinkedList<String>();
-		
+		accSeqLen=new ArrayList<Integer>(10000);
 	}
 	
 	
@@ -47,6 +48,7 @@ public class LinearEngine {
 	
 	
 	public void build_index(String inputfile,int maxSeq) {
+		accSeqLen.clear();
 		// TODO Auto-generated method stub
 		 try {
 			 ForwardStrand.clear();
@@ -57,6 +59,7 @@ public class LinearEngine {
    		          SequenceIterator seqi = RichSequence.IOTools.readFasta(br, toke,null);
    		          
    		          TotalLen=0;
+   		       accSeqLen.add(0);
    			      while (seqi.hasNext()) {
    			    	  
    			    	  Sequence seq=seqi.nextSequence();
@@ -66,6 +69,7 @@ public class LinearEngine {
    				if(ForwardStrand.size()>maxSeq)
    				    	 return;
    				TotalLen+=seqstr.length();
+   				accSeqLen.add(TotalLen);
    			      }
    	
 			     
@@ -100,6 +104,7 @@ public class LinearEngine {
 		// TODO Auto-generated method stub
 		 try {
 			 ForwardStrand.clear();
+			 accSeqLen.clear();
 			// ReverseStrand.clear();
 			 //Database to hold the training set
 			      BufferedReader br = new BufferedReader(new FileReader(inputfile));
@@ -107,6 +112,7 @@ public class LinearEngine {
    		          SequenceIterator seqi = RichSequence.IOTools.readFasta(br, toke,null);
    		          
    		          TotalLen=0;
+   		       accSeqLen.add(0);
    			      while (seqi.hasNext()) {
    			    	  
    			    	  Sequence seq=seqi.nextSequence();
@@ -115,6 +121,7 @@ public class LinearEngine {
    				  //ReverseStrand.add(common.getReverseCompletementString( seqstr));
    			
    				TotalLen+=seqstr.length();
+   			 accSeqLen.add(TotalLen);
    			      }
    	
 			     
@@ -153,7 +160,7 @@ public class LinearEngine {
 	    ArrayList<SearchThread> threadpool=new ArrayList<SearchThread>(num_thread);
 	    //Forward search
 	    for (int i = 0; i < num_thread; i++) {
-	    	SearchThread t1 = new SearchThread(pattern, mismatch, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize ) ),i*workSize);
+	    	SearchThread t1 = new SearchThread(pattern, mismatch, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize ) ),i*workSize,accSeqLen);
 			if(background!=null)
 			{
 				t1.bgmodel=background;
@@ -216,7 +223,7 @@ public class LinearEngine {
 		}
 	    //Forward search
 	    for (int i = 0; i < num_thread; i++) {
-	    	SearchThread t1 = new SearchThread(pattern, thresh, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize )),i*workSize);
+	    	SearchThread t1 = new SearchThread(pattern, thresh, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize )),i*workSize,accSeqLen);
 	    	if(background!=null)
 	    	{
 				t1.bgmodel=background;

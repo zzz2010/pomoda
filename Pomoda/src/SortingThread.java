@@ -22,7 +22,7 @@ public class SortingThread extends Thread {
 		int lastpos=Integer.MIN_VALUE;
 		for (int i = 0; i < sortedlist.size(); i++) {
 			int currpos=sortedlist.get(i);
-			if(lastpos<currpos-3)
+			if(lastpos<currpos-5)
 			{
 				nodulist.add(currpos);
 			}
