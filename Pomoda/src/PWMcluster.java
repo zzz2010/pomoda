@@ -25,10 +25,11 @@ public class PWMcluster {
 
 	LinearEngine SearchEngine;
 	public double sampling_ratio=0.8;
-	public double FDR=0.01;
+	public double FDR=0.001;
 	public LinkageCriterion linkage=LinkageCriterion.WPGMA;
 	public BGModel background;
 	private String bgmodelFile="";
+	public double overlapThresh=0.2;
 	public String outputPrefix="./";
 	public String inputFasta;
 	public String ctrlFasta="";
@@ -89,6 +90,98 @@ public class PWMcluster {
 		
 	}
 	
+	public ArrayList<PWM> Clustering_(List<PWM> rawPwms,int num_cluster)
+	{
+		ArrayList<PWM> clusterMoitfs=new ArrayList<PWM>(num_cluster);
+		TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
+		for (int i = 0; i <rawPwms.size(); i++) {
+			sortedPWMs.put(rawPwms.get(i).Score, rawPwms.get(i));
+		}
+		ArrayList<LinkedList<Integer>> PosSet=new ArrayList<LinkedList<Integer>>(rawPwms.size());
+		//sort the positions
+		ExecutorService executor = Executors.newFixedThreadPool(6);
+		ArrayList<Thread> threadpool=new ArrayList<Thread>(rawPwms.size());
+		for(Double key:sortedPWMs.descendingKeySet())
+		{
+			PWM rawpwm=sortedPWMs.get(key);
+			System.out.println(rawpwm.Consensus(true)+'\t'+rawpwm.Score);
+			double thresh=rawpwm.getThresh(sampling_ratio, FDR, background);
+
+			LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(rawpwm, thresh);
+			ArrayList<Integer> pos=new ArrayList<Integer>(falocs.size());
+			
+			Iterator<FastaLocation> iter=falocs.iterator();
+			while(iter.hasNext())
+			{
+				FastaLocation temp=iter.next();
+				pos.add((temp.getMin()+rawpwm.columns()/2));
+			}
+			SortingThread t1=new SortingThread(pos);
+			executor.execute(t1);
+			//t1.start();
+			threadpool.add(t1);
+
+		}
+		
+		try
+		{
+			executor.shutdown();
+			// Wait until all threads are finish
+			while (!executor.isTerminated()) {
+				Thread.sleep(3000);
+			}
+			for (int i = 0; i < threadpool.size(); i++) {
+				  SortingThread t1=(SortingThread)threadpool.get(i);
+				
+				PosSet.add((LinkedList<Integer>)t1.getResult());
+				}
+			
+			int id=0;
+			ArrayList<Integer> clusterMoitfsId=new ArrayList<Integer>(num_cluster);
+			for(Double key:sortedPWMs.descendingKeySet())
+			{
+				if(clusterMoitfsId.size()==0)
+				{
+					clusterMoitfsId.add(id);	
+					clusterMoitfs.add(sortedPWMs.get(key));
+				}
+				else
+				{
+					boolean newclass=true;
+					for (int i = 0; i < clusterMoitfsId.size(); i++) {
+						OverlappingThread t2=new OverlappingThread(PosSet.get(clusterMoitfsId.get(i)), PosSet.get(id), 5);
+						t2.run();
+						int row=clusterMoitfsId.get(i);
+						int col=id;	
+						double temp=t2.getResult().size()/(double)Math.min(PosSet.get(row).size()+1, PosSet.get(col).size()+1);
+						if(temp>overlapThresh)
+						{
+							System.out.println("-"+sortedPWMs.get(key).Consensus(true)+"\t"+clusterMoitfsId.get(i));
+							newclass=false;
+							break;
+						}
+					}
+					if(newclass)
+					{
+						clusterMoitfsId.add(id);	
+						clusterMoitfs.add(sortedPWMs.get(key));
+					}
+				}
+				
+				id++;
+				if(clusterMoitfs.size()==num_cluster)
+					break;
+			}
+		}
+		catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return clusterMoitfs;
+	}
+	
+	
 	public ArrayList<PWM> Clustering(List<PWM> rawPwms,int num_cluster)
 	{
 		ArrayList<PWM> clusterMoitfs=new ArrayList<PWM>(num_cluster);
@@ -104,7 +197,14 @@ public class PWMcluster {
 			Iterator<FastaLocation> iter=falocs.iterator();
 			while(iter.hasNext())
 			{
-				pos.add((iter.next().getMin()+rawpwm.columns()/2));
+				FastaLocation temp=iter.next();
+				pos.add((temp.getMin()+rawpwm.columns()/2));
+//				String ss=SearchEngine.getSite(pos.get(pos.size()-1)/400, pos.get(pos.size()-1)%400-rawpwm.columns()/2, rawpwm.columns());
+//				//String ss=SearchEngine.getSite(temp.getSeqId(), temp.getSeqPos(), rawpwm.columns());
+//				double score=rawpwm.scoreWeightMatrix(ss);
+//				score=Math.max(score, rawpwm.scoreWeightMatrix(common.getReverseCompletementString(ss)));
+//				if(score<thresh)
+//					score=0;
 			}
 			SortingThread t1=new SortingThread(pos);
 			executor.execute(t1);
@@ -128,12 +228,12 @@ public class PWMcluster {
 				threadpool.clear();
 				for (int i = 0; i < rawPwms.size()-1; i++) {
 					for (int j = i+1; j < rawPwms.size(); j++) {
-						OverlappingThread t2=new OverlappingThread(PosSet.get(i), PosSet.get(j), 10);
+						OverlappingThread t2=new OverlappingThread(PosSet.get(i), PosSet.get(j), 5);
 						executor.execute(t2);
 						t2.setName(String.valueOf(i*rawPwms.size()+j));
 						threadpool.add(t2);
 					}
-					Runtime.getRuntime().gc();
+					
 				}
 				executor.shutdown();
 				// Wait until all threads are finish
@@ -148,6 +248,36 @@ public class PWMcluster {
 					int col=pairid%rawPwms.size();						
 					//t2.join();
 					double temp=t2.getResult().size()/(double)Math.min(PosSet.get(row).size()+1, PosSet.get(col).size()+1);
+//					for(int abspos : t2.getResult())
+//					{
+//						String site=SearchEngine.getSite(abspos/400, abspos%400-15, 30).toLowerCase();
+//						double maxscore=-10000;
+//						int maxpos=0;
+//						for (int j = 0; j < site.length()-rawPwms.get(0).core_motiflen; j++) {
+//							double score=rawPwms.get(0).scoreWeightMatrix(site.substring(j, j+rawPwms.get(0).core_motiflen));
+//							if(score>maxscore)
+//							{
+//								maxpos=j;
+//								maxscore=score;
+//							}
+//						}
+//						site=site.replaceFirst(site.substring(maxpos, maxpos+rawPwms.get(0).core_motiflen), site.substring(maxpos, maxpos+rawPwms.get(0).core_motiflen).toUpperCase());
+//						
+//						 maxscore=-10000;
+//						 maxpos=0;
+//						for (int j = 0; j < site.length()-rawPwms.get(1).core_motiflen; j++) {
+//							double score=rawPwms.get(1).scoreWeightMatrix(site.substring(j, j+rawPwms.get(1).core_motiflen));
+//							if(score>maxscore)
+//							{
+//								maxpos=j;
+//								maxscore=score;
+//							}
+//						}
+//						site=site.replaceFirst(site.substring(maxpos, maxpos+rawPwms.get(1).core_motiflen), site.substring(maxpos, maxpos+rawPwms.get(1).core_motiflen).toUpperCase());
+//						
+//						System.err.println(site+"\t"+site.substring(maxpos, maxpos+rawPwms.get(1).core_motiflen));
+//						
+//					}
 					dist[row][col]=1-temp; //distance
 					dist[col][row]=1-temp;
 					
@@ -171,6 +301,7 @@ public class PWMcluster {
 							clusterMoitfs.add(null);
 						}
 					}
+					System.out.println(rawPwms.get(i).Consensus(true)+"\t"+cid);
 					if(clusterMoitfs.get(cid)==null)
 					{
 						clusterMoitfs.set(cid, rawPwms.get(i));
@@ -204,6 +335,7 @@ public class PWMcluster {
 		options.addOption("match", true, "find similar motifs in known PWM library (path to the library, e.g., jaspar.pwm)");
 		options.addOption("bgmodel", true, "background model file");
 		options.addOption("prefix", true, "output directory");
+		options.addOption("thresh", true, "overlapping threshold to detemine whether cluster (default 0.2)");
 		options.addOption("ratio",true, "sampling ratio (default 1)");
 		options.addOption("FDR",true,"fasle positive rate");
 		options.addOption("N", true, "number of cluster motifs[default is 5]");
@@ -249,10 +381,13 @@ public class PWMcluster {
 			{
 				clustering.outputPrefix=cmd.getOptionValue("prefix");
 			}
-
 			if(cmd.hasOption("ratio"))
 			{
 				clustering.sampling_ratio=Double.parseDouble( cmd.getOptionValue("ratio"));
+			}
+			if(cmd.hasOption("thresh"))
+			{
+				clustering.overlapThresh=Double.parseDouble( cmd.getOptionValue("thresh"));
 			}
 			if(cmd.hasOption("N"))
 			{
@@ -279,7 +414,7 @@ public class PWMcluster {
 		   clustering.initialize();
 		BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 		LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
-		ArrayList<PWM>  clusterPWMs=clustering.Clustering(pwmlist, num_cluster);
+		ArrayList<PWM>  clusterPWMs=clustering.Clustering_(pwmlist, num_cluster);
 		TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		for(PWM pwm:clusterPWMs)
 		{
@@ -290,7 +425,7 @@ public class PWMcluster {
 		{
 			sortedPWMs.get(key).Name="Motif_clust"+String.valueOf(c+1);
 			c++;
-			System.out.println(sortedPWMs.get(key).Consensus(true)+'\t'+sortedPWMs.get(key).Score);
+			System.out.println(sortedPWMs.get(key).Name+":"+sortedPWMs.get(key).Consensus(true)+'\t'+sortedPWMs.get(key).Score);
 			writer.write(sortedPWMs.get(key).toString());
 		}
 		writer.close();

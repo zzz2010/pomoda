@@ -20,7 +20,8 @@ public class SearchThread extends Thread  {
 	BGModel bgmodel=null;
 	public List<String> db; //in case want to run multi db, before get result
 	boolean PWMflag=false;
-	public SearchThread(PWM motif,double thresh, List<String> db,int startseqNum)
+	public ArrayList<Integer> accSeqLen;
+	public SearchThread(PWM motif,double thresh, List<String> db,int startseqNum,ArrayList<Integer> SeqLenArr)
 	{
 		startSeqId= startseqNum;
 		this.motif=motif;
@@ -28,16 +29,17 @@ public class SearchThread extends Thread  {
 		this.db=db;
 		this.result=new LinkedList<FastaLocation>();
 		this.PWMflag=true;
-		
+		accSeqLen=SeqLenArr;
 	}
 	
-	public SearchThread(String pattern,int mismatch, List<String> db,int startseqNum)
+	public SearchThread(String pattern,int mismatch, List<String> db,int startseqNum,ArrayList<Integer> SeqLenArr)
 	{
 		this.pattern=pattern;
 		this.mismatch=mismatch;
 		this.db=db;
 		result=new LinkedList<FastaLocation>();
 		this.PWMflag=false;
+		accSeqLen=SeqLenArr;
 		
 	}
 	@Override
@@ -45,7 +47,7 @@ public class SearchThread extends Thread  {
 		// TODO Auto-generated method stub
 		if(PWMflag)
 		{
-			int pos=0;
+			int pos=accSeqLen.get(startSeqId);
 			boolean bg_buff_ready=true;
 	
 			Iterator<String> iter=db.iterator();
@@ -108,7 +110,7 @@ public class SearchThread extends Thread  {
 		}
 		else
 		{
-			int pos=0;
+			int pos=accSeqLen.get(startSeqId);
 			
 			Iterator<String> iter=db.iterator();
 			int seqid=startSeqId;

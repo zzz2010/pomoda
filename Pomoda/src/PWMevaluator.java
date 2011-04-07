@@ -176,6 +176,7 @@ public class PWMevaluator {
         	 }
         	 BGSearch.ForwardStrand.add(bgstr);	 
         	 BGSearch.TotalLen+=bgstr.length();
+        	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
          }
 
      	TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
@@ -298,6 +299,7 @@ public class PWMevaluator {
         	 }
         	 BGSearch.ForwardStrand.add(bgstr);	 
         	 BGSearch.TotalLen+=bgstr.length();
+        	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
          }
 
      	TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
