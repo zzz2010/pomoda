@@ -655,17 +655,18 @@ public class Pomoda {
 			double lognullprior=Math.log(1.0/num_priorbin);
 	
 			
-			double log_thresh=motif.getThresh(sampling_ratio, FDR, background)- motiflen*log025;
-			//double log_thresh=4.0;
+			//double log_thresh=motif.getThresh(sampling_ratio, FDR, background)- motiflen*log025;
+			double log_thresh=0;
 			
 			double [][]m_matrix=new double [motiflen+flankingLen*2][4];
 			
 			//update the loglik matrix
 			LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
 			System.out.println("number of occurrences: "+String.valueOf(Falocs.size()));
-			Prior_EZ=Math.min(SearchEngine2.ForwardStrand.size()/(double)Falocs.size(),Prior_EZ);
-			if(Prior_EZ<0.5)
-				Prior_EZ=0.5;
+			Prior_EZ=Math.min(1.0/num_priorbin,Prior_EZ);
+			
+//			if(Prior_EZ<0.5)
+//				Prior_EZ=0.5;
 					Iterator<FastaLocation> iter2=Falocs.iterator();
 					int count=0;
 					int match_seqCount=0;
@@ -911,6 +912,7 @@ public class Pomoda {
 							stateCodes.add(Falocs.hashCode());
 						
 						//motif=new PWM((String[])(MatchSite.toArray(new  String[1])));
+						if(bestPWM.Score<motif.Score)
 						bestPWM=motif.Clone();
 						for (int i = 0; i < m_matrix.length; i++) {
 							motif.setWeights(i+motif.head-flankingLen,common.Normalize(m_matrix[i]));
