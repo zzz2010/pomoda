@@ -316,6 +316,32 @@ public class PWM extends SimpleWeightMatrix {
 			sub.head=Math.max(0, head-start);
 			sub.tail=Math.max(0, tail-(this.columns()-end));
 			sub.Name=sub.Name;
+			sub.Score=this.Score;
+			sub.pos_prior=(ArrayList<Double>)pos_prior.clone();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return sub;
+	}
+	
+	public PWM Clone()
+	{
+		int start=this.head;
+		int end=this.columns()-this.tail;
+		Distribution[] dists=new Distribution[end-start];
+		for (int i = start; i < end; i++) {
+			dists[i-start]=getColumn(i);
+		}
+		PWM sub=null;
+		try {
+			sub = new PWM(dists);
+			sub.core_motiflen=core_motiflen-Math.max(0, start-head)-Math.max(0, this.columns()-end-tail);
+			sub.head=Math.max(0, head-start);
+			sub.tail=Math.max(0, tail-(this.columns()-end));
+			sub.Name=sub.Name;
+			sub.Score=this.Score;
 			sub.pos_prior=(ArrayList<Double>)pos_prior.clone();
 		} catch (IllegalAlphabetException e) {
 			// TODO Auto-generated catch block

@@ -101,6 +101,7 @@ public class PWMcluster {
 		//sort the positions
 		ExecutorService executor = Executors.newFixedThreadPool(6);
 		ArrayList<Thread> threadpool=new ArrayList<Thread>(rawPwms.size());
+		SearchEngine.DisableBackground();
 		for(Double key:sortedPWMs.descendingKeySet())
 		{
 			PWM rawpwm=sortedPWMs.get(key);

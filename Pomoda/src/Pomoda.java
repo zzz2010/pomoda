@@ -610,6 +610,7 @@ public class Pomoda {
 		double bestscore=motif.Score;
 		double lastscore=1;
 		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
+		
 		if(motif.pos_prior.size()==0)
 		{
 			for (int i = 0; i <num_priorbin ; i++) {
@@ -620,11 +621,11 @@ public class Pomoda {
 		
 		HashSet<Integer> stateCodes=new HashSet<Integer>();
 	
-		int flankingLen=2;
+		int flankingLen=1;
 		if(motif.head+flankingLen+motif.core_motiflen>=motif.columns()||motif.head-flankingLen<0)
 			flankingLen=0;
 		int iter_count=0;
-		
+		PWM bestPWM=motif.Clone();
 		do
 		{
 			 try {
@@ -663,6 +664,8 @@ public class Pomoda {
 			LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
 			System.out.println("number of occurrences: "+String.valueOf(Falocs.size()));
 			Prior_EZ=Math.min(SearchEngine2.ForwardStrand.size()/(double)Falocs.size(),Prior_EZ);
+			if(Prior_EZ<0.5)
+				Prior_EZ=0.5;
 					Iterator<FastaLocation> iter2=Falocs.iterator();
 					int count=0;
 					int match_seqCount=0;
@@ -903,12 +906,12 @@ public class Pomoda {
 							
 						
 						if(Falocs.size()==0|| stateCodes.contains(Falocs.hashCode()))
-							return motif;
+							return bestPWM;
 						else
 							stateCodes.add(Falocs.hashCode());
 						
 						//motif=new PWM((String[])(MatchSite.toArray(new  String[1])));
-
+						bestPWM=motif.Clone();
 						for (int i = 0; i < m_matrix.length; i++) {
 							motif.setWeights(i+motif.head-flankingLen,common.Normalize(m_matrix[i]));
 						}
@@ -975,7 +978,7 @@ public class Pomoda {
 			
 		if(DnaseLib!=null)
 			DrawDistribution(motif.Dnase_prob,"Dnase_plot.png");
-		return motif;
+		return bestPWM;
 	}
 	
 	
