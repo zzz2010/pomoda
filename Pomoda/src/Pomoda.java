@@ -655,15 +655,15 @@ public class Pomoda {
 			double lognullprior=Math.log(1.0/num_priorbin);
 	
 			
-			//double log_thresh=motif.getThresh(sampling_ratio, FDR, background)- motiflen*log025;
-			double log_thresh=0;
+			//double log_thresh=motif.getThresh(sampling_ratio, 2*FDR, background)- motiflen*log025;
+			double log_thresh=Math.log(1-Prior_EZ)-Math.log(Prior_EZ);
 			
 			double [][]m_matrix=new double [motiflen+flankingLen*2][4];
 			
 			//update the loglik matrix
 			LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
 			System.out.println("number of occurrences: "+String.valueOf(Falocs.size()));
-			Prior_EZ=Math.min(1.0/num_priorbin,Prior_EZ);
+			Prior_EZ=Math.min(motif.core_motiflen*(double)SearchEngine2.getSeqNum()/SearchEngine2.getTotalLength(),Prior_EZ);
 			
 //			if(Prior_EZ<0.5)
 //				Prior_EZ=0.5;
@@ -755,7 +755,7 @@ public class Pomoda {
 						double loglik=logprob_theta+logprior+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
 						if(loglik>200)
 							loglik=200;
-						double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);
+						double prob_theta=loglik;//Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);
 						double prob_theta_only=Math.exp(logprob_theta+logprior)/(Math.exp(logprob_theta+logprior)+1);
 						if(Double.isNaN(prob_theta))
 							prob_theta=1;//upper flow
@@ -795,7 +795,7 @@ public class Pomoda {
 						if(OOPS&&currloc.getSeqId()!=lastseq)
 						{
 							match_seqCount++;
-							bestscore+= NegBinFunction.plogis(max_seqloglik);
+							bestscore+= max_seqloglik;//NegBinFunction.plogis(max_seqloglik);
 							lastseq=currloc.getSeqId();
 							max_seqloglik=0;
 							//System.out.println(max_seqsite.toUpperCase());
@@ -806,7 +806,7 @@ public class Pomoda {
 									if(symid>3)
 										{
 											for (int j = 0; j < 4; j++) {
-												m_matrix[i][j]+=max_seqprob_theta;
+												m_matrix[i][j]+=0.25;
 											}
 										
 										}
@@ -869,7 +869,7 @@ public class Pomoda {
 					if(OOPS)
 					{
 						match_seqCount++;
-						bestscore+= NegBinFunction.plogis(max_seqloglik);
+						bestscore+=max_seqloglik; //NegBinFunction.plogis(max_seqloglik);
 						
 						max_seqloglik=0;
 						//System.out.println(max_seqsite.toUpperCase());
