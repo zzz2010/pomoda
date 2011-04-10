@@ -756,7 +756,7 @@ public class Pomoda {
 						if(loglik>200)
 							loglik=200;
 						double prob_theta=loglik;//Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);
-						double prob_theta_only=Math.exp(logprob_theta+logprior)/(Math.exp(logprob_theta+logprior)+1);
+						//double prob_theta_only=Math.exp(logprob_theta+logprior)/(Math.exp(logprob_theta+logprior)+1);
 						if(Double.isNaN(prob_theta))
 							prob_theta=1;//upper flow
 //						if(motif.Dnase_prob!=null)
@@ -844,7 +844,7 @@ public class Pomoda {
 							max_seqloglik=loglik;
 //							max_logDnaseMNProb=logDnaseMNProb;
 							max_seqprob_theta=prob_theta;
-							max_seqprob_theta_only=prob_theta_only;
+							//max_seqprob_theta_only=prob_theta_only;
 							max_seqsite=site;
 //							max_temp_dnase2=temp_dnase2;
 //							if(prob_theta>1000000)
