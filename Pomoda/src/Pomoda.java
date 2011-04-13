@@ -627,6 +627,7 @@ public class Pomoda {
 		PWM bestPWM=motif.Clone();
 		double sitesperSeq=0;
 
+
 		do
 		{
 
@@ -638,12 +639,15 @@ public class Pomoda {
 			bestscore=0;
 			double[] temp_prior=new double[num_priorbin];
 
+			double overlap_loglik=0;
+			double overlap_prob=0;
 			
+			int overlap_pos=-motiflen;
 			double lognullprior=Math.log(1.0/num_priorbin);
 	
 			
-			double log_thresh=motif.getThresh(sampling_ratio, 2*FDR, background)- motiflen*log025;
-			//double log_thresh=Math.log(1-Prior_EZ)-Math.log(Prior_EZ);
+			//double log_thresh=motif.getThresh(sampling_ratio, 2*FDR, background)- motiflen*log025;
+			double log_thresh=Math.log(1-Prior_EZ)-Math.log(Prior_EZ);
 			
 			double [][]m_matrix=new double [motiflen+flankingLen*2][4];
 			double [][] max_count_matrix=new double[motif.columns()][4];
@@ -756,23 +760,46 @@ public class Pomoda {
 							}
 
 							bestscore+= max_seqloglik/sitesperSeq;
-							max_seqloglik=0;
+							max_seqloglik=0;	
 							sitesperSeq=0;
+							overlap_pos=-motiflen;
 							common.fill2DArray(max_count_matrix,0);
 						}
 						
 						if(OOPS)
 						{
-							max_seqloglik+=prob_theta*loglik;
-
-							for (int i = 0; i < site.length(); i++) {
-								int symid=common.acgt(site.charAt(i));
-								if(symid>3)
-									continue; //meet new line separator
-							max_count_matrix[i][symid]+=prob_theta;
-							
-							}	
-							sitesperSeq+=prob_theta;
+							if(Math.abs(currloc.getSeqPos()-overlap_pos)<motiflen)
+							{
+								if(prob_theta>overlap_prob)
+								{
+									max_seqloglik+=prob_theta*loglik-overlap_prob*overlap_loglik;
+									for (int i = 0; i < site.length(); i++) {
+										int symid=common.acgt(site.charAt(i));
+										if(symid>3)
+											continue; //meet new line separator
+									max_count_matrix[i][symid]+=prob_theta-overlap_prob;
+									
+									}	
+									sitesperSeq+=prob_theta-overlap_prob;
+									overlap_prob=prob_theta;
+									overlap_loglik=loglik;
+								}
+								//else just ignore the low score site
+							}								
+							else
+							{
+								max_seqloglik+=prob_theta*loglik;
+								
+								for (int i = 0; i < site.length(); i++) {
+									int symid=common.acgt(site.charAt(i));
+									if(symid>3)
+										continue; //meet new line separator
+								max_count_matrix[i][symid]+=prob_theta;
+								
+								}	
+								sitesperSeq+=prob_theta;
+							}
+							overlap_pos=currloc.getSeqPos();
 						}
 						
 						if(!OOPS)
