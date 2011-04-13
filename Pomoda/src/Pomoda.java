@@ -789,8 +789,14 @@ public class Pomoda {
 								
 								for (int i = 0; i < site.length(); i++) {
 									int symid=common.acgt(site.charAt(i));
+
 									if(symid>3)
-										continue; //meet new line separator
+									{
+										for (int j = 0; j < 4; j++) {
+											max_count_matrix[i][j]+=0.25;
+										}
+										continue;
+									}
 								max_count_matrix[i][symid]+=prob_theta;
 								
 								}	
@@ -1479,7 +1485,13 @@ public class Pomoda {
 							for (int i = 0; i < site.length(); i++) {
 								int symid=common.acgt(site.charAt(i));
 								if(symid>3)
-									continue; //meet new line separator
+								{
+									for (int j = 0; j < 4; j++) {
+										max_count_matrix[i][j]+=0.25;
+									}
+									continue;
+								}
+								
 							max_count_matrix[i][symid]+=prob_theta;
 							if(max_loglik_matrix[i][symid]==Double.MIN_VALUE)
 								max_loglik_matrix[i][symid]=prob_theta*(loglik);
