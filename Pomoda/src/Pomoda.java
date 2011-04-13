@@ -654,10 +654,7 @@ public class Pomoda {
 			//update the loglik matrix
 			LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
 			System.out.println("number of occurrences: "+String.valueOf(Falocs.size()));
-			Prior_EZ=Math.min(motif.core_motiflen*(double)SearchEngine2.getSeqNum()/SearchEngine2.getTotalLength(),Prior_EZ);
-			
-//			if(Prior_EZ<0.5)
-//				Prior_EZ=0.5;
+
 					Iterator<FastaLocation> iter2=Falocs.iterator();
 					int count=0;
 					double match_seqCount=0;
@@ -717,7 +714,7 @@ public class Pomoda {
 						double logprior=0;
 						int prior_bin=(int)(num_priorbin*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
 						if(motif.pos_prior.size()!=0)
-							logprior=motif.pos_prior.get(prior_bin)-lognullprior;
+							logprior=Math.log(motif.pos_prior.get(prior_bin))-lognullprior;
 						double logDnaseProb=0;
 
 						double loglik=logprob_theta+logprior+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
@@ -798,6 +795,8 @@ public class Pomoda {
 								
 								}	
 								sitesperSeq+=prob_theta;
+								overlap_prob=prob_theta;
+								overlap_loglik=loglik;
 							}
 							overlap_pos=currloc.getSeqPos();
 						}
@@ -848,11 +847,6 @@ public class Pomoda {
 						motif.Score=bestscore;//-Math.log(SearchEngine2.getSeqNum())*2*motif.core_motiflen;
 						lastscore=bestscore;
 						}
-						
-							
-							
-						
-							
 						
 						if(Falocs.size()==0|| stateCodes.contains(Falocs.hashCode()))
 							return bestPWM;
@@ -1337,7 +1331,7 @@ public class Pomoda {
 			
 	
 		double [][] loglik_matrix=new double[motif.columns()][4];
-		
+
 		double[][] count_matrix=new double[motif.columns()][4];
 		common.fill2DArray(count_matrix, common.DoubleMinNormal);
 		String consensus=motif.Consensus(false);
@@ -1345,6 +1339,10 @@ public class Pomoda {
 		int motiflen=consensus_core.length();
 		int avergeSeqlen=(SearchEngine.TotalLen/SearchEngine.SeqNum);
 		double[] single_logprob_bg=new double [4];
+		double overlap_loglik=0;
+		double overlap_prob=0;
+		
+		int overlap_pos=-motiflen;
 		String ACGT="ACGT";
 		//get single sym bgprob
 		for (int i = 0; i < single_logprob_bg.length; i++) {
@@ -1412,7 +1410,7 @@ public class Pomoda {
 					int posbin=(int)(num_priorbin*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
 					double logprior=0;
 					if(motif.pos_prior.size()!=0)
-						logprior=motif.pos_prior.get(posbin)-lognullprior;
+						logprior=Math.log(motif.pos_prior.get(posbin))-lognullprior;
 					double logDnaseProb=0;
 
 					double loglik=logprob_theta+logprior-logprob_BG+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
@@ -1447,23 +1445,54 @@ public class Pomoda {
 						
 						lastseq=currloc.getSeqId();
 						sitesperSeq=0;
+						overlap_pos=-motiflen;
 						common.fill2DArray(max_loglik_matrix,Double.MIN_VALUE);
 						common.fill2DArray(max_count_matrix,0);
 					}
 					if(OOPS)
 					{
-						for (int i = 0; i < site.length(); i++) {
-							int symid=common.acgt(site.charAt(i));
-							if(symid>3)
-								continue; //meet new line separator
+						if(Math.abs(currloc.getSeqPos()-overlap_pos)<motiflen)
+						{
+							if(prob_theta>overlap_prob)
+							{
+								for (int i = 0; i < site.length(); i++) {
+									int symid=common.acgt(site.charAt(i));
+									if(symid>3)
+										continue; //meet new line separator
+								max_count_matrix[i][symid]+=prob_theta-overlap_prob;
+								if(max_loglik_matrix[i][symid]==Double.MIN_VALUE)
+									max_loglik_matrix[i][symid]=prob_theta*loglik-overlap_prob*overlap_loglik;
+								else
+									max_loglik_matrix[i][symid]+=prob_theta*loglik-overlap_prob*overlap_loglik;
+								
+								}	
+								sitesperSeq+=prob_theta-overlap_prob;
+								overlap_prob=prob_theta;
+								overlap_loglik=loglik;
+							}
+							//else just ignore the low score site
+						}								
+						else
+						{
+							
+							
+							for (int i = 0; i < site.length(); i++) {
+								int symid=common.acgt(site.charAt(i));
+								if(symid>3)
+									continue; //meet new line separator
+							max_count_matrix[i][symid]+=prob_theta;
 							if(max_loglik_matrix[i][symid]==Double.MIN_VALUE)
 								max_loglik_matrix[i][symid]=prob_theta*(loglik);
 							else
 								max_loglik_matrix[i][symid]+=prob_theta*(loglik);
-								max_count_matrix[i][symid]+=prob_theta;
-						
-						}	
-						sitesperSeq+=prob_theta;
+							
+							}	
+							sitesperSeq+=prob_theta;
+							overlap_prob=prob_theta;
+							overlap_loglik=loglik;
+						}
+						overlap_pos=currloc.getSeqPos();
+
 						continue;
 					}
 
@@ -1559,7 +1588,15 @@ public class Pomoda {
 			if(bestCol==-1)
 				break;
 
-			
+			double X=count_matrix[bestCol][bestSym.get(0)];
+			double total=0;
+			for (int j = 0; j < 4; j++) {
+				total+=count_matrix[bestCol][j];
+			}
+			Binomial binomial=new Binomial((int)total,Math.exp(single_logprob_bg[bestSym.get(0)]),rand);
+			double pvalue=1.0-binomial.cdf((int)X);
+			if(pvalue>this.FDR/(num_col_cand*4))
+				break;
 			double [] repColumnValue=new double[4];
 			Arrays.fill(repColumnValue, common.DoubleMinNormal);
 			
@@ -1569,16 +1606,21 @@ public class Pomoda {
 
 			for (int i = 1; i <= bestSym.size(); i++) {
 				double sumNorm=0;
+				
+				double sumcount=0;
+				for (int j = 0; j < i; j++)
+					sumcount+=count_matrix[bestCol][bestSym.get(j)];
 				for (int j = 0; j < i; j++) {
 					double temp=loglik_matrix[bestCol][bestSym.get(j)];
-					//try add up the new added column nlogP, but P here is without consider the entropy
-						sumNorm+=(temp)+count_matrix[bestCol][bestSym.get(j)]*Math.log(optimalcols[bestCol][bestSym.get(j)]);			
+						sumNorm+=(temp)+count_matrix[bestCol][bestSym.get(j)]*Math.log(count_matrix[bestCol][bestSym.get(j)]/sumcount);
+					
 				}
+
 				if(sumNorm>max_sumNorm)
 				{
 					for (int j = 0; j < i; j++) 
 					{
-						repColumnValue[bestSym.get(j)]=optimalcols[bestCol][bestSym.get(j)];
+						repColumnValue[bestSym.get(j)]=count_matrix[bestCol][bestSym.get(j)]/sumcount;
 					}
 					repColumnValue=common.Normalize(repColumnValue);
 					max_sumNorm=sumNorm;
