@@ -35,7 +35,15 @@ public class common {
 	
 	
 	static double DoubleMinNormal=0.00000000000001;
-	
+	public static double lnEntropy(double[] arr)
+	{
+		double entropy=0;
+		for (int i = 0; i < arr.length; i++) {
+			entropy+=arr[i]*Math.log(arr[i]);
+		}
+		
+		return -entropy;
+	}
 	public static ArrayList<Double[]> ReadDelimitedFile(String sep, String file)
 	{
 		ArrayList<Double[]> ret=new ArrayList<Double[]>();

@@ -294,7 +294,7 @@ public class PWM extends SimpleWeightMatrix {
 		int len=Math.min(core_motiflen, seq.length());
          for (int i = 0; i < len; i++) {
         	 if(common.acgt(seq.charAt(i))>3)
-        		 return Double.NEGATIVE_INFINITY;
+        		 return Math.log(0.25);
 			score+=log_matrix[head+i][common.acgt(seq.charAt(i))];
 		}
          
