@@ -12,6 +12,9 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.biojava.bio.dist.DistributionTools;
+import org.biojava.bio.dist.UniformDistribution;
+import org.biojava.bio.seq.DNATools;
 
 
 public class FastaMask {
@@ -19,6 +22,51 @@ public class FastaMask {
 	/**
 	 * @param args
 	 */
+	
+	public static void generateSimulatedData(LinkedList<PWM> pwmlist, int N, int len, String outputFasta, BGModel background, double sampling_ratio)
+	{
+		File file2 = new File(outputFasta); 
+		File file1 = new File(outputFasta.replace(".fa", ".ans")); 
+		try {
+			BufferedWriter writer2= new BufferedWriter(new FileWriter(file2));
+			BufferedWriter writer1= new BufferedWriter(new FileWriter(file1));
+	         background.r.setSeed(0);
+
+			for (int i = 0; i < N; i++) {
+	        	 String bgstr="";
+		        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
+		        	 bgstr=bgstr_p.value;
+
+	        	 Iterator<PWM> iter=pwmlist.iterator();
+	        	 while(iter.hasNext())
+	        	 {
+	        		 PWM motif=iter.next();
+	        		 if(background.r.nextDouble()<sampling_ratio)
+	        		 {
+	        			 String site="";
+	        			 for (int j = 0; j < motif.columns(); j++) {
+	        				 site+=DistributionTools.generateSymbolList(motif.getColumn(j), 1).seqString();
+						}
+	        			 //reverse strand
+	        			 if(background.r.nextDouble()<0.5)
+	        				 site=common.getReverseCompletementString(site);
+	        			 int pos=background.r.nextInt(len-motif.columns());
+	        			 bgstr=bgstr.substring(0, pos)+site+bgstr.substring(pos+site.length());
+	        			 writer1.write(motif.Name+"\t"+site+"\t"+i+"\t"+pos+"\n");
+	        		 }
+	        	 }
+	        	 writer2.write(">"+i+"\n");
+	        	 writer2.write(bgstr+"\n");
+	        	 
+			}
+			writer2.close();
+			writer1.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		int topN=2;
@@ -30,7 +78,9 @@ public class FastaMask {
 		options.addOption("bgmodel", true, "background model file");
 		options.addOption("prefix", true, "output directory");
 		options.addOption("FDR",true,"fasle positive rate");
+		options.addOption("simlen",true,"turn on the simulation function: -N number of sequences, -FDR the percentage contain motif");
 		String inputPWM;
+		int simlen=-1;
 		CommandLineParser parser = new GnuParser();
 		GapImprover GImprover=new GapImprover();
 		try {
@@ -59,6 +109,10 @@ public class FastaMask {
 			{
 				topN=Integer.parseInt(cmd.getOptionValue("N"));
 			}
+			if(cmd.hasOption("simlen"))
+			{
+				simlen=Integer.parseInt(cmd.getOptionValue("simlen"));
+			}
 			if(cmd.hasOption("bgmodel"))
 			{
 				GImprover.bgmodelFile=cmd.getOptionValue("bgmodel");
@@ -80,6 +134,14 @@ public class FastaMask {
 		
 		GImprover.initialize();
 		LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+		String basename= (new File(inputPWM)).getName();
+		if(simlen>0)
+		{// turn on simulated data generation, turn off the fasta masking
+			String outputFasta=GImprover.outputPrefix+"/"+basename.split("\\.")[0]+topN+"_"+simlen+"_"+GImprover.FDR+".fa";
+			generateSimulatedData(pwmlist, topN, simlen, outputFasta, GImprover.background, GImprover.FDR);
+			return ;
+		}
+		
 		for (int i = 0; i < Math.min(topN, pwmlist.size()); i++) {
 			PWM motif=pwmlist.get(i);
 			double log_thresh=motif.getThresh(1,GImprover.FDR, GImprover.background);
@@ -110,7 +172,7 @@ public class FastaMask {
 			}
 		
 		}
-		String basename= (new File(inputPWM)).getName();
+		
 		File file = new File(GImprover.inputFasta+"_"+basename.substring(0,3)+"mask.fa"); 
 		try {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
