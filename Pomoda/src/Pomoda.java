@@ -605,7 +605,7 @@ public class Pomoda {
 		}
 		
 		//EM full site iteration
-		double Prior_EZ=1-motif.inst_FDR;
+		double Prior_EZ=(double)SearchEngine.getSeqNum()/(SearchEngine.getTotalLength()/motif.core_motiflen);
 		double bestscore=motif.Score;
 		double lastscore=0;
 		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
@@ -628,6 +628,7 @@ public class Pomoda {
 		double sitesperSeq=0;
 		double log_thresh=Math.log(1-Prior_EZ)-Math.log(Prior_EZ);
 		LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
+		
 		do
 		{
 
@@ -659,6 +660,7 @@ public class Pomoda {
 					int count=0;
 					double match_seqCount=0;
 					int lastseq=-1;
+					String lastsite="";
 					double max_seqloglik=0;
 
 					String max_seqsite="";
@@ -773,14 +775,24 @@ public class Pomoda {
 									max_seqloglik+=prob_theta*loglik-overlap_prob*overlap_loglik;
 									for (int i = 0; i < site.length(); i++) {
 										int symid=common.acgt(site.charAt(i));
-										if(symid>3)
-											continue; //meet new line separator
-									max_count_matrix[i][symid]+=prob_theta-overlap_prob;
+										if(symid<4)
+											max_count_matrix[i][symid]+=prob_theta;
+									if(lastsite.length()>0)
+									{
+										int lastsymid=common.acgt(lastsite.charAt(i));
+										if(lastsymid<4)
+											max_count_matrix[i][lastsymid]-=overlap_prob;
+										else
+											for (int j = 0; j < 4; j++) {
+												max_count_matrix[i][j]-=0.25*overlap_prob;
+											}
+									}
 									
 									}	
 									sitesperSeq+=prob_theta-overlap_prob;
 									overlap_prob=prob_theta;
 									overlap_loglik=loglik;
+									lastsite=site;
 								}
 								//else just ignore the low score site
 							}								
@@ -794,7 +806,7 @@ public class Pomoda {
 									if(symid>3)
 									{
 										for (int j = 0; j < 4; j++) {
-											max_count_matrix[i][j]+=0.25;
+											max_count_matrix[i][j]+=0.25*overlap_prob;
 										}
 										continue;
 									}
@@ -804,10 +816,12 @@ public class Pomoda {
 								sitesperSeq+=prob_theta;
 								overlap_prob=prob_theta;
 								overlap_loglik=loglik;
+								lastsite=site;
 							}
 							overlap_pos=currloc.getSeqPos();
 
 						}
+						
 						
 						if(!OOPS)
 						{
