@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 import org.biojava.bio.BioException;
@@ -105,6 +106,19 @@ public class BGModel implements Serializable{
 		 normalizeConditionProb();
 		
 	}
+	public void BuildModel(Map<String,Double> Seqs, int order)
+	{
+		this.order=order;
+		initializeConditionProb();
+		for(String seq : Seqs.keySet())
+		{
+			addCount(seq,Seqs.get(seq));
+			addCount(common.getReverseCompletementString(seq),Seqs.get(seq));
+		}
+		 
+		 normalizeConditionProb();
+		
+	}
 	
 	private void addCount(String seq)
 	{
@@ -120,6 +134,18 @@ public class BGModel implements Serializable{
 //			   {
 //				   conditionProb.put(segment, 1.0);
 //			   }
+			}
+			
+		}
+		
+	}
+	private void addCount(String seq,double prob)
+	{
+		seq=seq.toUpperCase().replace("N", "");
+		for (int i = 0; i < seq.length()-order+1; i++) {
+			for (int j = 0; j < order; j++) {
+				String segment=seq.substring(i, i+j+1);
+				   conditionProb.put(segment, conditionProb.get(segment)+prob);
 			}
 			
 		}

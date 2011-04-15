@@ -1,7 +1,10 @@
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -81,7 +84,45 @@ public class PWMevaluator {
 		
 	}
 	
-	
+	public static int comparePositionList(List<FastaLocation> Falocs,String ansfile,int windowsize)
+	{
+		int maxseqlen=10000;
+		ArrayList<Integer> anslist=new ArrayList<Integer>(1000);
+		ArrayList<Integer> testlist=new ArrayList<Integer>(Falocs.size());
+		try {
+			BufferedReader readbuffer = new BufferedReader(new FileReader(ansfile));
+			String strRead;
+			while ((strRead=readbuffer.readLine())!=null){
+				String splitarray[] = strRead.split("\t");
+					int seqid=Integer.parseInt(splitarray[splitarray.length-2]);
+					int pos=Integer.parseInt(splitarray[splitarray.length-1]);
+					anslist.add(seqid*maxseqlen+pos);
+				}
+			Iterator<FastaLocation> iter=Falocs.iterator();
+			while(iter.hasNext())
+			{
+				FastaLocation curr=iter.next();
+				testlist.add(curr.getSeqId()*maxseqlen+curr.getSeqPos());
+			}
+			SortingThread st1=new SortingThread(anslist);
+			SortingThread st2=new SortingThread(testlist);
+			st1.run();
+			
+			st2.run();
+			OverlappingThread ot=new OverlappingThread(st1.getResult(), st2.getResult(), windowsize);
+			ot.run();
+			return ot.getResult().size();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return 0;
+	}
 	
 	public void initialize()
 	{
