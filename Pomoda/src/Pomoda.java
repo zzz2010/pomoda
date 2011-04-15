@@ -118,7 +118,7 @@ public class Pomoda {
 		else
 			file= new File(ctrlFasta+".bgobj");
 		
-		if(file.exists()||!bgmodelFile.isEmpty())
+		if(!bgmodelFile.isEmpty())
 		{
 			if(bgmodelFile.isEmpty())
 			background.LoadModel(file.getAbsolutePath());
@@ -737,7 +737,7 @@ public class Pomoda {
 						if(motif.pos_prior.size()!=0)
 							logprior=Math.log(motif.pos_prior.get(prior_bin))-lognullprior;
 						double logDnaseProb=0;
-						logprior=0;
+						//logprior=0;
 						double loglik=logprob_theta+logprior+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
 						if(loglik>200)
 							loglik=200;
