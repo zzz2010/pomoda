@@ -32,6 +32,11 @@ public class PWM extends SimpleWeightMatrix {
 	double[][]  log_matrix;
 	public int head;
 	public String Name="";
+	boolean strand_en=false;
+	boolean pos_en=false;
+	boolean peakrank_en=false;
+	public double strand_plus_prior=0.5;
+	public ArrayList<Double>peakrank_prior=new ArrayList<Double>();
 	public int core_motiflen;
 	public int tail;
 	public double inst_coverage=1;
@@ -682,7 +687,14 @@ public class PWM extends SimpleWeightMatrix {
 	{
 		StringBuffer TransStr=new StringBuffer("");
 		String consensus=Consensus(true);
-		TransStr.append("DE\t"+Name+"\t"+consensus+"\t"+String.valueOf(this.Score)+"\n");
+		String priorlist="";
+		if(pos_en)
+			priorlist+="pos|";
+		if(strand_en)
+			priorlist+="strand|";
+		if(peakrank_en)
+			priorlist+="peakrank|";
+		TransStr.append("DE\t"+Name+"\t"+consensus+"\t"+String.valueOf(this.Score)+"\t"+priorlist+"\n");
 		TransStr.append("PO\tA\tC\tG\tT\n");
 		for (int i = head; i < this.columns()-tail; i++) {
 			TransStr.append(i-head+1);

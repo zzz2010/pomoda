@@ -55,6 +55,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RectangleInsets;
 import org.pr.clustering.hierarchical.LinkageCriterion;
 
+import umontreal.iro.lecuyer.probdist.ChiSquareDist;
 import umontreal.iro.lecuyer.probdist.NegativeBinomialDist;
 import umontreal.iro.lecuyer.probdist.NormalDist;
 import umontreal.iro.lecuyer.probdistmulti.DirichletDist;
@@ -99,7 +100,7 @@ public class Pomoda {
 	public void initialize()
 	{
 		//build hash index
-		SearchEngine=new HashEngine(1);
+		SearchEngine=new HashEngine(5);
 		SearchEngine.build_index(this.inputFasta);
 		SearchEngine2=new LinearEngine(6);
 		SearchEngine2.build_index(this.inputFasta);
@@ -657,7 +658,8 @@ public class Pomoda {
 			System.out.println(consensus_core+"\t"+String.valueOf(bestscore));
 			bestscore=0;
 			double[] temp_prior=new double[num_priorbin];
-
+			double[] temp_peakrank=new double[num_priorbin];	
+			double[] temp_strand=new double[2];	
 			double overlap_loglik=0;
 			double overlap_prob=0;
 			
@@ -734,8 +736,14 @@ public class Pomoda {
 						//double logprob_BG=background.Get_LOGPROB(site.substring((site.length()-motiflen)/2, motiflen));
 						double logprior=0;
 						int prior_bin=(int)(num_priorbin*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
-						if(motif.pos_prior.size()!=0)
+						int rankbin=num_priorbin*currloc.getSeqId()/SearchEngine.getSeqNum();
+						if(motif.pos_prior.size()!=0&&motif.pos_en)
 							logprior=Math.log(motif.pos_prior.get(prior_bin))-lognullprior;
+						if(motif.strand_en)
+							logprior+=Math.log(motif.strand_plus_prior*2);
+						if(motif.peakrank_prior.size()!=0&&motif.peakrank_en)
+							logprior+=Math.log(motif.peakrank_prior.get(rankbin))-lognullprior;
+						
 						double logDnaseProb=0;
 						//logprior=0;
 						double loglik=logprob_theta+logprior+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
@@ -747,8 +755,18 @@ public class Pomoda {
 							prob_theta=1;//upper flow
 
 						bgstrSet.put(site, 1-prob_theta);
-						
+						temp_peakrank[rankbin]+=prob_theta;
 						temp_prior[prior_bin]+=prob_theta;//make smaller
+						if(currloc.ReverseStrand)
+						{
+							temp_strand[0]+=1-prob_theta;
+							temp_strand[1]+=prob_theta;
+						}
+						else
+						{
+							temp_strand[0]+=prob_theta;
+							temp_strand[1]+=1-prob_theta;
+						}
 						if(OOPS)
 							loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
 						if(!OOPS)
@@ -910,14 +928,62 @@ public class Pomoda {
 						for (int i = 0; i < m_matrix.length; i++) {
 							motif.setWeights(i+motif.head-flankingLen,common.Normalize(m_matrix[i]));
 						}
-					
-					
-						motif.pos_prior.clear();
-						temp_prior=common.Normalize(temp_prior);
-						for (int i = 0; i < temp_prior.length; i++) {
-							motif.pos_prior.add(temp_prior[i]);
-						}
 						
+						
+						//determine whether pos_prior is significant needed
+						double chistat=0;
+						double sumPrior=0;
+						for (int i = 0; i < temp_prior.length; i++) {
+							sumPrior+=temp_prior[i];
+						}
+						//ignore the first and last bin
+						double avgE=(sumPrior-temp_prior[0]-temp_prior[temp_prior.length-1])/(temp_prior.length-2);
+							for (int j = 1; j < temp_prior.length-1; j++) {
+								double temp=temp_prior[j]-avgE;
+								chistat+=temp*temp/avgE;
+							}
+							double invFDR=ChiSquareDist.inverseF(temp_prior.length-3, 1-FDR);
+							
+							if(chistat>invFDR)
+							{
+								motif.pos_en=true;
+								motif.pos_prior.clear();
+								for (int i = 0; i < temp_prior.length; i++) {
+									temp_prior[i]/=sumPrior;
+									motif.pos_prior.add(temp_prior[i]);
+								}
+							}
+							//determine whether strand_prior is significant needed
+							RandomEngine rand=RandomEngine.makeDefault();
+							double X=Math.max(temp_strand[0], temp_strand[1]);
+							Binomial binomial=new Binomial((int)(temp_strand[0]+temp_strand[1]),0.5,rand);
+							double pvalue_strand=1.0-binomial.cdf((int)X);
+							if(pvalue_strand<this.FDR)
+							{
+								motif.strand_plus_prior=temp_strand[0]/(temp_strand[0]+temp_strand[1]);
+								motif.strand_en=true;
+							}
+						
+							//determine whether peakrank_prior is significant needed
+							chistat=0;
+							sumPrior=0;
+							for (int i = 0; i < temp_peakrank.length; i++) {
+								sumPrior+=temp_peakrank[i];
+							}
+								for (int j = 0; j < temp_peakrank.length; j++) {
+									double temp=temp_peakrank[j]-sumPrior/temp_peakrank.length;
+									chistat+=temp*temp*temp_peakrank.length/sumPrior;
+								}
+								invFDR=ChiSquareDist.inverseF(temp_peakrank.length-1, 1-FDR);
+								if(chistat>invFDR)
+								{
+									motif.peakrank_en=true;
+									motif.peakrank_prior.clear();
+									for (int i = 0; i < temp_peakrank.length; i++) {
+										temp_peakrank[i]/=sumPrior;
+										motif.peakrank_prior.add(temp_peakrank[i]);
+									}
+								}
 
 						
 					}
@@ -1370,7 +1436,9 @@ public class Pomoda {
 		
 		System.out.println(consensus_core+"\t"+String.valueOf(bestscore));
 		bestscore=0;
-		double[] temp_prior=new double[num_priorbin];		
+		double[] temp_prior=new double[num_priorbin];	
+		double[] temp_peakrank=new double[num_priorbin];	
+		double[] temp_strand=new double[2];	
 		double lognullprior=Math.log(1.0/num_priorbin);
 		
 		LinkedList<FastaLocation> Falocs=origFalocs;
@@ -1421,7 +1489,10 @@ public class Pomoda {
 					String site="";
 					//forward site
 					if(currloc.ReverseStrand)
+					{
 						site=SearchEngine.getSite(currloc.getMin()-(motif.columns()-seedlen)/2, motif.columns());
+						site=common.getReverseCompletementString(site);
+					}
 					else
 						site=SearchEngine.getSite(currloc.getMin()-(motif.columns()-seedlen)/2, motif.columns());
 					if(site.indexOf('X')>-1)
@@ -1453,17 +1524,19 @@ public class Pomoda {
 					double logprob_theta=motif.scoreWeightMatrix(site.substring(motif.head,motif.head+motiflen));
 					double logprob_BG=background.Get_LOGPROB(site.substring(motif.head,motif.head+motiflen));
 
-					if(currloc.ReverseStrand)
-					{
-						//reverse site
-						site=common.getReverseCompletementString(site);			
-					}	
 					int posbin=(int)(num_priorbin*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
+					int rankbin=num_priorbin*currloc.getSeqId()/SearchEngine.getSeqNum();
 					double logprior=0;
-					if(motif.pos_prior.size()!=0)
+					if(motif.pos_prior.size()!=0&&motif.pos_en)
 						logprior=Math.log(motif.pos_prior.get(posbin))-lognullprior;
+					if(motif.strand_en)
+						logprior+=Math.log(motif.strand_plus_prior*2);
+					if(motif.peakrank_prior.size()!=0&&motif.peakrank_en)
+						logprior+=Math.log(motif.peakrank_prior.get(rankbin))-lognullprior;
+					
 					double logDnaseProb=0;
-
+					
+					
 					double loglik=logprob_theta+logprior-logprob_BG+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
 					if(loglik>200)
 						loglik=200;
@@ -1471,7 +1544,18 @@ public class Pomoda {
 					if(Double.isNaN(prob_theta))
 						prob_theta=1;
 					
+					temp_peakrank[rankbin]+=prob_theta;
 					temp_prior[posbin]+=prob_theta;
+					if(currloc.ReverseStrand)
+					{
+						temp_strand[0]+=1-prob_theta;
+						temp_strand[1]+=prob_theta;
+					}
+					else
+					{
+						temp_strand[0]+=prob_theta;
+						temp_strand[1]+=1-prob_theta;
+					}
 
 					if(OOPS)
 						loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
@@ -1742,12 +1826,66 @@ public class Pomoda {
 			}
 
 
+
 			//update motif column value
 			motif.setWeights(bestCol, repColumnValue);
+			
+
+			//determine whether pos_prior is significant needed
+			double chistat=0;
 			double sumPrior=0;
 			for (int i = 0; i < temp_prior.length; i++) {
 				sumPrior+=temp_prior[i];
 			}
+			//ignore the first and last bin
+			double avgE=(sumPrior-temp_prior[0]-temp_prior[temp_prior.length-1])/(temp_prior.length-2);
+				for (int j = 1; j < temp_prior.length-1; j++) {
+					double temp=temp_prior[j]-avgE;
+					chistat+=temp*temp/avgE;
+				}
+				double invFDR=ChiSquareDist.inverseF(temp_prior.length-3, 1-FDR);
+				
+				if(chistat>invFDR)
+				{
+					motif.pos_en=true;
+					motif.pos_prior.clear();
+					for (int i = 0; i < temp_prior.length; i++) {
+						temp_prior[i]/=sumPrior;
+						motif.pos_prior.add(temp_prior[i]);
+					}
+				}
+				
+			//determine whether strand_prior is significant needed
+				X=Math.max(temp_strand[0], temp_strand[1]);
+			binomial=new Binomial((int)(temp_strand[0]+temp_strand[1]),0.5,rand);
+				double pvalue_strand=1.0-binomial.cdf((int)X);
+				if(pvalue_strand<this.FDR)
+				{
+					motif.strand_plus_prior=temp_strand[0]/(temp_strand[0]+temp_strand[1]);
+					motif.strand_en=true;
+				}
+			
+				//determine whether peakrank_prior is significant needed
+				chistat=0;
+				sumPrior=0;
+				for (int i = 0; i < temp_peakrank.length; i++) {
+					sumPrior+=temp_peakrank[i];
+				}
+					for (int j = 0; j < temp_peakrank.length; j++) {
+						double temp=temp_peakrank[j]-sumPrior/temp_peakrank.length;
+						chistat+=temp*temp*temp_peakrank.length/sumPrior;
+					}
+					invFDR=ChiSquareDist.inverseF(temp_peakrank.length-1, 1-FDR);
+					if(chistat>invFDR)
+					{
+						motif.peakrank_en=true;
+						motif.peakrank_prior.clear();
+						for (int i = 0; i < temp_peakrank.length; i++) {
+							temp_peakrank[i]/=sumPrior;
+							motif.peakrank_prior.add(temp_peakrank[i]);
+						}
+					}
+			
 			//also maximize loglik for update other column
 			Iterator<Integer> iter1=extendedCols.iterator();
 			while(iter1.hasNext())
@@ -1759,11 +1897,7 @@ public class Pomoda {
 			
 			motif.inst_FDR=1-Prior_EZ;
 			extendedCols.add(bestCol);
-			motif.pos_prior.clear();
-			for (int i = 0; i < temp_prior.length; i++) {
-				temp_prior[i]/=sumPrior;
-				motif.pos_prior.add(temp_prior[i]);
-			}
+
 
 			if(debug)
 				motif.print();
@@ -2223,7 +2357,7 @@ public class Pomoda {
 			{
 				//if(loglik>max_seqloglik)
 				if(Math.abs(lastpos-currloc.getSeqPos())>seedlen)
-				max_seqloglik+=loglik;
+				max_seqloglik=loglik;
 				
 				lastpos=currloc.getSeqPos();
 				continue;
