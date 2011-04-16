@@ -135,7 +135,7 @@ public class PWMevaluator {
 		int bg_markov_order=3;
 		if(ctrlFasta.isEmpty())
 		{
-			bg_markov_order=4;
+			bg_markov_order=3;
 			file= new File(inputFasta+".bgobj");
 		}
 		else
