@@ -135,13 +135,13 @@ public class PWMevaluator {
 		int bg_markov_order=3;
 		if(ctrlFasta.isEmpty())
 		{
-			bg_markov_order=1;
+			bg_markov_order=4;
 			file= new File(inputFasta+".bgobj");
 		}
 		else
 			file= new File(ctrlFasta+".bgobj");
 		
-		if(file.exists()||!bgmodelFile.isEmpty())
+		if(!bgmodelFile.isEmpty())
 		{
 			if(bgmodelFile.isEmpty())
 			background.LoadModel(file.getAbsolutePath());
