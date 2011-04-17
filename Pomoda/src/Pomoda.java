@@ -622,6 +622,8 @@ public class Pomoda {
 		HashSet<Integer> stateCodes=new HashSet<Integer>();
 	
 		int flankingLen=0;
+		if(motif.core_motiflen==seedlen)
+			flankingLen=2;
 		if(motif.head+flankingLen+motif.core_motiflen>=motif.columns()||motif.head-flankingLen<0)
 			flankingLen=0;
 		int iter_count=0;
@@ -2540,8 +2542,8 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			//seedPWMs.addAll(common.LoadPWMFromFile("E:\\eclipse\\data\\meme.txt_sorted.pwm").subList(0, 1));
-			seedPWMs.clear();
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
+			//seedPWMs.clear();
+			//seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
@@ -2606,8 +2608,11 @@ public class Pomoda {
 				c++;
 				System.out.println(sortedPWMs.get(key).Consensus(true)+'\t'+sortedPWMs.get(key).Score);
 				writer.write(sortedPWMs.get(key).toString());
-				motifFinder.DrawDistribution(sortedPWMs.get(key).pos_prior,motifFinder.outputPrefix+"/"+sortedPWMs.get(key).Name+"_dist.png");
-//				GapPWM gpwm=gimprover.fillDependency(sortedPWMs.get(key));
+				if(sortedPWMs.get(key).pos_en)
+				motifFinder.DrawDistribution(sortedPWMs.get(key).pos_prior,motifFinder.outputPrefix+"/"+sortedPWMs.get(key).Name+"_posdist.png");
+				if(sortedPWMs.get(key).peakrank_en)
+					motifFinder.DrawDistribution(sortedPWMs.get(key).peakrank_prior,motifFinder.outputPrefix+"/"+sortedPWMs.get(key).Name+"_rankdist.png");
+				//				GapPWM gpwm=gimprover.fillDependency(sortedPWMs.get(key));
 //				
 				if(motifFinder.DnaseLib==null)
 					System.out.println("PWM AUC:"+ evaluator.calcAUC(sortedPWMs.get(key),null));
@@ -2624,12 +2629,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-		} catch (IllegalAlphabetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalSymbolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+//		} catch (IllegalAlphabetException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IllegalSymbolException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
 			
 			
 		}
