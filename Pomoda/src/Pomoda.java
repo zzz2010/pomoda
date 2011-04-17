@@ -2608,9 +2608,9 @@ public class Pomoda {
 				c++;
 				System.out.println(sortedPWMs.get(key).Consensus(true)+'\t'+sortedPWMs.get(key).Score);
 				writer.write(sortedPWMs.get(key).toString());
-				if(sortedPWMs.get(key).pos_en)
+				//if(sortedPWMs.get(key).pos_en)
 				motifFinder.DrawDistribution(sortedPWMs.get(key).pos_prior,motifFinder.outputPrefix+"/"+sortedPWMs.get(key).Name+"_posdist.png");
-				if(sortedPWMs.get(key).peakrank_en)
+				//if(sortedPWMs.get(key).peakrank_en)
 					motifFinder.DrawDistribution(sortedPWMs.get(key).peakrank_prior,motifFinder.outputPrefix+"/"+sortedPWMs.get(key).Name+"_rankdist.png");
 				//				GapPWM gpwm=gimprover.fillDependency(sortedPWMs.get(key));
 //				
