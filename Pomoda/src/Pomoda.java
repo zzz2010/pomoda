@@ -626,6 +626,7 @@ public class Pomoda {
 			flankingLen=0;
 		int iter_count=0;
 		PWM bestPWM=motif.Clone();
+		bestPWM.Score=0;//ignore previous score
 		double sitesperSeq=0;
 		double log_thresh=Math.log(1-Prior_EZ)-Math.log(Prior_EZ);
 		LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
@@ -2539,7 +2540,8 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			//seedPWMs.addAll(common.LoadPWMFromFile("E:\\eclipse\\data\\meme.txt_sorted.pwm").subList(0, 1));
-			//seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
+			seedPWMs.clear();
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
@@ -2620,12 +2622,16 @@ public class Pomoda {
 		catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-//		} catch (IllegalAlphabetException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} catch (IllegalSymbolException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
+			
+			
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			
+			
 		}
 		}
 		

@@ -348,7 +348,12 @@ public class PWM extends SimpleWeightMatrix {
 			sub.tail=Math.max(0, tail-(this.columns()-end));
 			sub.Name=sub.Name;
 			sub.Score=this.Score;
+			sub.strand_en=strand_en;
+			sub.pos_en=pos_en;
+			sub.peakrank_en=peakrank_en;
 			sub.pos_prior=(ArrayList<Double>)pos_prior.clone();
+			sub.peakrank_prior=(ArrayList<Double>)peakrank_prior.clone();
+			sub.strand_plus_prior=strand_plus_prior;
 		} catch (IllegalAlphabetException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
