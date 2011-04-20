@@ -179,6 +179,8 @@ public class PWMevaluator {
 		for(Double key:sortedPWMs.keySet())
 		{
 			divergences[similarList.size()]=key;
+			if(key>0.24)
+				continue;
 			similarList.add(sortedPWMs.get(key));
 			
 			if(similarList.size()==K)
@@ -670,7 +672,7 @@ public class PWMevaluator {
 			while(iter.hasNext())
 			{
 				PWM p1=iter.next();
-				int K=5;
+				int K=20;
 				double [] pwmdivergences=new double[K];
 			    ArrayList<PWM> similars=evaluator.similarPWMs(p1, PWMLibrary, K,pwmdivergences);
 			    writer.write(p1.Name);

@@ -142,6 +142,7 @@ public class BGModel implements Serializable{
 	private void addCount(String seq,double prob)
 	{
 		seq=seq.toUpperCase().replace("N", "");
+		seq=seq.toUpperCase().replace("X", "");
 		for (int i = 0; i < seq.length()-order+1; i++) {
 			for (int j = 0; j < order; j++) {
 				String segment=seq.substring(i, i+j+1);
