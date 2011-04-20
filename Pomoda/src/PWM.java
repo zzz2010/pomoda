@@ -696,7 +696,7 @@ public class PWM extends SimpleWeightMatrix {
 		if(pos_en)
 			priorlist+="pos|";
 		if(strand_en)
-			priorlist+="strand|";
+			priorlist+="strand"+strand_plus_prior+"|";
 		if(peakrank_en)
 			priorlist+="peakrank|";
 		TransStr.append("DE\t"+Name+"\t"+consensus+"\t"+String.valueOf(this.Score)+"\t"+priorlist+"\n");
@@ -762,13 +762,23 @@ public class PWM extends SimpleWeightMatrix {
 			if(consensus.charAt(consensus.length()-i-1)!='N'& end==0)
 				end=consensus.length()-i;
 		}
-		head=start;
-		tail=consensus.length()-end;
+
 		if(trim)
 		{
-		consensus=consensus.substring(start,end);
+			if(start>-1)
+		   consensus=consensus.substring(start,end);
+			else
+			{
+				 consensus=consensus.substring(0,core_motiflen);
+			}
 		}
+		if(start>-1)
+		{
+		head=start;
+		tail=columns()-end;
 		core_motiflen=end-start;
+		}
+	
 		return consensus;
 	}
 	
