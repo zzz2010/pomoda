@@ -55,6 +55,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RectangleInsets;
 import org.pr.clustering.hierarchical.LinkageCriterion;
 
+import sun.util.calendar.Era;
 import umontreal.iro.lecuyer.probdist.ChiSquareDist;
 import umontreal.iro.lecuyer.probdist.NegativeBinomialDist;
 import umontreal.iro.lecuyer.probdist.NormalDist;
@@ -90,6 +91,7 @@ public class Pomoda {
 	public HashEngine SearchEngine;
 	public LinearEngine SearchEngine2;
 	public BGModel background;
+	ArrayList<ArrayList<Double>> ErasingFactor;
 	
 	public String linkage="WPGMA";
 	public ArrayList<Double> pos_prior;
@@ -144,6 +146,17 @@ public class Pomoda {
 //			System.out.println("BGModel_Test : pass");
 		pos_prior=new ArrayList<Double>(SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution);
 		SearchEngine2.EnableBackground(background);
+		
+		
+		ErasingFactor=new ArrayList<ArrayList<Double>>(SearchEngine2.ForwardStrand.size());
+		for (String seq : SearchEngine2.ForwardStrand) {
+			ArrayList<Double> temp=new ArrayList<Double>(seq.length());
+			for (int i = 0; i < seq.length(); i++) {
+				temp.add(1.0);
+			}
+			ErasingFactor.add(temp);
+			
+		}
 		
 		if(DnaseLib!=null)
 		{
@@ -413,6 +426,55 @@ public class Pomoda {
 		return pass;
 	}
 	
+	
+	public void Masking2(PWM motif)
+	{
+		double log_thresh=Double.NEGATIVE_INFINITY;
+		double Prior_EZ= (double)SearchEngine.getSeqNum()/(SearchEngine.getTotalLength()/motif.core_motiflen);
+		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
+		int motiflen=motif.core_motiflen;
+		double lognullprior=Math.log(1.0/num_priorbin);
+		LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
+		Iterator<FastaLocation> iter2=Falocs.iterator();
+		while(iter2.hasNext())
+		{
+			FastaLocation currloc=iter2.next();
+			
+			//double logprob_theta=currloc.Score;//include the bg log_prob in the score
+			double logprob_theta=currloc.Score;
+		//	double logprob_theta=motif.scoreWeightMatrix(site)-SearchEngine2.BGscoreMap.get(motif.core_motiflen).get(currloc.getSeqId()).get(currloc.getSeqPos());
+
+			
+			//double logprob_BG=background.Get_LOGPROB(site.substring((site.length()-motiflen)/2, motiflen));
+			double logprior=0;
+			int prior_bin=(int)(num_priorbin*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
+			int rankbin=num_priorbin*currloc.getSeqId()/SearchEngine.getSeqNum();
+			if(motif.pos_prior.size()!=0&&motif.pos_en)
+				logprior=Math.log(motif.pos_prior.get(prior_bin))-lognullprior;
+			if(motif.strand_en)
+				logprior+=Math.log(motif.strand_plus_prior*2);
+			if(motif.peakrank_prior.size()!=0&&motif.peakrank_en)
+				logprior+=Math.log(motif.peakrank_prior.get(rankbin))-lognullprior;
+			
+			double logDnaseProb=0;
+			//logprior=0;
+			double loglik=logprob_theta+logprior+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
+			if(loglik>10)
+				loglik=10;
+			double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);
+			//double prob_theta_only=Math.exp(logprob_theta+logprior)/(Math.exp(logprob_theta+logprior)+1);
+			if(Double.isNaN(prob_theta))
+				prob_theta=1;//upper flow
+
+			for (int i = 0; i < motiflen; i++) {
+				double E=ErasingFactor.get(currloc.getSeqId()).get(currloc.getSeqPos()+i);
+				
+				ErasingFactor.get(currloc.getSeqId()).set(currloc.getSeqPos()+i, 1-E*prob_theta);		
+			}
+			
+		}
+		
+	}
 	public void Masking(PWM motif)
 	{
 		
@@ -473,7 +535,7 @@ public class Pomoda {
 			pattern=common.Hash2ACGT(hash,seedlen);
 			
 			LinkedList<Integer> positionlist=SearchEngine.searchPattern(pattern,0);
-			LinkedList<FastaLocation> LocList=SearchEngine.Int2Location(positionlist);
+			LinkedList<FastaLocation> LocList=SearchEngine.Int2Location(positionlist,seedlen);
 			double logprob_bg=Math.max(background.Get_LOGPROB(pattern), background.Get_LOGPROB(common.getReverseCompletementString(pattern) )) ;
 
 			double score=0;
@@ -518,6 +580,72 @@ public class Pomoda {
 		return	SeedMotifs;
 	}
 	
+
+	
+	
+	public PWM	 getTopSeed() {
+		int max_num_Seeds=num_motif*num_motif;
+		
+		int LIBSIZE=SearchEngine.getTotalLength();
+		String ACGT="ACGT";
+		int loopnum=1<<(2*seedlen);
+		int maxRange=1<<(2*seedlen);
+		 ValueComparator bvc =  new ValueComparator();
+		TreeMap<Integer,Double> seedScores=new TreeMap<Integer,Double>();
+		for (int i = 0; i < loopnum; i++) {
+			String pattern="";
+			int hash=i;
+			//ignore the reverseComplement
+			if(common.getReverseComplementHashing(hash,seedlen)<i)
+			{
+				continue;
+			}
+			else
+			pattern=common.Hash2ACGT(hash,seedlen);
+			
+			LinkedList<Integer> positionlist=SearchEngine.searchPattern(pattern,0);
+			LinkedList<FastaLocation> LocList=SearchEngine.Int2Location(positionlist,seedlen);
+			double logprob_bg=Math.max(background.Get_LOGPROB(pattern), background.Get_LOGPROB(common.getReverseCompletementString(pattern) )) ;
+
+			double score=0;
+			if(pos_prior.size()==0&&!OOPS)
+				score=positionlist.size()*(-common.DoubleMinNormal*seedlen-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
+			else
+				score=sumLLR(LocList,-common.DoubleMinNormal*seedlen,logprob_bg);
+			seedScores.put(hash, score);
+		}
+		//sort by score
+		List<Map.Entry<Integer,Double>> mappingList=new ArrayList<Map.Entry<Integer,Double>>(seedScores.entrySet());
+		Collections.sort(mappingList, bvc);
+		
+		//just take top ones
+		    for (Map.Entry<Integer,Double> pair : mappingList) {
+			    String toppattern=common.Hash2ACGT(pair.getKey(),seedlen);
+			    System.out.println(toppattern+"\t"+pair.getValue());
+			    StringBuffer sb=new StringBuffer(toppattern);
+			    for (int j = 0; j < (max_motiflen-seedlen)/2; j++) {
+			    	sb.insert(0, '-');
+			    	sb.append('-');					
+				}
+			    
+			    String[] seqs={sb.toString()};
+			    try {
+					PWM a=new PWM(seqs);
+					a.Score=pair.getValue();
+					return a;
+					//System.out.println(a.Score);
+				} catch (IllegalAlphabetException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalSymbolException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+		    }
+		 
+		
+		return	null;
+	}
 
 	public void DrawDistribution(ArrayList<Double> dist,String pngfile)
 	{
@@ -765,6 +893,12 @@ public class Pomoda {
 						if(Double.isNaN(prob_theta))
 							prob_theta=1;//upper flow
 
+						double E=1;
+						for (int i = 0; i < Math.min(motif.core_motiflen,currloc.getSeqLen()-currloc.getSeqPos()); i++) {
+							E=Math.min(E, ErasingFactor.get(currloc.getSeqId()).get(currloc.getSeqPos()+i));
+						}
+						prob_theta*=E;
+						
 						bgstrSet.put(site, 1-prob_theta);
 						temp_peakrank[rankbin]+=prob_theta;
 						temp_prior[prior_bin]+=prob_theta;//make smaller
@@ -1559,6 +1693,13 @@ public class Pomoda {
 					double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);				
 					if(Double.isNaN(prob_theta))
 						prob_theta=1;
+					
+					double E=1;
+					//-1 only for hashing search
+					for (int i = 0; i < Math.min(motif.core_motiflen,currloc.getSeqLen()-currloc.getSeqPos()-1); i++) {
+						E=Math.min(E, ErasingFactor.get(currloc.getSeqId()).get(currloc.getSeqPos()+i));
+					}
+					prob_theta*=E;
 					bgstrSet.put(site, 1-prob_theta);
 					temp_peakrank[rankbin]+=prob_theta;
 					temp_prior[posbin]+=prob_theta;
@@ -2492,6 +2633,11 @@ public class Pomoda {
 			
 			if(OOPS)
 			loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-seedlen/2); //add small bias to center
+			double E=1;
+			for (int i = 0; i < seedlen; i++) {
+				E=Math.min(E, ErasingFactor.get(currloc.getSeqId()).get(currloc.getSeqPos()+i));
+			}
+			loglik*=E;
 			if(OOPS&&currloc.getSeqId()!=lastseq)
 			{
 				if(lastseq!=-1)
@@ -2678,7 +2824,8 @@ public class Pomoda {
 
 		
 		//get seed motifs
-		ArrayList<PWM>  seedPWMs=motifFinder.getSeedMotifs();
+		//ArrayList<PWM>  seedPWMs=motifFinder.getSeedMotifs();
+		ArrayList<PWM>  seedPWMs=new ArrayList<PWM>(motifFinder.num_motif);
 		//LinkedList<PWM>  seedPWMs=new LinkedList<PWM>();
 		
 		double topseed_Score=0;
@@ -2693,43 +2840,34 @@ public class Pomoda {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
-		for (int i = 0; i < seedPWMs.size(); i++) {
-			PWM motif=seedPWMs.get(i);
+		for (int i = 0; i < motifFinder.num_motif; i++) {
+			PWM motif=motifFinder.getTopSeed();
 			motif.Score=1;
-//			if(motifFinder.DnaseLib!=null)
-//			{
-//				motif.DnaseBG=motifFinder.dnaseBG;
-//				motif.DnaseFG=new NegativeBinomialDist(motifFinder.dnaseBG.getGamma(), motifFinder.dnaseBG.getP());
-//				motif.Dnase_prob=new ArrayList<Double>(motifFinder.DnaseWindow*2);
-//				for (int j = 0; j < motifFinder.DnaseWindow*2; j++) {
-//					motif.Dnase_prob.add( 1.0/(motifFinder.DnaseWindow*2));
-//				}
-//			}
 			
 			System.out.println("Extending...");
-			seedPWMs.set(i,motifFinder.Column_Replacement_2(motif));
+			motif=motifFinder.Column_Replacement_2(motif);
 			System.out.println("Relaxing...");
-			seedPWMs.set(i, motifFinder.Relax_Seed_2(seedPWMs.get(i)));
+			motif=motifFinder.Relax_Seed_2(motif);
 
-			seedPWMs.get(i).Name="Motif"+String.valueOf(i+1);
+			motif.Name="Motif"+String.valueOf(i+1);
 			// to make different length comparable ,need to consider the instance coverage
 //			seedPWMs.get(i).Score=seedPWMs.get(i).Score/seedPWMs.get(i).inst_coverage;//corrected score
-			if(motifFinder.maskflag&&seedPWMs.get(i).Score>(topseed_Score))
+			if(motifFinder.maskflag)
 			{
 				//do something to mark the locations in SearchEngine
 				System.out.println("Masking...");
-				motifFinder.Masking(seedPWMs.get(i));
-				topseed_Score=seedPWMs.get(i).Score;
-				motifFinder.SearchEngine2.EnableBackground(motifFinder.background);
+				motifFinder.Masking2(motif);
+				
+				
 			}		
-			writer.write(seedPWMs.get(i).toString());
-
+			writer.write(motif.toString());
+			seedPWMs.add(motif);
 		}
 
 		writer.close();
 		//restore the unmask fasta
-		if(motifFinder.maskflag)
-			motifFinder.SearchEngine2.build_index(motifFinder.inputFasta);
+//		if(motifFinder.maskflag)
+//			motifFinder.SearchEngine2.build_index(motifFinder.inputFasta);
 		
 		//using full LLR score
 
