@@ -12,7 +12,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 
-public class HashEngine implements ISearchEngine {
+public class HashEngine  {
 
 	public HashEngine(int hashlen) {
 		super();
@@ -40,7 +40,6 @@ public class HashEngine implements ISearchEngine {
 	
 	
 
-	@Override
 	public void build_index(String inputfile) {
 		int maxHash=1<<(2*Hashlen);
 		CharText="";
@@ -387,7 +386,6 @@ public class HashEngine implements ISearchEngine {
 		
 			return ret;
 		}
-	@Override
 	public LinkedList<Integer> searchPattern(String pattern, int mismatch) {
 		LinkedList<Integer> ret=new LinkedList<Integer>();
 		gPattern=pattern;
@@ -496,8 +494,7 @@ public class HashEngine implements ISearchEngine {
 		return ret;
 	}
 	
-	@Override
-	public LinkedList<FastaLocation> Int2Location(LinkedList<Integer> input)
+	public LinkedList<FastaLocation> Int2Location(LinkedList<Integer> input,int motiflen)
 	{
 		LinkedList<FastaLocation> ret=new LinkedList<FastaLocation>();
 		Iterator<Integer> iter=input.iterator();
@@ -511,7 +508,7 @@ public class HashEngine implements ISearchEngine {
 			int seqLen=accSeqLen.get(seqNum+1)-accSeqLen.get(seqNum);
 			
 			FastaLocation a=new FastaLocation(pos, seqNum, pos-accSeqLen.get(seqNum), seqLen);
-
+			if((a.getSeqPos()+motiflen)<a.getSeqLen())
 			ret.add(a);
 			
 		}
@@ -520,7 +517,6 @@ public class HashEngine implements ISearchEngine {
 		return ret;
 	}
 
-	@Override
 	public String getSite(int location, int len) {
 		  if(location<0)
 		  {
@@ -538,13 +534,11 @@ public class HashEngine implements ISearchEngine {
 	
 
 
-	@Override
 	public int getTotalLength() {
 		// TODO Auto-generated method stub
 		return TotalLen;
 	}
 
-	@Override
 	public int getSeqNum() {
 		// TODO Auto-generated method stub
 		return SeqNum;
