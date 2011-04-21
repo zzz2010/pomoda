@@ -1465,8 +1465,8 @@ public class Pomoda {
 		int inst_hash=-1;
 		double thresh=motif.getThresh(this.sampling_ratio, this.FDR, this.background);
 		LinkedList<FastaLocation> origFalocs=SearchEngine.searchPattern(motif, thresh);
-		Prior_EZ=1- Math.exp(background.Get_LOGPROB(motif.Consensus(true)))*SearchEngine.TotalLen/origFalocs.size();
-		Prior_EZ=Math.min(0.5, Math.max(0, Prior_EZ) );
+		//Prior_EZ=1- Math.exp(background.Get_LOGPROB(motif.Consensus(true)))*SearchEngine.TotalLen/origFalocs.size();
+	
 		///////////////build newBG for iterations////////////////////
 		BGModel motifBG=new BGModel();
 		Iterator<FastaLocation> iter=origFalocs.iterator();
@@ -1487,6 +1487,7 @@ public class Pomoda {
 		int bgorder=BGorder;
 		motifBG.BuildModel(bgstrSet, bgorder);
 		bgstrSet.clear();
+		Prior_EZ=Math.min(0.5, Math.max(0, (double)seqcount/origFalocs.size()) );
 		double prior_gamma=(Prior_EZ*origFalocs.size())/seqcount;
 		///////////////build newBG for iterations////////////////////
 		do
@@ -2751,10 +2752,10 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-//			seedPWMs.clear();
+			seedPWMs.clear();
 		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGTCANNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
@@ -2848,12 +2849,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-//		} catch (IllegalAlphabetException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} catch (IllegalSymbolException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 			
 			
 		}
