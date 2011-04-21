@@ -458,7 +458,7 @@ public class Pomoda {
 			
 			double logDnaseProb=0;
 			//logprior=0;
-			double loglik=logprob_theta+logprior+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
+			double loglik=logprob_theta+logprior+logDnaseProb;
 			if(loglik>10)
 				loglik=10;
 			double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);
@@ -468,8 +468,7 @@ public class Pomoda {
 
 			for (int i = 0; i < motiflen; i++) {
 				double E=ErasingFactor.get(currloc.getSeqId()).get(currloc.getSeqPos()+i);
-				
-				ErasingFactor.get(currloc.getSeqId()).set(currloc.getSeqPos()+i, 1-E*prob_theta);		
+				ErasingFactor.get(currloc.getSeqId()).set(currloc.getSeqPos()+i, E*(1-prob_theta));		
 			}
 			
 		}
