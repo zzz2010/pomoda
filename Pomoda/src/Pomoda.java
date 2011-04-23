@@ -628,22 +628,38 @@ public class Pomoda {
 		if(motif.core_motiflen==seedlen)
 		{
 			flankingLen=2;
-			Prior_EZ*=4;
+			Prior_EZ=0.5;
 		}
 		else if(motif.core_motiflen<9)
 		{
 			flankingLen=1;
-			Prior_EZ*=2;
+			Prior_EZ=0.25;
 		}
-		if(motif.head+flankingLen+motif.core_motiflen>=motif.columns()||motif.head-flankingLen<0)
-			flankingLen=0;
+
 		int iter_count=0;
 		PWM bestPWM=motif.Clone();
 		bestPWM.Score=0;//ignore previous score
 		double sitesperSeq=0;
 		double log_thresh=Math.log(1-Prior_EZ)-Math.log(Prior_EZ);
 		LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
-		Prior_EZ=Math.min(0.5,(double)SearchEngine.getSeqNum()/Falocs.size());
+		
+		if(motif.core_motiflen==seedlen)
+		{
+			motif.head-=2;
+			motif.tail-=2;
+		}
+		else if(motif.core_motiflen<9)
+		{
+			motif.head-=1;
+			motif.tail-=1;
+		}
+		
+		int newhead=motif.head;
+		int newtail=motif.tail;
+		if(motif.head+flankingLen+motif.core_motiflen>=motif.columns()||motif.head-flankingLen<0)
+			flankingLen=0;
+		
+		//Prior_EZ=Math.min(0.5,(double)SearchEngine.getSeqNum()/Falocs.size());
 		///////////////build newBG for iterations////////////////////
 		BGModel motifBG=new BGModel();
 		Iterator<FastaLocation> iter=Falocs.iterator();
@@ -664,17 +680,20 @@ public class Pomoda {
 		int bgorder=2;
 		motifBG.BuildModel(bgstrSet, bgorder);
 		bgstrSet.clear();
-		//int truepos=PWMevaluator.comparePositionList(Falocs, "E:\\eclipse\\data\\meme2000_400_0.9.ans", motif.core_motiflen);
+		//int truepos=PWMevaluator.comparePositionList(Falocs, "E:\\eclipse\\data\\AP12000_400_0.9.ans", motif.core_motiflen);
 		//Prior_EZ=(double)truepos/Falocs.size();
 		double prior_fp=motif.getFDR(log_thresh,background);
 		Prior_EZ=1-SearchEngine.TotalLen*prior_fp/Falocs.size();
+		if(Prior_EZ<0)
+			Prior_EZ=FDR;
+		//Prior_EZ*=0.9;
 		double prior_gamma=(Prior_EZ*Falocs.size())/seqcount;//(double)truepos/seqcount;//
 		if(prior_gamma>1)
 			prior_gamma=0.9999;
 		///////////////build newBG for iterations////////////////////
 		
 		
-		
+		int motiflen=motif.core_motiflen+flankingLen*2; 
 //		Prior_EZ=(double)truepos/Falocs.size();
 		do
 		{
@@ -682,7 +701,7 @@ public class Pomoda {
 			iter_count++;
 			String consensus_core=motif.Consensus(true);
 			
-			int motiflen=consensus_core.length(); 
+			
 			System.out.println(consensus_core+"\t"+String.valueOf(bestscore));
 			bestscore=0;
 			double[] temp_prior=new double[num_priorbin];
@@ -694,12 +713,14 @@ public class Pomoda {
 			
 			int overlap_pos=-motiflen;
 			double lognullprior=Math.log(1.0/num_priorbin);
-	
+			//make sure head, tail the same in the iteration
+			motif.head=newhead;
+			motif.tail=newtail;
 			
 			//double log_thresh=motif.getThresh(sampling_ratio, 2*FDR, background)- motiflen*log025;
 			//double log_thresh=Math.log(1-Prior_EZ)-Math.log(Prior_EZ);
 			
-			double [][]m_matrix=new double [motiflen+flankingLen*2][4];
+			double [][]m_matrix=new double [motiflen][4];
 			double [][] sumexpLLR=new double[motif.columns()][4];
 			//update the loglik matrix
 			//LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
@@ -719,9 +740,9 @@ public class Pomoda {
 						String site="";
 						//forward site
 						if(currloc.ReverseStrand)
-							site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos()-flankingLen-(origtail-motif.tail),motiflen+flankingLen*2);
+							site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos()-(origtail-newtail),motiflen);
 						else
-							site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos()-flankingLen-(orighead-motif.head),motiflen+flankingLen*2);
+							site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos()-(orighead-newhead),motiflen);
 						//check masking
 						if(site.indexOf('X')>-1)
 							continue;
@@ -757,7 +778,7 @@ public class Pomoda {
 							
 						}
 
-						if(site.length()!=motiflen+flankingLen*2)
+						if(site.length()!=motiflen)
 							continue;
 						
 						//double logprob_theta=currloc.Score;//include the bg log_prob in the score
@@ -770,7 +791,7 @@ public class Pomoda {
 						int prior_bin=(int)(num_priorbin*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
 						int rankbin=num_priorbin*currloc.getSeqId()/SearchEngine.getSeqNum();
 						if(motif.pos_prior.size()!=0&&motif.pos_en)
-							logprior=Math.log(motif.pos_prior.get(prior_bin))-lognullprior;
+							logprior=Math.log(motif.pos_prior.get(prior_bin)+common.DoubleMinNormal)-lognullprior;
 						if(motif.strand_en)
 						{
 							if(currloc.ReverseStrand)
@@ -779,7 +800,7 @@ public class Pomoda {
 							logprior+=Math.log(motif.strand_plus_prior*2);
 						}
 						if(motif.peakrank_prior.size()!=0&&motif.peakrank_en)
-							logprior+=Math.log(motif.peakrank_prior.get(rankbin))-lognullprior;
+							logprior+=Math.log(motif.peakrank_prior.get(rankbin)+common.DoubleMinNormal)-lognullprior;
 						
 						double logDnaseProb=0;
 						//logprior=0;
@@ -815,7 +836,7 @@ public class Pomoda {
 							
 							sitesperSeq=0;
 							{
-								for (int i = 0; i < motiflen+flankingLen*2; i++) {
+								for (int i = 0; i < motiflen; i++) {
 									double sumexpLLRallsymid=0;
 									 for (int symid = 0; symid < 4; symid++) 
 									 {
@@ -922,7 +943,7 @@ public class Pomoda {
 						
 						if(!OOPS)
 						{
-						for (int i = 0; i < motiflen+flankingLen*2; i++) {
+						for (int i = 0; i < motiflen; i++) {
 							int symid=common.acgt(site.charAt(i));
 							if(symid>3)
 								continue;
@@ -938,7 +959,7 @@ public class Pomoda {
 					if(OOPS)
 					{
 						sitesperSeq=0;
-						for (int i = 0; i < motiflen+flankingLen*2; i++) {
+						for (int i = 0; i < motiflen; i++) {
 							double sumexpLLRallsymid=0;
 							for (int symid = 0; symid < 4; symid++) 
 							{
@@ -981,7 +1002,7 @@ public class Pomoda {
 						//if(bestPWM.Score<motif.Score)
 						  bestPWM=motif.Clone();
 						for (int i = 0; i < m_matrix.length; i++) {
-							motif.setWeights(i+motif.head-flankingLen,common.Normalize(m_matrix[i]));
+							motif.setWeights(i+motif.head,common.Normalize(m_matrix[i]));
 						}
 						
 						
@@ -1482,9 +1503,12 @@ public class Pomoda {
 		int inst_hash=-1;
 		double thresh=motif.getThresh(this.sampling_ratio, this.FDR, this.background);
 		LinkedList<FastaLocation> origFalocs=SearchEngine.searchPattern(motif, thresh);
-	//	int truepos=PWMevaluator.comparePositionList(origFalocs, "E:\\eclipse\\data\\meme2000_400_0.9.ans", motif.core_motiflen*2);
+		//int truepos=PWMevaluator.comparePositionList(origFalocs, "E:\\eclipse\\data\\AP12000_400_0.9.ans", motif.core_motiflen*2);
 		Prior_EZ=1- (Math.exp(background.Get_LOGPROB(motif.Consensus(true)))+Math.exp(background.Get_LOGPROB(common.getReverseCompletementString(motif.Consensus(true)))))*SearchEngine.TotalLen/origFalocs.size();
-	
+		if(Prior_EZ<0)
+			Prior_EZ=FDR;
+		///heuristic, want to smaller starting point
+		//Prior_EZ*=0.9;
 		///////////////build newBG for iterations////////////////////
 		BGModel motifBG=new BGModel();
 		Iterator<FastaLocation> iter=origFalocs.iterator();
@@ -1513,8 +1537,7 @@ public class Pomoda {
 		double seedscore=motif.scoreWeightMatrix(seedstring);
 		do
 		{
-
-			String consensus_core=motif.Consensus(true);
+		String consensus_core=motif.Consensus(true);
 		double bgseed_ignore=motifBG.Get_LOGPROB(seedstring)-seedscore;
 		System.out.println(consensus_core+"\t"+String.valueOf(bestscore));
 		bestscore=Double.NEGATIVE_INFINITY;
@@ -1612,7 +1635,7 @@ public class Pomoda {
 					int rankbin=num_priorbin*currloc.getSeqId()/SearchEngine.getSeqNum();
 					double logprior=0;
 					if(motif.pos_prior.size()!=0&&motif.pos_en)
-						logprior=Math.log(motif.pos_prior.get(posbin))-lognullprior;
+						logprior=Math.log(motif.pos_prior.get(posbin)+common.DoubleMinNormal)-lognullprior;
 					if(motif.strand_en)
 					{
 						if(currloc.ReverseStrand)
@@ -1621,7 +1644,7 @@ public class Pomoda {
 						logprior+=Math.log(motif.strand_plus_prior*2);
 					}
 					if(motif.peakrank_prior.size()!=0&&motif.peakrank_en)
-						logprior+=Math.log(motif.peakrank_prior.get(rankbin))-lognullprior;
+						logprior+=Math.log(motif.peakrank_prior.get(rankbin)+common.DoubleMinNormal)-lognullprior;
 					
 					double logDnaseProb=0;
 					
@@ -1933,9 +1956,9 @@ public class Pomoda {
 				boundaryLoss=0;
 			max_sumNorm*=(1+boundaryLoss);
 			
-			if(max_sumNorm<=bestscore||max_sumCount<SearchEngine.getSeqNum()*min_support_ratio)
-				break;
-			else
+//			if(max_sumNorm<=bestscore||max_sumCount<SearchEngine.getSeqNum()*min_support_ratio)
+//				break;
+//			else
 			{
 				motif.Score=max_sumNorm;
 				bestscore=max_sumNorm;
@@ -2483,7 +2506,7 @@ public class Pomoda {
 				int prior_bin=(int)(num_priorbin*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
 				int rankbin=num_priorbin*currloc.getSeqId()/SearchEngine.getSeqNum();
 				if(motif.pos_prior.size()!=0&&motif.pos_en)
-					logprior=Math.log(motif.pos_prior.get(prior_bin))-lognullprior;
+					logprior=Math.log(motif.pos_prior.get(prior_bin)+common.DoubleMinNormal)-lognullprior;
 				if(motif.strand_en)
 				{
 					if(currloc.ReverseStrand)
@@ -2492,7 +2515,7 @@ public class Pomoda {
 					logprior+=Math.log(motif.strand_plus_prior*2);
 				}
 				if(motif.peakrank_prior.size()!=0&&motif.peakrank_en)
-					logprior+=Math.log(motif.peakrank_prior.get(rankbin))-lognullprior;
+					logprior+=Math.log(motif.peakrank_prior.get(rankbin)+common.DoubleMinNormal)-lognullprior;
 				double logDnaseProb=0;
 				double loglik=logprob_theta+logprior+logDnaseProb+Math.log(Prior_EZ/(1-Prior_EZ));
 				if(loglik>10)
@@ -2515,6 +2538,7 @@ public class Pomoda {
 					lastseq=currloc.getSeqId();
 			
 					score+= max_seqloglik/sitesperSeq;
+
 
 					max_seqloglik=0;	
 					sitesperSeq=0;
@@ -2548,6 +2572,8 @@ public class Pomoda {
 						
 						overlap_pos=currloc.getSeqPos();
 					}
+					
+			
 					
 
 				}
@@ -2790,10 +2816,10 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-			//seedPWMs.clear();
+			seedPWMs.clear();
 		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
-			//seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACTNNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNGACTCNNNNNNNNNNN"}));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
@@ -2887,12 +2913,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-//		} catch (IllegalAlphabetException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} catch (IllegalSymbolException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 			
 			
 		}
