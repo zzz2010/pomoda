@@ -385,6 +385,33 @@ public class PWM extends SimpleWeightMatrix {
 		return logprob;
 	}
 	
+	public double getFDR(double logthresh,BGModel bgmodel)
+	{
+		int num_sampl=100000;
+		ArrayList<Double> scorelist=new ArrayList<Double>(num_sampl);
+		String Consensus=this.Consensus(true);
+		int count=0;
+		//double sumfdr=0;
+		//double sumProb=0;
+		int fpcount=0;
+		while(count<num_sampl)
+		{
+		 KeyValuePair<Double, String>	sample=bgmodel.generateRandomSequence(Consensus.length());
+			//sumfdr+=sample.getKey();
+			double score=scoreWeightMatrix(sample.getValue());
+			double score2=scoreWeightMatrix(common.getReverseCompletementString(sample.getValue()));
+			if(score<score2)
+				score=score2;
+			score=(score-bgmodel.Get_LOGPROB(sample.getValue()));
+			if(score>=logthresh)
+				fpcount++;
+			count++;
+			//sumProb+=Math.exp(score);
+			
+		}
+	
+		return (double)fpcount/num_sampl;
+	}
 	public double getThresh(double sampleratio,double FDRthresh,BGModel bgmodel)
 	{
 		String Consensus=this.Consensus(true);
