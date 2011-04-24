@@ -575,7 +575,7 @@ public class Pomoda {
 		double log025=Math.log(0.25);
 		//relax the conserved column 
 		String consensus=motif.Consensus(false);
-		double main_prop=0.7;//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
+		double main_prop=Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
 			
 			//Math.pow(3*sampling_ratio/(seedlen-2), 1.0/(seedlen-1));// 1 mismatch
 			
@@ -628,12 +628,12 @@ public class Pomoda {
 		if(motif.core_motiflen==seedlen)
 		{
 			flankingLen=2;
-			Prior_EZ=0.5;
+			Prior_EZ=Math.min(0.5,Prior_EZ*8);
 		}
 		else if(motif.core_motiflen<9)
 		{
 			flankingLen=1;
-			Prior_EZ=0.25;
+			Prior_EZ=Math.min(0.25,Prior_EZ*4);
 		}
 
 		int iter_count=0;
@@ -677,11 +677,11 @@ public class Pomoda {
 			String site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(),motif.core_motiflen);
 			bgstrSet.put(site, Math.exp(-currloc.Score));
 		}
-		int bgorder=2;
+		int bgorder=1;
 		motifBG.BuildModel(bgstrSet, bgorder);
 		bgstrSet.clear();
-		//int truepos=PWMevaluator.comparePositionList(Falocs, "E:\\eclipse\\data\\AP12000_400_0.9.ans", motif.core_motiflen);
-		//Prior_EZ=(double)truepos/Falocs.size();
+		//int truepos=PWMevaluator.comparePositionList(Falocs, "E:\\eclipse\\data\\MEME2000_400_0.9.ans", motif.core_motiflen);
+	//	Prior_EZ=(double)truepos/Falocs.size();
 		double prior_fp=motif.getFDR(log_thresh,background);
 		Prior_EZ=1-SearchEngine.TotalLen*prior_fp/Falocs.size();
 		if(Prior_EZ<0)
@@ -985,6 +985,7 @@ public class Pomoda {
 					}
 					
 					Prior_EZ=match_seqCount/Falocs.size();
+					System.out.println(Prior_EZ);
 					prior_gamma=match_seqCount/seqcount;
 					if(prior_gamma>1)
 						prior_gamma=0.9999;
@@ -2819,7 +2820,7 @@ public class Pomoda {
 			seedPWMs.clear();
 		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNGACTCNNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
