@@ -403,7 +403,7 @@ public class PWM extends SimpleWeightMatrix {
 			if(score<score2)
 				score=score2;
 			score=(score-bgmodel.Get_LOGPROB(sample.getValue()));
-			if(score>=logthresh)
+			if(score>logthresh)
 				fpcount++;
 			count++;
 			//sumProb+=Math.exp(score);

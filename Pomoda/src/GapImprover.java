@@ -120,7 +120,7 @@ public class GapImprover {
 		else
 			file= new File(ctrlFasta+".bgobj");
 		
-		if(file.exists()||!bgmodelFile.isEmpty())
+		if(!bgmodelFile.isEmpty())
 		{
 			if(bgmodelFile.isEmpty())
 			background.LoadModel(file.getAbsolutePath());
