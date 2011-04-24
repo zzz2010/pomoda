@@ -1889,14 +1889,14 @@ public class Pomoda {
 			if(bestCol==-1)
 				break;
 
-			double X=count_matrix[bestCol][bestSym.get(0)];
+			double X=count_matrix[bestCol][bestSym.get(0)]+1;
 			double total=0;
 			for (int j = 0; j < 4; j++) {
-				total+=count_matrix[bestCol][j];
+				total+=count_matrix[bestCol][j]+1;
 			}
 			Binomial binomial=new Binomial((int)total,Math.exp(single_logprob_bg[bestSym.get(0)]),rand);
 			double pvalue=1.0-binomial.cdf((int)X);
-			if(pvalue>this.FDR/(num_col_cand*4))
+			if(pvalue>this.FDR/(4))//num_col_cand*
 				break;
 			double [] repColumnValue=new double[4];
 			Arrays.fill(repColumnValue, common.DoubleMinNormal);
@@ -2821,6 +2821,9 @@ public class Pomoda {
 		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
 			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGTCANNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAAACANNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGATANNNNNNNNNNN"}));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
