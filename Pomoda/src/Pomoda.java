@@ -74,7 +74,7 @@ public class Pomoda {
 	public String inputFasta;
 	public int max_iterNum=50;
 	public String ctrlFasta="";
-	public int BGorder=4;
+	public int BGorder=2;
 	public String bgmodelFile="";
 	public int seedlen=5;
 	public boolean debug=false;
@@ -82,7 +82,7 @@ public class Pomoda {
 	public int resolution=10;
 	public int starting_windowsize=200;
 	public int ending_windowsize=600;
-	public double FDR=0.001;
+	public double FDR=0.05;
 	public int max_motiflen=31;
 	public int num_motif=5;
 	public double sampling_ratio=1;
@@ -144,7 +144,7 @@ public class Pomoda {
 //		if(BGModel_Test())
 //			System.out.println("BGModel_Test : pass");
 		pos_prior=new ArrayList<Double>(SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution);
-		SearchEngine2.EnableBackground(background);
+	//	SearchEngine2.EnableBackground(background);
 		
 		if(DnaseLib!=null)
 		{
@@ -416,7 +416,7 @@ public class Pomoda {
 	
 	public void Masking(PWM motif)
 	{
-		
+		int masklen=0;
 		double log_thresh=motif.getThresh(sampling_ratio, FDR, background);
 		String consensus_core=motif.Consensus(true);
 		
@@ -433,22 +433,26 @@ public class Pomoda {
 		int lastseq=-1;
 		StringBuffer sb=new StringBuffer(SearchEngine.CharText);
 		String X_Str="";
-		for (int i = 0; i < motiflen; i++) {
+		for (int i = 0; i < seedlen; i++) {
 			X_Str+="X";
 		}
 		while(iter2.hasNext())
 		{
+			masklen+=seedlen;
 			FastaLocation currloc=iter2.next();
-			String Site1=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(), motiflen);
-			String Site2=SearchEngine.getSite(currloc.getMin()+currloc.getSeqId(),motiflen);
+			String Site1=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos()+(motiflen-seedlen)/2, seedlen);
+			//String Site2=SearchEngine.getSite(currloc.getMin()+currloc.getSeqId(),motiflen);
 			String rep=SearchEngine2.ForwardStrand.get(currloc.getSeqId()).replace(Site1, X_Str);
 			SearchEngine2.ForwardStrand.set(currloc.getSeqId(), rep);
 		//	rep=SearchEngine2.ReverseStrand.get(currloc.getSeqId()).replace(common.getReverseCompletementString(Site1) , X_Str);
 		//	SearchEngine2.ReverseStrand.set(currloc.getSeqId(), rep);
 			//hash engine...
-			sb.replace(currloc.getMin()+currloc.getSeqId(), currloc.getMin()+currloc.getSeqId()+motiflen, X_Str);
+			sb.replace(currloc.getMin()+currloc.getSeqId()+(motiflen-seedlen)/2, currloc.getMin()+currloc.getSeqId()+(motiflen-seedlen)/2+seedlen, X_Str);
 		}
 		SearchEngine.CharText=sb.toString();
+		
+		SearchEngine.TotalLen-=masklen;
+		SearchEngine2.TotalLen-=masklen;
 		
 	}
 	
@@ -575,7 +579,7 @@ public class Pomoda {
 		double log025=Math.log(0.25);
 		//relax the conserved column 
 		String consensus=motif.Consensus(false);
-		double main_prop=Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
+		double main_prop=0.7;//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
 			
 			//Math.pow(3*sampling_ratio/(seedlen-2), 1.0/(seedlen-1));// 1 mismatch
 			
@@ -640,7 +644,7 @@ public class Pomoda {
 		PWM bestPWM=motif.Clone();
 		bestPWM.Score=0;//ignore previous score
 		double sitesperSeq=0;
-		double log_thresh=Math.log(1-Prior_EZ)-Math.log(Prior_EZ);
+		double log_thresh=motif.getThresh(sampling_ratio,FDR,background);//Math.log(1-Prior_EZ)-Math.log(Prior_EZ);
 		LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
 		
 		if(motif.core_motiflen==seedlen)
@@ -991,7 +995,7 @@ public class Pomoda {
 						prior_gamma=0.9999;
 					motifBG.BuildModel(bgstrSet, bgorder);
 					
-					if(Double.isNaN(bestscore) ||Math.abs(lastscore-bestscore)<10e-6||match_seqCount<min_support_ratio*SearchEngine2.getSeqNum())
+					if(Double.isNaN(bestscore) ||Math.abs(lastscore-bestscore)<10e-6)//||match_seqCount<min_support_ratio*SearchEngine2.getSeqNum()
 						break;
 					else
 					{
@@ -1555,7 +1559,7 @@ public class Pomoda {
 			stateCodes.add(consensus_core.hashCode());
 			
 	
-		double [][] loglik_matrix=new double[motif.columns()][4];
+		double [][] sumLogBG_matrix=new double[motif.columns()][4];
 
 		double[][] count_matrix=new double[motif.columns()][4];
 		common.fill2DArray(count_matrix, common.DoubleMinNormal);
@@ -1582,11 +1586,11 @@ public class Pomoda {
 				Iterator<FastaLocation> iter2=Falocs.iterator();
 				int count=0;
 				int lastseq=-1;
-				double [][] max_loglik_matrix=new double[motif.columns()][4];
+				double [][] logBG_matrix=new double[motif.columns()][4];
 				double [][] sumexpLLR=new double[motif.columns()][4];
 				if(OOPS)
 				{
-					common.fill2DArray(max_loglik_matrix,Double.MIN_VALUE);
+					common.fill2DArray(logBG_matrix,Double.MIN_VALUE);
 					common.fill2DArray(sumexpLLR,0);
 				}
 				double sitesperSeq=0;
@@ -1686,9 +1690,9 @@ public class Pomoda {
 	                         for (int symid = 0; symid < 4; symid++) {
 	                        	 if(sitesperSeq<1)
 	                        		 sitesperSeq=1;
-	                        	 if(max_loglik_matrix[i][symid]!=Double.MIN_VALUE)
+	                        	 if(logBG_matrix[i][symid]!=Double.MIN_VALUE)
 	                        	 {
-									loglik_matrix[i][symid]+=max_loglik_matrix[i][symid]/sitesperSeq;
+									sumLogBG_matrix[i][symid]+=logBG_matrix[i][symid];
 
 								//	count_matrix[i][symid]+=max_count_matrix[i][symid]/sitesperSeq;
 									 prior_gamma=1-Math.pow(1-Prior_EZ, matchsitecount_seq);
@@ -1704,7 +1708,7 @@ public class Pomoda {
 						overlap_pos=-motiflen;
 						overlap_prob=0;
 						matchsitecount_seq=0;
-						common.fill2DArray(max_loglik_matrix,Double.MIN_VALUE);
+						common.fill2DArray(logBG_matrix,Double.MIN_VALUE);
 						common.fill2DArray(sumexpLLR,0);
 					}
 					if(OOPS)
@@ -1769,16 +1773,16 @@ public class Pomoda {
 								if(symid<4)
 								{
 									sumexpLLR[i][symid]+=expLLR;
-									if(max_loglik_matrix[i][symid]==Double.MIN_VALUE)
-										max_loglik_matrix[i][symid]=prob_theta*loglik+logprob_BG;
+									if(logBG_matrix[i][symid]==Double.MIN_VALUE)
+										logBG_matrix[i][symid]=logprob_BG;
 									else
-										max_loglik_matrix[i][symid]+=prob_theta*loglik+logprob_BG;
+										logBG_matrix[i][symid]+=logprob_BG;
 								}
 								else
 								{
 									for (int j = 0; j < 4; j++) {
 										sumexpLLR[i][j]+=0.25*expLLR;
-										max_loglik_matrix[i][j]+=0.25*(prob_theta*loglik+logprob_BG);
+										logBG_matrix[i][j]+=0.25*(logprob_BG);
 									}
 								}
 							}
@@ -1802,11 +1806,11 @@ public class Pomoda {
 						count_matrix[i][symid]+=prob_theta;
 						if(consensus.charAt(i)!='N')
 							continue;
-						loglik_matrix[i][symid]+=loglik;
+						sumLogBG_matrix[i][symid]+=loglik;
 					}
 			}
 	
-	//	common.print2DArray(count_matrix);
+		
 		
 		//select the best column replacement
 		double maxloglik=Double.NEGATIVE_INFINITY;
@@ -1849,8 +1853,8 @@ public class Pomoda {
 				}
 				//-single_logprob_bg[symid]
 				double boundaryLoss=0.25*Math.min(Math.abs(i-motif.head), Math.abs(motiflen+motif.head-i-1))/(double)avergeSeqlen;
-				if((motif.head<i&&i<motiflen+motif.head)||OOPS)
-					boundaryLoss=0;
+//				if((motif.head<i&&i<motiflen+motif.head)||OOPS)
+//					boundaryLoss=0;
 				
 				//System.out.println(sumtemp);
 				//only consider best two sym
@@ -1861,11 +1865,11 @@ public class Pomoda {
 					if(c>=numbestSym)
 						break;
 					int symid=orderSym.get(key);
-					temploglik+=loglik_matrix[i][symid]+count_matrix[i][symid]*(Math.log(optimalcols[i][symid])-single_logprob_bg[symid]); //key*(1+boundaryLoss);
+					temploglik+=sumLogBG_matrix[i][symid]+count_matrix[i][symid]*(Math.log(optimalcols[i][symid])-single_logprob_bg[symid]); //key*(1+boundaryLoss);
 					sumcount+=count_matrix[i][symid];
 					c++;			
 				}
-				temploglik=temploglik-common.lnEntropy(optimalcols[i]);
+				temploglik=temploglik;//-common.lnEntropy(optimalcols[i])
 				if(temploglik>maxloglik)
 				{
 					maxloglik=temploglik;
@@ -1889,6 +1893,7 @@ public class Pomoda {
 			if(bestCol==-1)
 				break;
 
+			//common.print2DArray(count_matrix);
 			double X=count_matrix[bestCol][bestSym.get(0)]+1;
 			double total=0;
 			for (int j = 0; j < 4; j++) {
@@ -1896,7 +1901,7 @@ public class Pomoda {
 			}
 			Binomial binomial=new Binomial((int)total,Math.exp(single_logprob_bg[bestSym.get(0)]),rand);
 			double pvalue=1.0-binomial.cdf((int)X);
-			if(pvalue>this.FDR/(4))//num_col_cand*
+			if(pvalue>this.FDR)//num_col_cand*
 				break;
 			double [] repColumnValue=new double[4];
 			Arrays.fill(repColumnValue, common.DoubleMinNormal);
@@ -1915,7 +1920,7 @@ public class Pomoda {
 				for (int j = 0; j < i; j++)
 					sumcount+=count_matrix[bestCol][bestSym.get(j)];
 				for (int j = 0; j < i; j++) {
-					double temp=loglik_matrix[bestCol][bestSym.get(j)];
+					double temp=sumLogBG_matrix[bestCol][bestSym.get(j)];
 						sumNorm+=(temp)+count_matrix[bestCol][bestSym.get(j)]*Math.log(count_matrix[bestCol][bestSym.get(j)]/sumcount);
 					
 				}
@@ -1948,7 +1953,7 @@ public class Pomoda {
 
 			if(debug)
 			for (int j = 0; j < count_matrix.length; j++) {
-				System.out.println(Arrays.toString(loglik_matrix[j]));
+				System.out.println(Arrays.toString(sumLogBG_matrix[j]));
 			}
 			
 			System.out.println(max_sumNorm);
@@ -2817,13 +2822,13 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-			seedPWMs.clear();
-		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
-		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
+//			seedPWMs.clear();
+//		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
+//		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGTCANNNNNNNNNNN"}));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAAACANNNNNNNNNNN"}));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGATANNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAAACANNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGATANNNNNNNNNNN"}));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
@@ -2854,7 +2859,7 @@ public class Pomoda {
 				System.out.println("Masking...");
 				motifFinder.Masking(seedPWMs.get(i));
 				topseed_Score=seedPWMs.get(i).Score;
-				motifFinder.SearchEngine2.EnableBackground(motifFinder.background);
+				//motifFinder.SearchEngine2.EnableBackground(motifFinder.background);
 			}		
 			writer.write(seedPWMs.get(i).toString());
 
@@ -2917,12 +2922,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-		} catch (IllegalAlphabetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalSymbolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+//		} catch (IllegalAlphabetException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IllegalSymbolException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
 			
 			
 		}
