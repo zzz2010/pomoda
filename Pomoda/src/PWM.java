@@ -757,7 +757,7 @@ public class PWM extends SimpleWeightMatrix {
 			for (int j = 1; j<= 4; j++)
 			{  
 				double weight=m_matrix[i][j-1];
-				if(weight>0.3)//side effect control extending length
+				if(weight>0.28)//side effect control extending length
 					sb.append(ACGT.charAt(j-1));
 					
 			}

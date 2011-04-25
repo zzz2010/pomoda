@@ -1770,15 +1770,15 @@ public class Pomoda {
 								{
 									sumexpLLR[i][symid]+=expLLR;
 									if(max_loglik_matrix[i][symid]==Double.MIN_VALUE)
-										max_loglik_matrix[i][symid]=prob_theta*loglik;
+										max_loglik_matrix[i][symid]=prob_theta*loglik+logprob_BG;
 									else
-										max_loglik_matrix[i][symid]+=prob_theta*loglik;
+										max_loglik_matrix[i][symid]+=prob_theta*loglik+logprob_BG;
 								}
 								else
 								{
 									for (int j = 0; j < 4; j++) {
 										sumexpLLR[i][j]+=0.25*expLLR;
-										max_loglik_matrix[i][j]+=0.25*prob_theta*loglik;
+										max_loglik_matrix[i][j]+=0.25*(prob_theta*loglik+logprob_BG);
 									}
 								}
 							}
@@ -1861,7 +1861,7 @@ public class Pomoda {
 					if(c>=numbestSym)
 						break;
 					int symid=orderSym.get(key);
-					temploglik+=count_matrix[i][symid]*(Math.log(optimalcols[i][symid])-single_logprob_bg[symid]); //key*(1+boundaryLoss);
+					temploglik+=loglik_matrix[i][symid]+count_matrix[i][symid]*(Math.log(optimalcols[i][symid])-single_logprob_bg[symid]); //key*(1+boundaryLoss);
 					sumcount+=count_matrix[i][symid];
 					c++;			
 				}
@@ -2820,8 +2820,8 @@ public class Pomoda {
 			seedPWMs.clear();
 		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGTCANNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGTCANNNNNNNNNNN"}));
 			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAAACANNNNNNNNNNN"}));
 			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGATANNNNNNNNNNN"}));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
