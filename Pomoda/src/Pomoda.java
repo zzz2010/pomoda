@@ -1516,30 +1516,32 @@ public class Pomoda {
 		//Prior_EZ*=0.9;
 		///////////////build newBG for iterations////////////////////
 		BGModel motifBG=new BGModel();
+		String seedstring=motif.Consensus(true);
+		double seedscore=motif.scoreWeightMatrix(seedstring);
 		Iterator<FastaLocation> iter=origFalocs.iterator();
 		TreeMap<String, Double> bgstrSet=new TreeMap<String, Double>();
 		int last=-1;
-		int seqcount=0;
-		while(iter.hasNext())
-		{
-			FastaLocation currloc=iter.next();
-			if(currloc.getSeqId()!=last)
-			{
-				seqcount++;
-				last=currloc.getSeqId();
-			}
-			String site=SearchEngine.getSite(currloc.getMin()-(motif.columns()-seedlen)/2, motif.columns());
-			bgstrSet.put(site, 1.0);
-		}
+//		int seqcount=0;
+//		while(iter.hasNext())
+//		{
+//			FastaLocation currloc=iter.next();
+//			if(currloc.getSeqId()!=last)
+//			{
+//				seqcount++;
+//				last=currloc.getSeqId();
+//			}
+//			String site=SearchEngine.getSite(currloc.getMin()-(motif.columns()-seedlen)/2, motif.columns());
+//			bgstrSet.put(site, 1.0);
+//		}
 		int bgorder=2;
-		motifBG.BuildModel(bgstrSet, bgorder);
+		motifBG.order=background.order;
+		motifBG.conditionProb=(HashMap<String, Double>)background.conditionProb.clone(); //.BuildModel(bgstrSet, bgorder);
 		bgstrSet.clear();
 		//Prior_EZ=(double)truepos/origFalocs.size();  //Math.min(0.5, Math.max(0, (double)seqcount/origFalocs.size()) );
-		double prior_gamma=(Prior_EZ*origFalocs.size())/seqcount;//(double)truepos/seqcount;//
+		double prior_gamma=0;//(double)truepos/seqcount;//
 		///////////////build newBG for iterations////////////////////
 		
-		String seedstring=motif.Consensus(true);
-		double seedscore=motif.scoreWeightMatrix(seedstring);
+		
 		do
 		{
 		String consensus_core=motif.Consensus(true);
@@ -1660,7 +1662,7 @@ public class Pomoda {
 					double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);				
 					if(Double.isNaN(prob_theta))
 						prob_theta=1;
-					bgstrSet.put(site, 1-prob_theta);
+					bgstrSet.put(site.substring(0,(motif.columns()-seedlen)/2)+site.substring((motif.columns()-seedlen)/2+seedlen), 1-prob_theta);
 					temp_peakrank[rankbin]+=prob_theta;
 					temp_prior[posbin]+=prob_theta;
 					if(currloc.ReverseStrand)
@@ -1893,7 +1895,7 @@ public class Pomoda {
 			if(bestCol==-1)
 				break;
 
-			//common.print2DArray(count_matrix);
+			common.print2DArray(count_matrix);
 			double X=count_matrix[bestCol][bestSym.get(0)]+1;
 			double total=0;
 			for (int j = 0; j < 4; j++) {
@@ -1945,9 +1947,7 @@ public class Pomoda {
 				max_sumCount+=count_matrix[bestCol][j];
 			}
 			Prior_EZ=max_sumCount/Falocs.size();
-			prior_gamma=max_sumCount/seqcount;
-			if(prior_gamma>1)
-				prior_gamma=0.9999;
+			
 			motifBG.BuildModel(bgstrSet, bgorder);
 			
 
@@ -2822,13 +2822,13 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-//			seedPWMs.clear();
+			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGTCANNNNNNNNNNN"}));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAAACANNNNNNNNNNN"}));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGATANNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAAACANNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGATANNNNNNNNNNN"}));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
@@ -2922,12 +2922,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-//		} catch (IllegalAlphabetException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} catch (IllegalSymbolException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 			
 			
 		}
