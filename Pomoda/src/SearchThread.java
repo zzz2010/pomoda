@@ -9,6 +9,7 @@ import org.biojava.utils.ChangeVetoException;
 
 public class SearchThread extends Thread  {
 
+	static boolean bestonly=false;  //only get the best occurrence for each sequence
 	private LinkedList<FastaLocation> result;
 	PWM motif;
 	double thresh;
@@ -52,11 +53,13 @@ public class SearchThread extends Thread  {
 	
 			Iterator<String> iter=db.iterator();
 			int seqid=startSeqId;
-			
+		
 			while(iter.hasNext())
 			{
 
 				String seq=iter.next();
+				double bestscore=Double.NEGATIVE_INFINITY;
+				FastaLocation bestpos=null;
 				try {
 
 					for (int i = 0; i < seq.length()-motif.core_motiflen; i++) {
@@ -95,10 +98,21 @@ public class SearchThread extends Thread  {
 	
 							fapos.ReverseStrand=reverse;
 					      fapos.Score=score;
-					      result.add(fapos);
+					      if(bestonly)
+					      {
+					    	  if(bestscore<score)
+					    	  {
+					    		  bestpos=fapos;
+					    		  bestscore=score;
+					    	  }
+					      }
+					      else
+					    	  result.add(fapos);
 						}
 						
 					}
+					if(bestonly&&bestpos!=null)
+						result.add(bestpos);
 					 
 				    pos+=seq.length();
 				    seqid++;

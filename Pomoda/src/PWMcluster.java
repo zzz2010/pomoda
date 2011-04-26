@@ -20,6 +20,8 @@ import org.apache.commons.cli.ParseException;
 import org.pr.clustering.hierarchical.Hierarchical;
 import org.pr.clustering.hierarchical.LinkageCriterion;
 
+import umontreal.iro.lecuyer.probdist.HypergeometricDist;
+
 
 public class PWMcluster {
 
@@ -43,7 +45,7 @@ public class PWMcluster {
 	{
 		SearchEngine=motiffinder.SearchEngine2;
 		sampling_ratio=motiffinder.sampling_ratio;
-		FDR=motiffinder.FDR;
+		//FDR=motiffinder.FDR;
 		background=motiffinder.background;
 		linkage=LinkageCriterion.valueOf(motiffinder.linkage);
 		System.out.println("LinkageCriterion: "+motiffinder.linkage);
@@ -155,7 +157,13 @@ public class PWMcluster {
 						int row=clusterMoitfsId.get(i);
 						int col=id;	
 						double temp=t2.getResult().size()/(double)Math.min(PosSet.get(row).size()+1, PosSet.get(col).size()+1);
-						if(temp>overlapThresh)
+						int l=Math.max(SearchEngine.TotalLen/(rawPwms.get(row).core_motiflen),SearchEngine.TotalLen/rawPwms.get(col).core_motiflen);
+						int m=PosSet.get(row).size();
+						int k=PosSet.get(col).size();
+						int x=t2.getResult().size();
+						HypergeometricDist dist=new HypergeometricDist(m,l,k);
+						double temp2=dist.cdf(x);
+						if(temp2>0.5)//||temp>overlapThresh
 						{
 							System.out.println("-"+sortedPWMs.get(key).Consensus(true)+"\t"+clusterMoitfsId.get(i));
 							newclass=false;

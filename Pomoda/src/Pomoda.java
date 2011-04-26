@@ -63,6 +63,10 @@ import umontreal.iro.lecuyer.util.Num;
 
 import cern.jet.random.Binomial;
 import cern.jet.random.engine.RandomEngine;
+import edu.stanford.rsl.jpop.AdditiveFunctionAssembler;
+import edu.stanford.rsl.jpop.FunctionOptimizer;
+import edu.stanford.rsl.jpop.SimpleFunctionController;
+import edu.stanford.rsl.jpop.FunctionOptimizer.OptimizationMode;
 
 
 
@@ -573,6 +577,229 @@ public class Pomoda {
 			}
 
 	}
+	
+	public double FindPrior(PWM motif,LinkedList<FastaLocation> Falocs)
+	{
+		double Prior_EZ=0;
+		double [][]m_matrix=new double [motif.core_motiflen][4];
+		int num_priorbin=SearchEngine.getTotalLength()/SearchEngine.getSeqNum()/this.resolution;
+		double lognullprior=Math.log(1.0/num_priorbin);
+		
+		Collections.sort(Falocs,new FaScoreGreaterThan());
+		
+		Iterator<FastaLocation> iter=Falocs.iterator();
+		ArrayList<String> sites=new ArrayList<String>(Falocs.size());
+		ArrayList<Double> logbg_score=new ArrayList<Double>(Falocs.size());
+		double bestscore=Double.NEGATIVE_INFINITY;
+		PWM bestPWM=motif.Clone();
+		double lamda=0;
+		ArrayList<Double> probRatio = new ArrayList<Double>(Falocs.size());
+		BGModel motifBG=new BGModel();
+		TreeMap<String, Double> bgstrSet=new TreeMap<String, Double>();
+		
+	
+		while(iter.hasNext())
+		{
+			
+			FastaLocation currloc=iter.next();
+			String site="";
+			//forward site
+			if(currloc.ReverseStrand)
+				site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(),motif.core_motiflen);
+			else
+				site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(),motif.core_motiflen);
+			//check masking
+			if(site.indexOf('X')>-1)
+				continue;
+			
+			//assume only one N for line break
+			StringBuffer sb=new StringBuffer(site);
+			for (int i = 0; i < site.length(); i++) {
+				if(site.charAt(i)=='N'&& i<=site.length()/2)
+				{
+					for (int j = 0; j < i; j++) {
+						sb.setCharAt(j, 'N');
+					}
+					continue;
+				}
+				else if(site.charAt(i)=='N')
+				{
+					for (int j = i+1; j < site.length(); j++) {
+						sb.setCharAt(j, 'N');
+					}
+					break;
+				}
+				
+			}
+			site=sb.toString();
+
+			if(currloc.ReverseStrand)
+			{
+				//reverse site
+				site=common.getReverseCompletementString(site);
+			}
+			//double logprob_BG=background.Get_LOGPROB(site.substring((site.length()-motiflen)/2, motiflen));
+//
+			bgstrSet.put(site, 1.0);
+			double logprob_BG=background.Get_LOGPROB(site);
+
+			logbg_score.add(logprob_BG);//  //
+			sites.add(site);
+		}
+//		motifBG.BuildModel(bgstrSet, 3);
+//		try {
+//			PWM pwmBG=new PWM(sites.toArray(new String[1]));
+//
+//		iter=Falocs.iterator();
+//		while(iter.hasNext())
+//		{
+//
+//			FastaLocation currloc=iter.next();
+//			String site="";
+//			//forward site
+//			if(currloc.ReverseStrand)
+//				site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(),motif.core_motiflen);
+//			else
+//				site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(),motif.core_motiflen);
+//			//check masking
+//			if(site.indexOf('X')>-1)
+//				continue;
+//			
+//			//assume only one N for line break
+//			StringBuffer sb=new StringBuffer(site);
+//			for (int i = 0; i < site.length(); i++) {
+//				if(site.charAt(i)=='N'&& i<=site.length()/2)
+//				{
+//					for (int j = 0; j < i; j++) {
+//						sb.setCharAt(j, 'N');
+//					}
+//					continue;
+//				}
+//				else if(site.charAt(i)=='N')
+//				{
+//					for (int j = i+1; j < site.length(); j++) {
+//						sb.setCharAt(j, 'N');
+//					}
+//					break;
+//				}
+//				
+//			}
+//			site=sb.toString();
+//
+//			if(currloc.ReverseStrand)
+//			{
+//				//reverse site
+//				site=common.getReverseCompletementString(site);
+//			}
+//			//double logprob_BG=background.Get_LOGPROB(site.substring((site.length()-motiflen)/2, motiflen));
+//			double logprob_BG=pwmBG.scoreWeightMatrix(site);//  motifBG.Get_LOGPROB(site);
+//			logbg_score.add(logprob_BG);//  //
+//			probRatio.add(Math.exp(currloc.Score-logprob_BG));
+//			
+//		}
+//		
+//		} catch (IllegalAlphabetException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IllegalSymbolException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		FunctionOptimizer opt=new FunctionOptimizer(1);
+//
+//		FindPrior FPfun=new FindPrior(probRatio, logbg_score);
+//		opt.setInitialX(new double[]{0.5});
+//		opt.setOptimizationMode(OptimizationMode.Hessian);
+//		opt.setFunctionController(new SimpleFunctionController());
+////		opt.setFunctionController(new ParallelFunctionController());
+//		opt.setFunctionAssembler(new AdditiveFunctionAssembler());
+////		opt.optimizeFunction(FPfun);
+////		lamda=opt.getOptimum()[0];
+//		double bestlamda=0;
+//		double minnegllk=Double.MAX_VALUE;
+//		for (lamda=0.01;lamda < 1; lamda+=0.01) {
+//			double negllk=FPfun.evaluate(new double[]{lamda}, 1);
+//			if(negllk<minnegllk)
+//			{
+//				minnegllk=negllk;
+//				bestlamda=lamda;
+//			}
+//		}
+		
+		
+		int seqcount=0;
+		Iterator<FastaLocation> iter2=Falocs.iterator();
+		while(iter2.hasNext())
+		{
+			seqcount++;
+			Prior_EZ=(double)seqcount/SearchEngine.TotalLen;
+			FastaLocation currloc=iter2.next();
+			String site=sites.get(seqcount-1);
+
+			for (int i = 0; i < motif.core_motiflen; i++) {
+				int symid=common.acgt(site.charAt(i));
+				if(symid<4)
+					m_matrix[i][symid]+=1;
+				else
+				{
+					for (int j = 0; j < 4; j++) {
+						m_matrix[i][j]+=0.25;
+					}
+				}	
+			}
+			
+			for (int i = 0; i < m_matrix.length; i++) {
+				motif.setWeights(i+motif.head,common.Normalize(m_matrix[i].clone()));
+			}
+			
+			Iterator<FastaLocation> iter3=Falocs.iterator();
+			int seqcount2=0;
+			double loglikscore=0;
+			while(iter3.hasNext())
+			{
+				seqcount2++;
+				FastaLocation currloc2=iter3.next();
+				String site2=sites.get(seqcount2-1);
+				int prior_bin2=(int)(num_priorbin*((currloc2.getSeqPos()+motif.core_motiflen/2)%currloc2.getSeqLen()/(double)currloc2.getSeqLen()));
+				int rankbin2=num_priorbin*currloc2.getSeqId()/SearchEngine.getSeqNum();
+				double logprior2=0;
+				double logprob_theta2=motif.scoreWeightMatrix(site2)-logbg_score.get(seqcount2-1);//  //
+				if(motif.pos_prior.size()!=0&&motif.pos_en)
+					logprior2=Math.log(motif.pos_prior.get(prior_bin2)+common.DoubleMinNormal)-lognullprior;
+				if(motif.strand_en)
+				{
+					if(currloc.ReverseStrand)
+						logprior2+=Math.log((1-motif.strand_plus_prior)*2);
+					else
+					logprior2+=Math.log(motif.strand_plus_prior*2);
+				}
+				if(motif.peakrank_prior.size()!=0&&motif.peakrank_en)
+					logprior2+=Math.log(motif.peakrank_prior.get(rankbin2)+common.DoubleMinNormal)-lognullprior;
+				
+				double logDnaseProb2=0;
+				//logprior=0;
+				double loglik2=logprob_theta2+logprior2+logDnaseProb2+Math.log(Prior_EZ/(1-Prior_EZ));
+				if(loglik2>10)
+					loglik2=10;
+				double prob_theta2=Math.exp(loglik2)/(Math.exp(loglik2)+1);//Math.exp(currloc.Score);
+				loglikscore+=prob_theta2*loglik2;
+			}
+			
+			if(loglikscore>bestscore)
+			{
+				bestPWM=motif.Clone();
+				bestscore=loglikscore;
+				lamda=Prior_EZ;
+			}
+			
+		}
+		
+		for (int i = 0; i < m_matrix.length; i++) {
+			motif.setWeights(i+motif.head,common.Normalize(bestPWM.m_matrix[i]));
+		}
+		
+		return lamda;
+	}
 
 	public PWM Relax_Seed_2(PWM motif)
 	{
@@ -580,7 +807,8 @@ public class Pomoda {
 		//relax the conserved column 
 		String consensus=motif.Consensus(false);
 		double main_prop=0.7;//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
-			
+		if(motif.core_motiflen<10)
+			main_prop=0.7;
 			//Math.pow(3*sampling_ratio/(seedlen-2), 1.0/(seedlen-1));// 1 mismatch
 			
 			//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
@@ -644,9 +872,12 @@ public class Pomoda {
 		PWM bestPWM=motif.Clone();
 		bestPWM.Score=0;//ignore previous score
 		double sitesperSeq=0;
-		double log_thresh=motif.getThresh(sampling_ratio,FDR,background);//Math.log(1-Prior_EZ)-Math.log(Prior_EZ);
-		LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
+		SearchThread.bestonly=true;
+	//	double log_thresh=motif.getThresh(sampling_ratio,FDR,background);//Math.log(1-Prior_EZ)-Math.log(Prior_EZ);
+		LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, Double.NEGATIVE_INFINITY);
+		SearchThread.bestonly=false;
 		
+//		Prior_EZ=FindPrior(motif,Falocs);
 		if(motif.core_motiflen==seedlen)
 		{
 			motif.head-=2;
@@ -681,13 +912,13 @@ public class Pomoda {
 			String site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(),motif.core_motiflen);
 			bgstrSet.put(site, Math.exp(-currloc.Score));
 		}
-		int bgorder=1;
+		int bgorder=2;
 		motifBG.BuildModel(bgstrSet, bgorder);
 		bgstrSet.clear();
-		//int truepos=PWMevaluator.comparePositionList(Falocs, "E:\\eclipse\\data\\MEME2000_400_0.9.ans", motif.core_motiflen);
-	//	Prior_EZ=(double)truepos/Falocs.size();
-		double prior_fp=motif.getFDR(log_thresh,background);
-		Prior_EZ=1-SearchEngine.TotalLen*prior_fp/Falocs.size();
+		//int truepos=PWMevaluator.comparePositionList(Falocs, "D:\\eclipse\\data\\foxa1.ans", motif.core_motiflen);
+		//Prior_EZ=(double)truepos/Falocs.size();
+//		double prior_fp=motif.getFDR(log_thresh,background);
+		Prior_EZ=1-motif.inst_FDR;//1-SearchEngine.TotalLen*prior_fp/Falocs.size();
 		if(Prior_EZ<0)
 			Prior_EZ=FDR;
 		//Prior_EZ*=0.9;
@@ -988,7 +1219,7 @@ public class Pomoda {
 						match_seqCount+=m_matrix[m_matrix.length/2][i];
 					}
 					
-					Prior_EZ=match_seqCount/Falocs.size();
+				//	Prior_EZ=match_seqCount/Falocs.size();
 					System.out.println(Prior_EZ);
 					prior_gamma=match_seqCount/seqcount;
 					if(prior_gamma>1)
@@ -1071,12 +1302,13 @@ public class Pomoda {
 				
 					//not allow to grow in the iterations
 					flankingLen=0;
-					
+					bestPWM.inst_FDR=1-Prior_EZ;
 					System.out.println("number of occurred sequences: "+String.valueOf(match_seqCount));
 			}while(motif.core_motiflen<max_motiflen&&iter_count<=max_iterNum);
 			
 		if(DnaseLib!=null)
 			DrawDistribution(motif.Dnase_prob,"Dnase_plot.png");
+		
 		return bestPWM;
 	}
 	
@@ -1895,7 +2127,7 @@ public class Pomoda {
 			if(bestCol==-1)
 				break;
 
-			common.print2DArray(count_matrix);
+			//common.print2DArray(count_matrix);
 			double X=count_matrix[bestCol][bestSym.get(0)]+1;
 			double total=0;
 			for (int j = 0; j < 4; j++) {
@@ -2486,7 +2718,7 @@ public class Pomoda {
 		int overlap_pos=-motiflen;
 		double lognullprior=Math.log(1.0/num_priorbin);
 		double score=0;
-		double Prior_EZ= (double)SearchEngine.getSeqNum()/(SearchEngine.getTotalLength()/motif.core_motiflen);
+		double Prior_EZ= (1-motif.inst_FDR)*SearchEngine.SeqNum/SearchEngine.TotalLen;
 		double log_thresh=Math.log(1-Prior_EZ)-Math.log(Prior_EZ);
 		SearchEngine2.EnableBackground(background);
 		LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
@@ -2822,13 +3054,13 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-			seedPWMs.clear();
+//			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGTCANNNNNNNNNNN"}));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAAACANNNNNNNNNNN"}));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGATANNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAAACANNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGATANNNNNNNNNNN"}));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
@@ -2922,12 +3154,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-		} catch (IllegalAlphabetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalSymbolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+//		} catch (IllegalAlphabetException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IllegalSymbolException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
 			
 			
 		}
