@@ -39,3 +39,6 @@ public class FastaLocation extends PointLocation {
 	private int seqLen;
 
 }
+
+
+	

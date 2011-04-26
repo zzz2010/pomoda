@@ -192,6 +192,7 @@ public class PWMevaluator {
 	
 	public double calcAUC(PWM motif,LinkedList<String> sequences)
 	{
+		SearchThread.bestonly=true;
 		 LinearEngine SearEngine=null;
 		 if(sequences==null)
 			 SearEngine=this.SearchEngine;
@@ -310,7 +311,7 @@ public class PWMevaluator {
 	       	ROCdata.put(motif.Name, series1);
 	       	
          double AUCscore=AUCcalc.calculateAUCROC();
-         
+         SearchThread.bestonly=false;
          return AUCscore;
 
 	}

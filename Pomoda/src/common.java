@@ -776,7 +776,7 @@ public class common {
 	{
 		double sum=0;
 		for (int i = 0; i < Arr.length; i++) {
-			sum+=Arr[i];
+			sum+=Arr[i]+DoubleMinNormal;
 		}
 		if(sum==0)
 		{
@@ -786,7 +786,7 @@ public class common {
 			return Arr;
 		}
 		for (int i = 0; i < Arr.length; i++) {
-			Arr[i]/=sum;
+			Arr[i]=(Arr[i]+DoubleMinNormal)/sum;
 		}
 		return Arr;
 		
