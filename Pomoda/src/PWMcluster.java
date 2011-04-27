@@ -163,7 +163,7 @@ public class PWMcluster {
 						int x=t2.getResult().size();
 						HypergeometricDist dist=new HypergeometricDist(m,l,k);
 						double temp2=dist.cdf(x);
-						if(temp2>0.5)//||temp>overlapThresh
+						if(temp>overlapThresh)//temp2>0.5||temp>overlapThresh
 						{
 							System.out.println("-"+sortedPWMs.get(key).Consensus(true)+"\t"+clusterMoitfsId.get(i));
 							newclass=false;
