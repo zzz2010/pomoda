@@ -189,7 +189,36 @@ public class LinearEngine {
 	    
 		return search_result;
 	}
-	
+	public LinkedList<FastaLocation> samplingPattern(PWM pattern, int Num_sample) {
+		// TODO Auto-generated method stub
+	    int workSize=ForwardStrand.size()/num_thread+1;
+	    Iterator<String> iter=ForwardStrand.iterator();
+	    LinkedList<FastaLocation> search_result=new LinkedList<FastaLocation>();
+	    int count=0;
+	    ArrayList<SamplingThread> threadpool=new ArrayList<SamplingThread>(num_thread);
+
+	    //Forward search
+	    for (int i = 0; i < num_thread; i++) {
+	    	SamplingThread t1 = new SamplingThread(pattern, Num_sample/num_thread, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize )),i*workSize,accSeqLen);
+
+	    	t1.start();
+			threadpool.add(t1);
+		}
+
+		try {
+	    for (int i = 0; i < threadpool.size(); i++) {
+				threadpool.get(i).join();
+				if(i==num_thread)
+					forwardCount=search_result.size();
+			search_result.addAll(threadpool.get(i).getResult());
+		}
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	    
+		return search_result;
+	}
 	
 	public LinkedList<FastaLocation> searchPattern(PWM pattern, double thresh) {
 		// TODO Auto-generated method stub

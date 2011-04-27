@@ -53,12 +53,14 @@ public class SearchThread extends Thread  {
 	
 			Iterator<String> iter=db.iterator();
 			int seqid=startSeqId;
-		
+			ArrayList<FastaLocation> tempbestpos=new ArrayList<FastaLocation>(1000);
 			while(iter.hasNext())
 			{
 
 				String seq=iter.next();
 				double bestscore=Double.NEGATIVE_INFINITY;
+				if(bestonly)
+					tempbestpos.clear();
 				FastaLocation bestpos=null;
 				try {
 
@@ -104,6 +106,11 @@ public class SearchThread extends Thread  {
 					    	  {
 					    		  bestpos=fapos;
 					    		  bestscore=score;
+					    		  tempbestpos.clear();
+					    	  }
+					    	  else if(bestscore==score)
+					    	  {
+					    		  tempbestpos.add(fapos);
 					    	  }
 					      }
 					      else
@@ -112,8 +119,10 @@ public class SearchThread extends Thread  {
 						
 					}
 					if(bestonly&&bestpos!=null)
+					{
 						result.add(bestpos);
-					 
+						result.addAll(tempbestpos);
+					}					 
 				    pos+=seq.length();
 				    seqid++;
 				} catch (ChangeVetoException e) {
