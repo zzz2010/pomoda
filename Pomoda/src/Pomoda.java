@@ -55,7 +55,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RectangleInsets;
 import org.pr.clustering.hierarchical.LinkageCriterion;
 
-import umontreal.iro.lecuyer.probdist.ChiSquareDist;
+import umontreal.iro.lecuyer.probdist.ChiSquareDistQuick;
 import umontreal.iro.lecuyer.probdist.NegativeBinomialDist;
 import umontreal.iro.lecuyer.probdist.NormalDist;
 import umontreal.iro.lecuyer.probdistmulti.DirichletDist;
@@ -87,7 +87,7 @@ public class Pomoda {
 	public int starting_windowsize=200;
 	public int ending_windowsize=600;
 	public double FDR=0.05;
-	public int max_motiflen=31;
+	public int max_motiflen=55;
 	public int num_motif=5;
 	public double sampling_ratio=1;
 	public double min_support_ratio=0.1;
@@ -105,7 +105,7 @@ public class Pomoda {
 	public void initialize()
 	{
 		//build hash index
-		SearchEngine=new HashEngine(5);
+		SearchEngine=new HashEngine(seedlen);
 		SearchEngine.build_index(this.inputFasta);
 		SearchEngine2=new LinearEngine(6);
 		SearchEngine2.build_index(this.inputFasta);
@@ -210,6 +210,8 @@ public class Pomoda {
 			//double[] paras=NegativeBinomialDist.getMLE(ArrayUtils.toPrimitive(stat.toArray(new Integer[1])),stat.size());
 			dnaseBG=new NegativeBinomialDist(1,0.5);//(r, p);
 		}
+		
+		PWM.bg_prob=new double[]{Math.exp(background.Get_LOGPROB("A")),Math.exp(background.Get_LOGPROB("C")),Math.exp(background.Get_LOGPROB("G")),Math.exp(background.Get_LOGPROB("T"))};
 		
 ////		
 //		if(GAP_Test())
@@ -858,16 +860,16 @@ public class Pomoda {
 		int flankingLen=0;
 		int orighead=motif.head;
 		int origtail=motif.tail;
-		if(motif.core_motiflen==seedlen)
-		{
-			flankingLen=3;
-			Prior_EZ=Math.min(0.5,Prior_EZ*8);
-		}
-		else if(motif.core_motiflen<9)
-		{
-			flankingLen=2;
-			Prior_EZ=Math.min(0.25,Prior_EZ*4);
-		}
+//		if(motif.core_motiflen==seedlen)
+//		{
+//			flankingLen=3;
+//			Prior_EZ=Math.min(0.5,Prior_EZ*8);
+//		}
+//		else if(motif.core_motiflen<9)
+//		{
+//			flankingLen=2;
+//			Prior_EZ=Math.min(0.25,Prior_EZ*4);
+//		}
 
 		int iter_count=0;
 		PWM bestPWM=motif.Clone();
@@ -877,17 +879,17 @@ public class Pomoda {
 	
 		
 //		Prior_EZ=FindPrior(motif,Falocs);
-		if(motif.core_motiflen==seedlen)
-		{
-			motif.head-=3;
-			motif.tail-=3;
-		}
-		else if(motif.core_motiflen<9)
-		{
-			motif.head-=2;
-			motif.tail-=2;
-		}
-		
+//		if(motif.core_motiflen==seedlen)
+//		{
+//			motif.head-=3;
+//			motif.tail-=3;
+//		}
+//		else if(motif.core_motiflen<9)
+//		{
+//			motif.head-=2;
+//			motif.tail-=2;
+//		}
+//		
 		int newhead=motif.head;
 		int newtail=motif.tail;
 		if(motif.head+flankingLen+motif.core_motiflen>=motif.columns()||motif.head-flankingLen<0)
@@ -917,7 +919,7 @@ public class Pomoda {
 		int bgorder=1;
 		motifBG.BuildModel(bgstrSet, bgorder);
 		bgstrSet.clear();
-		//int truepos=PWMevaluator.comparePositionList(Falocs, "D:\\eclipse\\data\\foxa1.ans", motif.core_motiflen);
+		//int truepos=PWMevaluator.comparePositionList(Falocs, "D:\\eclipse\\data\\batchsim\\ESR1.ans", motif.core_motiflen);
 		//Prior_EZ=(double)truepos/Falocs.size();
 		//double prior_fp=motif.getFDR(log_thresh,background);
         Prior_EZ=(double)SearchEngine.getSeqNum()*0.5/SearchEngine.TotalLen;//motif.inst_coverage/Falocs.size();//1-SearchEngine.TotalLen*prior_fp/Falocs.size();
@@ -1213,7 +1215,7 @@ public class Pomoda {
 								double temp=temp_prior[j]-avgE;
 								chistat+=temp*temp/avgE;
 							}
-							double invFDR=ChiSquareDist.inverseF(temp_prior.length-3, 1-FDR);
+							double invFDR=ChiSquareDistQuick.inverseF(temp_prior.length-3, 1-FDR);
 							
 							if(chistat>invFDR)
 							{
@@ -1245,7 +1247,7 @@ public class Pomoda {
 									double temp=temp_peakrank[j]-sumPrior/temp_peakrank.length;
 									chistat+=temp*temp*temp_peakrank.length/sumPrior;
 								}
-								invFDR=ChiSquareDist.inverseF(temp_peakrank.length-1, 1-FDR);
+								invFDR=ChiSquareDistQuick.inverseF(temp_peakrank.length-1, 1-FDR);
 								if(chistat>invFDR)
 								{
 									motif.peakrank_en=true;
@@ -1725,7 +1727,7 @@ public class Pomoda {
 								double temp=temp_prior[j]-avgE;
 								chistat+=temp*temp/avgE;
 							}
-							double invFDR=ChiSquareDist.inverseF(temp_prior.length-3, 1-FDR);
+							double invFDR=ChiSquareDistQuick.inverseF(temp_prior.length-3, 1-FDR);
 							
 							if(chistat>invFDR)
 							{
@@ -1757,7 +1759,7 @@ public class Pomoda {
 									double temp=temp_peakrank[j]-sumPrior/temp_peakrank.length;
 									chistat+=temp*temp*temp_peakrank.length/sumPrior;
 								}
-								invFDR=ChiSquareDist.inverseF(temp_peakrank.length-1, 1-FDR);
+								invFDR=ChiSquareDistQuick.inverseF(temp_peakrank.length-1, 1-FDR);
 								if(chistat>invFDR)
 								{
 									motif.peakrank_en=true;
@@ -2200,7 +2202,7 @@ public class Pomoda {
 	
 	public PWM Column_Replacement_2(PWM motif)
 	{
-		int minmotiflen=9;
+		int minmotiflen=7;
 		double log025=Math.log(0.25);
 		if(this.pos_prior.size()>0)
 			motif.pos_prior=(ArrayList<Double>) this.pos_prior.clone();
@@ -2316,7 +2318,8 @@ public class Pomoda {
 //					if(site.indexOf('X')>-1)
 //						continue;
 					
-					
+					if(site.length()!=motif.columns())
+						continue;
 //					if(site.equalsIgnoreCase(""))
 //						continue;
 					//assume only one N for line break
@@ -2366,7 +2369,7 @@ public class Pomoda {
 					double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);				
 					if(Double.isNaN(prob_theta))
 						prob_theta=1;
-					bgstrSet.put(site.substring(0,(motif.columns()-seedlen)/2)+site.substring((motif.columns()-seedlen)/2+seedlen), 1-prob_theta);
+				//	bgstrSet.put(site.substring(0,(motif.columns()-seedlen)/2)+site.substring((motif.columns()-seedlen)/2+seedlen), 1-prob_theta);
 					temp_peakrank[rankbin]+=prob_theta;
 					temp_prior[posbin]+=prob_theta;
 					if(currloc.ReverseStrand)
@@ -2601,23 +2604,20 @@ public class Pomoda {
 			if(bestCol==-1)
 				break;
 
-//			common.print2DArray(count_matrix);
-//			double X=count_matrix[bestCol][bestSym.get(0)]+1;
-//			double total=0;
+	//	common.print2DArray(count_matrix);
+			double X=count_matrix[bestCol][bestSym.get(0)]+1;
+			double total=0;
 //			for (int j = 0; j < 4; j++) {
 //				total+=count_matrix[bestCol][j]+1;
 //			}
-//			X*=seedlen;
-//			total*=seedlen;
 //			Binomial binomial=new Binomial((int)total,Math.exp(single_logprob_bg[bestSym.get(0)]),rand);
 //			double pvalue=1.0-binomial.cdf((int)X);
 
-			double v=3; //free parameters extra for additional column
-			double X_2=2*maxloglik; //
-			double z_test=(Math.pow(X_2/v, 1.0/3)-(1-2/(9*v)))/Math.sqrt(2/(9*v));
-			double pvalue=1-NormalDist.cdf01(z_test);
-			if(pvalue>this.FDR/num_col_cand&&motif.core_motiflen>minmotiflen)//num_col_cand*
-			break;
+//			double v=3; //free parameters extra for additional column
+//			double X_2=2*maxloglik; //
+//			double z_test=(Math.pow(X_2/v, 1.0/3)-(1-2/(9*v)))/Math.sqrt(2/(9*v));
+//			double pvalue=1-NormalDist.cdf01(z_test);
+
 			double [] repColumnValue=new double[4];
 			Arrays.fill(repColumnValue, common.DoubleMinNormal);
 			
@@ -2661,7 +2661,7 @@ public class Pomoda {
 			}
 			Prior_EZ=max_sumCount/Falocs.size();
 			
-			//motifBG.BuildModel(bgstrSet, bgorder);
+		//	motifBG.BuildModel(bgstrSet, bgorder);
 			
 
 			if(debug)
@@ -2685,8 +2685,7 @@ public class Pomoda {
 
 
 
-			//update motif column value
-			motif.setWeights(bestCol, repColumnValue);
+
 			
 
 			//determine whether pos_prior is significant needed
@@ -2701,7 +2700,7 @@ public class Pomoda {
 					double temp=temp_prior[j]-avgE;
 					chistat+=temp*temp/avgE;
 				}
-				double invFDR=ChiSquareDist.inverseF(temp_prior.length-3, 1-FDR);
+				double invFDR=ChiSquareDistQuick.inverseF(temp_prior.length-3, 1-FDR);
 				
 				if(chistat>invFDR)
 				{
@@ -2714,8 +2713,8 @@ public class Pomoda {
 				}
 				
 			//determine whether strand_prior is significant needed
-			double	X=Math.max(temp_strand[0], temp_strand[1])+1;
-				Binomial	binomial=new Binomial((int)(temp_strand[0]+temp_strand[1])+1,0.5,rand);
+				X=Math.max(temp_strand[0], temp_strand[1])+1;
+				Binomial binomial=new Binomial((int)(temp_strand[0]+temp_strand[1])+1,0.5,rand);
 				double pvalue_strand=1.0-binomial.cdf((int)X);
 				if(pvalue_strand<this.FDR)
 				{
@@ -2733,7 +2732,7 @@ public class Pomoda {
 						double temp=temp_peakrank[j]-sumPrior/temp_peakrank.length;
 						chistat+=temp*temp*temp_peakrank.length/sumPrior;
 					}
-					invFDR=ChiSquareDist.inverseF(temp_peakrank.length-1, 1-FDR);
+					invFDR=ChiSquareDistQuick.inverseF(temp_peakrank.length-1, 1-FDR);
 					if(chistat>invFDR)
 					{
 						motif.peakrank_en=true;
@@ -2745,17 +2744,49 @@ public class Pomoda {
 					}
 			
 			//also maximize loglik for update other column
-			Iterator<Integer> iter1=extendedCols.iterator();
-			while(iter1.hasNext())
+			//Iterator<Integer> iter1=extendedCols.iterator();
+			//while(iter1.hasNext())
+			for (int ecol = motif.head; ecol < motif.columns()-motif.tail; ecol++) 
 			{
-				int ecol=iter1.next();
+				//int ecol=iter1.next();
 				motif.setWeights(ecol, optimalcols[ecol]);
 				
 			}
 			
 			motif.Prior_EZ=Prior_EZ;
-			extendedCols.add(bestCol);
+			
 			motif.inst_coverage=Prior_EZ*Falocs.size();
+			//update motif column value, if significant
+			chistat=0;
+			total=0;
+			for (int i = 0; i < 4; i++) {
+				total+=count_matrix[bestCol][i];
+			}
+			for (int j = 0; j < 4; j++) {
+					double Ei=total*Math.exp(single_logprob_bg[j]);
+					double temp=count_matrix[bestCol][j]-Ei;
+					chistat+=temp*temp/Ei;
+				}
+			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR/num_col_cand);
+			if(chistat>invFDR||motif.core_motiflen<=minmotiflen)//num_col_cand*  pvalue<this.FDR
+			{
+			   motif.setWeights(bestCol, repColumnValue);
+			   extendedCols.add(bestCol);
+			}
+			//when sample size is small, then ostrich policy let it extend
+			if(total<100)
+			{
+				int extralen=0;
+				if(bestCol<motif.head)
+					extralen=motif.head-bestCol;
+				if(bestCol>motif.columns()-motif.tail-1)
+					extralen=bestCol-(motif.columns()-motif.tail-1);
+				if(extralen+motif.core_motiflen<(motif.columns()+seedlen)/2)
+				{
+					   motif.setWeights(bestCol, repColumnValue);
+					   extendedCols.add(bestCol);
+				}
+			}
 
 			if(debug)
 				motif.print();
@@ -3550,8 +3581,8 @@ public class Pomoda {
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGTCANNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAAACANNNNNNNNNNN"}));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGATANNNNNNNNNNN"}));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNCGGTGNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNACAAANNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNGGCCANNNNNNNNNNN"}));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs

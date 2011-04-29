@@ -74,12 +74,13 @@ public class FastaMask {
 		while(iter.hasNext())
 		{
 			PWM curr=iter.next();
-			if(curr.core_motiflen<10)
-				continue;
-			LinkedList<PWM> temp=new LinkedList<PWM>();
-			temp.add(curr);
-			String outputFasta=outputDir+curr.Name.replace('$', '_')+".fa";
-			generateSimulatedData(temp,N,len,outputFasta,background,sampling_ratio);
+			System.out.println(curr.Name+"\t"+curr.columns());
+//			if(curr.core_motiflen<10)
+//				continue;
+//			LinkedList<PWM> temp=new LinkedList<PWM>();
+//			temp.add(curr);
+//			String outputFasta=outputDir+curr.Name.replace('$', '_')+".fa";
+//			generateSimulatedData(temp,N,len,outputFasta,background,sampling_ratio);
 		}
 
 	}

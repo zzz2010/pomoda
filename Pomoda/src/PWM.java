@@ -28,6 +28,7 @@ import umontreal.iro.lecuyer.util.Num;
 
 public class PWM extends SimpleWeightMatrix {
 
+	static double[] bg_prob=new double[]{0.25,0.25,0.25,0.25};
 	double[][]  m_matrix;
 	double[][]  log_matrix;
 	public int head;
@@ -504,6 +505,7 @@ public class PWM extends SimpleWeightMatrix {
 		PWM pwm=null;
 		String pwmName="";
 		double score=0;
+		double prior_EZ=0;
 		try {
 			while ((str = reader.readLine()) != null) {
 				if(str.startsWith("DE"))
@@ -515,7 +517,19 @@ public class PWM extends SimpleWeightMatrix {
 					{
 						try
 						{
-							score=Double.valueOf(elms[3]);
+							prior_EZ=Double.valueOf(elms[elms.length-1]);
+							if(prior_EZ<0||prior_EZ>1)
+								prior_EZ=0;
+							
+						}
+						catch(Exception e)
+						{
+							prior_EZ=0;
+						}
+						try
+						{
+							score =Double.valueOf(elms[3]);
+							
 						}
 						catch(Exception e)
 						{
@@ -550,6 +564,7 @@ public class PWM extends SimpleWeightMatrix {
 			pwm=new PWM(dists.toArray(new Distribution[1]));
 			pwm.Name=pwmName;
 			pwm.Score=score;
+			pwm.Prior_EZ=prior_EZ;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -720,6 +735,24 @@ public class PWM extends SimpleWeightMatrix {
 	{
 		StringBuffer TransStr=new StringBuffer("");
 		String consensus=Consensus(true);
+		int newhead=head;
+		int newtail=tail;
+		for (int i = head; i < this.columns()-tail; i++) {
+		    //calculate the information content
+		    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
+		    if(info<0.1)
+		    	newhead=i+1;
+		    else
+		    	break;
+		}
+		for (int i = this.columns()-tail-1; i > head; i--) {
+		    //calculate the information content
+		    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
+		    if(info<0.1)
+		    	newtail=this.columns()-i;
+		    else
+		    	break;
+		}
 		String priorlist="";
 		if(pos_en)
 			priorlist+="pos|";
@@ -727,10 +760,11 @@ public class PWM extends SimpleWeightMatrix {
 			priorlist+="strand"+strand_plus_prior+"|";
 		if(peakrank_en)
 			priorlist+="peakrank|";
-		TransStr.append("DE\t"+Name+"\t"+consensus+"\t"+String.valueOf(this.Score)+"\t"+priorlist+"\t"+(Prior_EZ)+"\n");
+		TransStr.append("DE\t"+Name+"\t"+consensus.substring(newhead-head,consensus.length()-(newtail-tail))+"\t"+String.valueOf(this.Score)+"\t"+priorlist+"\t"+(Prior_EZ)+"\n");
 		TransStr.append("PO\tA\tC\tG\tT\n");
-		for (int i = head; i < this.columns()-tail; i++) {
-			TransStr.append(i-head+1);
+		for (int i = newhead; i < this.columns()-newtail; i++) {
+
+			TransStr.append(i-newhead+1);
 			TransStr.append('\t');
 			for (int j = 0; j< 4; j++)
 			{  
@@ -758,7 +792,7 @@ public class PWM extends SimpleWeightMatrix {
 			for (int j = 1; j<= 4; j++)
 			{  
 				double weight=m_matrix[i][j-1];
-				if(weight>0.27)//side effect control extending length
+				if(weight>(bg_prob[j-1]+0.01)&&weight!=0.25)//side effect control extending length
 					sb.append(ACGT.charAt(j-1));
 					
 			}

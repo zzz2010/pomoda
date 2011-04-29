@@ -367,7 +367,7 @@ public class common {
  			             continue;
  			         PWM candidate = new PWM(dists.toArray(new Distribution[1]));
  			         candidate.Name = nname;
- 			         candidate.Score=nsite;
+ 			         candidate.Prior_EZ=nsite;
  			         retlist.add(candidate);
 
  			    }
