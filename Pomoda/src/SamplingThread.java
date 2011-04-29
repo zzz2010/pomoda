@@ -16,7 +16,7 @@ import org.biojava.utils.ChangeVetoException;
 		PWM motif;
 		int samplenum;
 		String pattern;
-		Random rand=new Random();
+		Random rand=new Random(1);
 		int startSeqId;
 		int mismatch;
 		int dbsize;

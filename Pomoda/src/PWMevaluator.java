@@ -542,6 +542,7 @@ public class PWMevaluator {
 		Options options = new Options();
 		options.addOption("i", true, "input fasta file");
 		options.addOption("pwm", true, "input PWM file");
+		options.addOption("N", true, "the number of PWM want to evaluate");
 		options.addOption("c", true, "control fasta file");
 		options.addOption("convert", false, "convert input PWM file to the transfac format");
 		options.addOption("roc", false, "compute AUC and draw ROC curve for the given pwm file");
@@ -557,7 +558,7 @@ public class PWMevaluator {
 		boolean rocflag=false;
 		boolean convertflag=false;
 		LinkedList<PWM> PWMLibrary=null;
-		
+		int topN=1000000;
 		try {
 			CommandLine cmd = parser.parse( options, args);
 			if(cmd.hasOption("i"))
@@ -575,6 +576,10 @@ public class PWMevaluator {
 			if(cmd.hasOption("c"))
 			{
 				evaluator.ctrlFasta=cmd.getOptionValue("c");
+			}
+			if(cmd.hasOption("N"))
+			{
+				topN=Integer.parseInt(cmd.getOptionValue("N"));
 			}
 			if(cmd.hasOption("bgmodel"))
 			{
@@ -624,7 +629,9 @@ public class PWMevaluator {
 		{
 		evaluator.initialize();
 		
-		LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+		List<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+		if(pwmlist.size()>topN)
+			pwmlist= pwmlist.subList(0, topN);
 		Iterator<PWM> iter=pwmlist.iterator();
 		writer.write("AUC Result:\n");
 		TreeMap<Double,PWM> sortedPWMs=new TreeMap<Double,PWM>();
