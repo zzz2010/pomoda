@@ -114,7 +114,7 @@ public class GapImprover {
 		int bg_markov_order=3;
 		if(ctrlFasta.isEmpty())
 		{
-			bg_markov_order=1;
+			bg_markov_order=0;
 			file= new File(inputFasta+".bgobj");
 		}
 		else

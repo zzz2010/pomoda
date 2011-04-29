@@ -67,6 +67,23 @@ public class FastaMask {
 		}
 
 	}
+	
+	public static void generateBatchSimulatedData(LinkedList<PWM> pwmlist, int N, int len, String outputDir,BGModel background, double sampling_ratio)
+	{
+		Iterator<PWM> iter=pwmlist.iterator();
+		while(iter.hasNext())
+		{
+			PWM curr=iter.next();
+			if(curr.core_motiflen<10)
+				continue;
+			LinkedList<PWM> temp=new LinkedList<PWM>();
+			temp.add(curr);
+			String outputFasta=outputDir+curr.Name.replace('$', '_')+".fa";
+			generateSimulatedData(temp,N,len,outputFasta,background,sampling_ratio);
+		}
+
+	}
+	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		int topN=2;
@@ -138,7 +155,8 @@ public class FastaMask {
 		if(simlen>0)
 		{// turn on simulated data generation, turn off the fasta masking
 			String outputFasta=GImprover.outputPrefix+"/"+basename.split("\\.")[0]+topN+"_"+simlen+"_"+GImprover.FDR+".fa";
-			generateSimulatedData(pwmlist, topN, simlen, outputFasta, GImprover.background, GImprover.FDR);
+			//generateSimulatedData(pwmlist, topN, simlen, outputFasta, GImprover.background, GImprover.FDR);
+			generateBatchSimulatedData(pwmlist, topN, simlen, GImprover.outputPrefix, GImprover.background, GImprover.FDR);
 			return ;
 		}
 		
