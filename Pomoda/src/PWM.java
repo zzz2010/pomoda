@@ -41,6 +41,7 @@ public class PWM extends SimpleWeightMatrix {
 	public int tail;
 	public double inst_coverage=1;
 	public double inst_FDR=1;
+	public double Prior_EZ=0;
 	//public ArrayList<Double> debuglist=new ArrayList<Double>(); 
 	public double Score;
 	public ArrayList<Double>pos_prior;
@@ -726,7 +727,7 @@ public class PWM extends SimpleWeightMatrix {
 			priorlist+="strand"+strand_plus_prior+"|";
 		if(peakrank_en)
 			priorlist+="peakrank|";
-		TransStr.append("DE\t"+Name+"\t"+consensus+"\t"+String.valueOf(this.Score)+"\t"+priorlist+"\n");
+		TransStr.append("DE\t"+Name+"\t"+consensus+"\t"+String.valueOf(this.Score)+"\t"+priorlist+"\t"+(Prior_EZ)+"\n");
 		TransStr.append("PO\tA\tC\tG\tT\n");
 		for (int i = head; i < this.columns()-tail; i++) {
 			TransStr.append(i-head+1);

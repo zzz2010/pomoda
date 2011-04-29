@@ -337,7 +337,8 @@ public class common {
  			    {
  			       
  			        sr.readLine();
- 			       sr.readLine();
+ 			      String header= sr.readLine();
+ 			     int nsite=Integer.parseInt(header.substring(header.indexOf("nsites= ")+8,header.indexOf("E= ")).trim());
  			        ArrayList<Distribution> dists=new ArrayList<Distribution>();
  			        while ((line = sr.readLine()) != null)
  			        {
@@ -366,6 +367,7 @@ public class common {
  			             continue;
  			         PWM candidate = new PWM(dists.toArray(new Distribution[1]));
  			         candidate.Name = nname;
+ 			         candidate.Score=nsite;
  			         retlist.add(candidate);
 
  			    }
