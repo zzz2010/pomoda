@@ -730,6 +730,39 @@ public class PWM extends SimpleWeightMatrix {
 		
 	}
 	
+	public PWM trim()
+	{
+		int newhead=head;
+		int newtail=tail;
+		double [] nullarr=new double[]{0.25,0.25,0.25,0.25};
+		for (int i = head; i < this.columns()-tail; i++) {
+		    //calculate the information content
+		    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
+		    if(info<0.1)
+		    {
+		    	newhead=i+1;
+		    	setWeights(i,nullarr);
+		    }
+		    else
+		    	break;
+		}
+		for (int i = this.columns()-tail-1; i > head; i--) {
+		    //calculate the information content
+		    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
+		    if(info<0.1)
+		    {
+		    	newtail=this.columns()-i;
+		    	setWeights(i,nullarr);
+		    }
+		    else
+		    	break;
+		}
+		head=newhead;
+		tail=newtail;
+		core_motiflen=columns()-head-tail;
+		return this;
+	}
+	
 	@Override
 	public String toString()
 	{
