@@ -860,16 +860,7 @@ public class Pomoda {
 		int flankingLen=0;
 		int orighead=motif.head;
 		int origtail=motif.tail;
-//		if(motif.core_motiflen==seedlen)
-//		{
-//			flankingLen=3;
-//			Prior_EZ=Math.min(0.5,Prior_EZ*8);
-//		}
-//		else if(motif.core_motiflen<9)
-//		{
-//			flankingLen=2;
-//			Prior_EZ=Math.min(0.25,Prior_EZ*4);
-//		}
+
 
 		int iter_count=0;
 		PWM bestPWM=motif.Clone();
@@ -878,18 +869,7 @@ public class Pomoda {
 		LinkedList<FastaLocation> Falocs=SearchEngine2.samplingPattern(motif,SearchEngine2.getSeqNum());
 	
 		
-//		Prior_EZ=FindPrior(motif,Falocs);
-//		if(motif.core_motiflen==seedlen)
-//		{
-//			motif.head-=3;
-//			motif.tail-=3;
-//		}
-//		else if(motif.core_motiflen<9)
-//		{
-//			motif.head-=2;
-//			motif.tail-=2;
-//		}
-//		
+
 		int newhead=motif.head;
 		int newtail=motif.tail;
 		if(motif.head+flankingLen+motif.core_motiflen>=motif.columns()||motif.head-flankingLen<0)
@@ -899,10 +879,11 @@ public class Pomoda {
 		///////////////build newBG for iterations////////////////////
 		BGModel motifBG=new BGModel();
 		Iterator<FastaLocation> iter=Falocs.iterator();
-		TreeMap<String, Double> bgstrSet=new TreeMap<String, Double>();
+		//TreeMap<String, Double> bgstrSet=new TreeMap<String, Double>();
 		int last=-1;
 		int seqcount=0;
 		double total_sampleweight=0;
+		double [] single_bgprob=new double[4];
 		while(iter.hasNext())
 		{
 			FastaLocation currloc=iter.next();
@@ -913,12 +894,27 @@ public class Pomoda {
 			}
 			String site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(),motif.core_motiflen);
 			double sampleweight=1.0/Math.exp(currloc.Score);
-			bgstrSet.put(site, sampleweight);
+			for (int i = 0; i < site.length(); i++) {
+				int symid=common.acgt(site.charAt(i));
+				single_bgprob[symid]+=sampleweight;
+			}
+			//bgstrSet.put(site, sampleweight);
 			total_sampleweight+=sampleweight;
 		}
 		int bgorder=1;
-		motifBG.BuildModel(bgstrSet, bgorder);
-		bgstrSet.clear();
+		/****************manual initialize********************/
+		motifBG.order=1;
+		common.Normalize(single_bgprob);
+		motifBG.conditionProb=new HashMap<String, Double>(4);
+		motifBG.conditionProb.put("A", single_bgprob[0]);
+		motifBG.conditionProb.put("C", single_bgprob[1]);
+		motifBG.conditionProb.put("G", single_bgprob[2]);
+		motifBG.conditionProb.put("T", single_bgprob[3]);
+		Arrays.fill(single_bgprob, 0);
+		/****************manual initialize********************/
+		
+		//motifBG.BuildModel(bgstrSet, bgorder);
+		//bgstrSet.clear();
 		//int truepos=PWMevaluator.comparePositionList(Falocs, "D:\\eclipse\\data\\batchsim\\ESR1.ans", motif.core_motiflen);
 		//Prior_EZ=(double)truepos/Falocs.size();
 		//double prior_fp=motif.getFDR(log_thresh,background);
@@ -1048,7 +1044,7 @@ public class Pomoda {
 						if(Double.isNaN(prob_theta))
 							prob_theta=1;//upper flow
 						double sampleWeight=1.0/Math.exp(currloc.Score); //re-weighting
-						bgstrSet.put(site, (1-prob_theta)*sampleWeight);
+						//bgstrSet.put(site, (1-prob_theta)*sampleWeight);
 						temp_peakrank[rankbin]+=prob_theta;
 						temp_prior[prior_bin]+=prob_theta;//make smaller
 						if(currloc.ReverseStrand)
@@ -1115,7 +1111,7 @@ public class Pomoda {
 								
 								for (int i = 0; i < site.length(); i++) {
 									int symid=common.acgt(site.charAt(i));
-
+									
 									if(symid>3)
 									{
 										for (int j = 0; j < 4; j++) {
@@ -1123,6 +1119,7 @@ public class Pomoda {
 										}
 										continue;
 									}
+								single_bgprob[symid]+=(1-prob_theta)*sampleWeight;
 								sumexpLLR[i][symid]+=expLLR*sampleWeight; //re-weighting
 								
 								}	
@@ -1185,7 +1182,15 @@ public class Pomoda {
 					System.out.println(Prior_EZ);
 					if(prior_gamma>1)
 						prior_gamma=0.9999;
-					motifBG.BuildModel(bgstrSet, bgorder);
+					//motifBG.BuildModel(bgstrSet, bgorder);
+					/****************manual initialize********************/
+					common.Normalize(single_bgprob);
+					motifBG.conditionProb.put("A", single_bgprob[0]);
+					motifBG.conditionProb.put("C", single_bgprob[1]);
+					motifBG.conditionProb.put("G", single_bgprob[2]);
+					motifBG.conditionProb.put("T", single_bgprob[3]);
+					Arrays.fill(single_bgprob, 0);
+					/****************manual initialize********************/
 					
 					if(Double.isNaN(bestscore) ||Math.abs(lastscore-bestscore)<FDR)//||match_seqCount<min_support_ratio*SearchEngine2.getSeqNum()
 						break;
