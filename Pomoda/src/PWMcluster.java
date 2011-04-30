@@ -211,7 +211,8 @@ public class PWMcluster {
 
 					int row=clusterMoitfsId.get(i);
 					int col=id;	
-					OverlappingThread t2=new OverlappingThread(sortedPWMs.get(row).matchsite ,sortedPWMs.get(col).matchsite, 5);
+					int overlaplen=Math.min(sortedPWMs.get(row).core_motiflen, sortedPWMs.get(col).core_motiflen);
+					OverlappingThread t2=new OverlappingThread(sortedPWMs.get(row).matchsite ,sortedPWMs.get(col).matchsite,overlaplen );
 					t2.run();
 					double temp=t2.getResult().size()/(double)Math.min(sortedPWMs.get(row).matchsite.size()+1, sortedPWMs.get(col).matchsite.size()+1);
 					int l=Math.max(SearchEngine.TotalLen/(sortedPWMs.get(row).core_motiflen),SearchEngine.TotalLen/sortedPWMs.get(col).core_motiflen);
