@@ -33,6 +33,7 @@ public class PWM extends SimpleWeightMatrix {
 	double[][]  log_matrix;
 	public int head;
 	public String Name="";
+	LinkedList<Integer> matchsite=new LinkedList<Integer>();
 	boolean strand_en=false;
 	boolean pos_en=false;
 	boolean peakrank_en=false;

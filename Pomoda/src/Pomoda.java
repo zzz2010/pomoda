@@ -3648,7 +3648,14 @@ public class Pomoda {
 			double llrscore=evaluator.calcAUC(seedPWMs.get(i).trim(),null);//  motifFinder.sumLLR(seedPWMs.get(i));
 			System.out.println(seedPWMs.get(i).Consensus(true)+" LLR:"+ llrscore);
 			seedPWMs.get(i).Score=llrscore;
+			sortedPWMs.put(llrscore, seedPWMs.get(i));
+			
 		}
+		seedPWMs.clear();
+		for (Double key : sortedPWMs.descendingKeySet()) {
+			seedPWMs.add(sortedPWMs.get(key));
+		}
+		
 //		motifFinder.SearchEngine2.DisableBackground();
 		end = System.currentTimeMillis();
 		
@@ -3662,7 +3669,7 @@ public class Pomoda {
 		sortedPWMs.clear();
 		PWMcluster clustering=new PWMcluster(motifFinder);
 	
-			ArrayList<PWM>  clusterPWMs=clustering.Clustering_(seedPWMs,motifFinder.num_motif);
+			ArrayList<PWM>  clusterPWMs=clustering.Clustering_Fast(seedPWMs,motifFinder.num_motif);
 	
 			for(PWM pwm:clusterPWMs)
 			{

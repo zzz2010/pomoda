@@ -224,8 +224,11 @@ public class PWMevaluator {
          }
 
      	TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
-         
+     	double lamda=(double)SearchEngine.getSeqNum()/SearEngine.TotalLen;
+         SearchThread.recordSiteThreshold=Math.log((1-lamda)/lamda)+motif.core_motiflen*Math.log(0.25);
+         motif.matchsite.clear();
         	 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
+         SearchThread.recordSiteThreshold=Double.POSITIVE_INFINITY;
         	 Iterator<FastaLocation> iter=falocs.iterator();
         	 int lastseq=-1;
         	 double seqcount=0;
