@@ -798,7 +798,7 @@ public class common {
 	{
 			String temp="";
 			for(int i=0;i<Tag.length();i++)
-				temp=temp.concat(String.valueOf((reverseC(Tag.charAt(Tag.length()-1-i)))));
+				temp=temp.concat(String.valueOf((reverseC[Tag.charAt(Tag.length()-1-i)])));
 			//temp.push_back(reverseC(Tag[i]));
 			return temp;
 	}
@@ -831,6 +831,54 @@ public class common {
 
 	public static String replaceCharAt(String s, int pos, char c) {
 	   return s.substring(0,pos) + c + s.substring(pos+1);
+	}
+	static int[] acgt=new int[128];
+	static char[] reverseC=new char[128];
+	static void initialize()
+	{
+		Arrays.fill(acgt, 100);
+	acgt['a']= 0;
+	acgt['c']= 1;
+	acgt['g']= 2;
+	acgt['t']= 3;
+	acgt['A']= 0;
+	acgt['C']= 1;
+	acgt['G']= 2;
+	acgt['T']= 3;
+	acgt['R']= 4;
+	acgt['Y']= 5;
+	acgt['K']= 6;
+	acgt['M']= 7;
+	acgt['S']= 8;
+	acgt['W']= 9;
+	acgt['B']= 10;
+	acgt['D']= 11;
+	acgt['H']= 12;
+	acgt['V']= 13;
+	acgt['N']= 14;
+	acgt['n']= 14;
+	acgt['X']= 15;
+	
+	reverseC['a']='t';
+	reverseC['c']='g';
+	reverseC['g']='c';
+	reverseC['t']='a';
+	reverseC['A']='T';
+	reverseC['C']='G';
+	reverseC['G']='C';
+	reverseC['T']='A';
+	reverseC['N']='N';
+	reverseC['n']='N';
+	reverseC['R']='Y';
+	reverseC['Y']='R';
+	reverseC['W']='S';
+	reverseC['S']='W';
+	reverseC['V']='B';
+	reverseC['B']='V';
+	reverseC['K']='M';
+	reverseC['M']='K';
+	reverseC['H']='D';
+	reverseC['D']='H';
 	}
 	
 	static  int acgt(char w)
