@@ -10,7 +10,9 @@ import org.biojava.utils.ChangeVetoException;
 public class SearchThread extends Thread  {
 
 	static boolean bestonly=false;  //only get the best occurrence for each sequence
+	static double recordSiteThreshold=Double.POSITIVE_INFINITY;
 	private LinkedList<FastaLocation> result;
+	public LinkedList<Integer> matchsite=null;
 	PWM motif;
 	double thresh;
 	String pattern;
@@ -50,7 +52,8 @@ public class SearchThread extends Thread  {
 		{
 			int pos=accSeqLen.get(startSeqId);
 			boolean bg_buff_ready=true;
-	
+			if(Double.POSITIVE_INFINITY>recordSiteThreshold)
+			      matchsite=new LinkedList<Integer>();
 			Iterator<String> iter=db.iterator();
 			int seqid=startSeqId;
 			ArrayList<FastaLocation> tempbestpos=new ArrayList<FastaLocation>(1000);
@@ -91,6 +94,12 @@ public class SearchThread extends Thread  {
 						}
 						
 						score-=bgscore;
+
+						if(score>recordSiteThreshold)
+						{
+							matchsite.add(pos+i);
+						}
+						
 						if(score>thresh)
 						{
 							int addpos=pos+i;

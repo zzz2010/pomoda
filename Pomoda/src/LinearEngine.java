@@ -276,6 +276,9 @@ public class LinearEngine {
 				if(i==num_thread)
 					forwardCount=search_result.size();
 			search_result.addAll(threadpool.get(i).getResult());
+			if(SearchThread.recordSiteThreshold<Double.POSITIVE_INFINITY)
+				pattern.matchsite.addAll(threadpool.get(i).matchsite);
+		    
 		}
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block

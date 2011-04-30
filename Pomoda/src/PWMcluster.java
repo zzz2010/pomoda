@@ -190,6 +190,57 @@ public class PWMcluster {
 		return clusterMoitfs;
 	}
 	
+	public ArrayList<PWM> Clustering_Fast(List<PWM> sortedPWMs,int num_cluster)
+	{
+		ArrayList<PWM> clusterMoitfs=new ArrayList<PWM>(num_cluster);
+	
+		
+		int id=0;
+		ArrayList<Integer> clusterMoitfsId=new ArrayList<Integer>(num_cluster);
+		for(PWM motif:sortedPWMs)
+		{
+			if(clusterMoitfsId.size()==0)
+			{
+				clusterMoitfsId.add(id);	
+				clusterMoitfs.add(motif);
+			}
+			else
+			{
+				boolean newclass=true;
+				for (int i = 0; i < clusterMoitfsId.size(); i++) {
+
+					int row=clusterMoitfsId.get(i);
+					int col=id;	
+					OverlappingThread t2=new OverlappingThread(sortedPWMs.get(row).matchsite ,sortedPWMs.get(col).matchsite, 5);
+					t2.run();
+					double temp=t2.getResult().size()/(double)Math.min(sortedPWMs.get(row).matchsite.size()+1, sortedPWMs.get(col).matchsite.size()+1);
+					int l=Math.max(SearchEngine.TotalLen/(sortedPWMs.get(row).core_motiflen),SearchEngine.TotalLen/sortedPWMs.get(col).core_motiflen);
+					int m=sortedPWMs.get(row).matchsite.size();
+					int k=sortedPWMs.get(col).matchsite.size();
+					int x=t2.getResult().size();
+					//HypergeometricDist dist=new HypergeometricDist(m,l,k);
+					//double temp2=dist.cdf(x);
+					if(temp>overlapThresh)//temp2>0.5||temp>overlapThresh
+					{
+						System.out.println("-"+motif.Consensus(true)+"\t"+clusterMoitfsId.get(i));
+						newclass=false;
+						break;
+					}
+				}
+				if(newclass)
+				{
+					clusterMoitfsId.add(id);	
+					clusterMoitfs.add(motif);
+				}
+			}
+			
+			id++;
+			if(clusterMoitfs.size()==num_cluster)
+				break;
+		}
+		
+		return clusterMoitfs;
+	}
 	
 	public ArrayList<PWM> Clustering(List<PWM> rawPwms,int num_cluster)
 	{
