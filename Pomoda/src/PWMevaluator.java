@@ -126,7 +126,7 @@ public class PWMevaluator {
 	
 	public void initialize()
 	{
-
+		common.initialize();
 		SearchEngine=new LinearEngine(4);
 		SearchEngine.build_index(this.inputFasta);
 	

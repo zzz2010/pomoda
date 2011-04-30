@@ -76,7 +76,7 @@ public class Pomoda {
 
 	public String outputPrefix="./";
 	public String inputFasta;
-	public int max_iterNum=50;
+	public int max_iterNum=100;
 	public String ctrlFasta="";
 	public int BGorder=2;
 	public String bgmodelFile="";
@@ -105,6 +105,7 @@ public class Pomoda {
 	public void initialize()
 	{
 		//build hash index
+		common.initialize();
 		SearchEngine=new HashEngine(seedlen);
 		SearchEngine.build_index(this.inputFasta);
 		SearchEngine2=new LinearEngine(6);
@@ -740,7 +741,7 @@ public class Pomoda {
 			String site=sites.get(seqcount-1);
 
 			for (int i = 0; i < motif.core_motiflen; i++) {
-				int symid=common.acgt(site.charAt(i));
+				int symid=common.acgt[site.charAt(i)];
 				if(symid<4)
 					m_matrix[i][symid]+=1;
 				else
@@ -895,7 +896,7 @@ public class Pomoda {
 			String site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(),motif.core_motiflen);
 			double sampleweight=1.0/Math.exp(currloc.Score);
 			for (int i = 0; i < site.length(); i++) {
-				int symid=common.acgt(site.charAt(i));
+				int symid=common.acgt[site.charAt(i)];
 				single_bgprob[symid]+=sampleweight;
 			}
 			//bgstrSet.put(site, sampleweight);
@@ -1104,13 +1105,13 @@ public class Pomoda {
 						
 						if(OOPS)
 						{
-							matchsitecount_seq++;
+							matchsitecount_seq+=sampleWeight;
 						 double expLLR=Math.exp(loglik-Math.log(Prior_EZ/(1-Prior_EZ)));
 							
 								max_seqloglik+=prob_theta*loglik*sampleWeight; //re-weighting
 								
 								for (int i = 0; i < site.length(); i++) {
-									int symid=common.acgt(site.charAt(i));
+									int symid=common.acgt[site.charAt(i)];
 									
 									if(symid>3)
 									{
@@ -1119,6 +1120,7 @@ public class Pomoda {
 										}
 										continue;
 									}
+									
 								single_bgprob[symid]+=(1-prob_theta)*sampleWeight;
 								sumexpLLR[i][symid]+=expLLR*sampleWeight; //re-weighting
 								
@@ -1138,7 +1140,7 @@ public class Pomoda {
 						if(!OOPS)
 						{
 						for (int i = 0; i < motiflen; i++) {
-							int symid=common.acgt(site.charAt(i));
+							int symid=common.acgt[site.charAt(i)];
 							if(symid>3)
 								continue;
 							m_matrix[i][symid]+=prob_theta;//prob_theta;
@@ -1162,6 +1164,7 @@ public class Pomoda {
 							
 							for (int symid = 0; symid < 4; symid++) 
 							{
+								 prior_gamma=1-Math.pow(1-Prior_EZ, matchsitecount_seq);
 							  //m_matrix[i][symid]+=max_count_matrix[i][symid]/sitesperSeq+common.DoubleMinNormal;// pesudo count
 								double temp=sumexpLLR[i][symid]*Prior_EZ/((1-prior_gamma)+sumexpLLRallsymid*Prior_EZ);
 								m_matrix[i][symid]+=temp;
@@ -1177,8 +1180,8 @@ public class Pomoda {
 					for (int i = 0; i < 4; i++) {
 						match_seqCount+=m_matrix[m_matrix.length/2][i];
 					}
-					
-					Prior_EZ=match_seqCount/total_sampleweight;
+					//total_sampleweight may introduce more fluctuation
+					Prior_EZ=match_seqCount/total_sampleweight;//SearchEngine2.TotalLen;  //total_sampleweight;
 					System.out.println(Prior_EZ);
 					if(prior_gamma>1)
 						prior_gamma=0.9999;
@@ -1206,7 +1209,9 @@ public class Pomoda {
 						for (int i = 0; i < m_matrix.length; i++) {
 							motif.setWeights(i+motif.head,common.Normalize(m_matrix[i]));
 						}
-						
+						double divergence=common.PWM_Divergence(bestPWM,motif);
+						if(divergence<FDR)
+							break;
 						
 						//determine whether pos_prior is significant needed
 						double chistat=0;
@@ -1630,7 +1635,7 @@ public class Pomoda {
 								max_seqloglik+=prob_theta*loglik;
 								
 								for (int i = 0; i < site.length(); i++) {
-									int symid=common.acgt(site.charAt(i));
+									int symid=common.acgt[site.charAt(i)];
 
 									if(symid>3)
 									{
@@ -1657,7 +1662,7 @@ public class Pomoda {
 						if(!OOPS)
 						{
 						for (int i = 0; i < motiflen; i++) {
-							int symid=common.acgt(site.charAt(i));
+							int symid=common.acgt[site.charAt(i)];
 							if(symid>3)
 								continue;
 							m_matrix[i][symid]+=prob_theta;//prob_theta;
@@ -2023,7 +2028,7 @@ public class Pomoda {
 							if(max_seqsite.length()==motiflen+flankingLen*2)
 							{
 								for (int i = 0; i < motiflen+flankingLen*2; i++) {
-									int symid=common.acgt(max_seqsite.charAt(i));
+									int symid=common.acgt[max_seqsite.charAt(i)];
 									if(symid>3)
 										{
 											for (int j = 0; j < 4; j++) {
@@ -2075,7 +2080,7 @@ public class Pomoda {
 						if(!OOPS)
 						{
 						for (int i = 0; i < motiflen+flankingLen*2; i++) {
-							int symid=common.acgt(site.charAt(i));
+							int symid=common.acgt[site.charAt(i)];
 							if(symid>3)
 								continue;
 							m_matrix[i][symid]+=prob_theta;//prob_theta;
@@ -2096,7 +2101,7 @@ public class Pomoda {
 						//System.out.println(max_seqsite.toUpperCase());
 						if(max_seqsite.length()==motiflen+flankingLen*2)
 						for (int i = 0; i < motiflen+flankingLen*2; i++) {
-							int symid=common.acgt(max_seqsite.charAt(i));
+							int symid=common.acgt[max_seqsite.charAt(i)];
 							if(symid>3)
 								{
 									for (int j = 0; j < 4; j++) {
@@ -2434,7 +2439,7 @@ public class Pomoda {
 							if(expLLR>overlap_expLLR)
 							{//the current site better than last site, remove the effect of last site
 								for (int i = 0; i < site.length(); i++) {
-									int symid=common.acgt(site.charAt(i));
+									int symid=common.acgt[site.charAt(i)];
 									if(symid<4)
 									{
 										sumexpLLR[i][symid]+=expLLR;
@@ -2452,7 +2457,7 @@ public class Pomoda {
 									}
 									if(lastsite.length()>0)
 									{// remove the effect of last site
-										int lastsymid=common.acgt(lastsite.charAt(i));
+										int lastsymid=common.acgt[lastsite.charAt(i)];
 										if(lastsymid<4)
 										{
 											sumexpLLR[i][lastsymid]-=overlap_expLLR;
@@ -2483,7 +2488,7 @@ public class Pomoda {
 						else
 						{
 							for (int i = 0; i < site.length(); i++) {
-								int symid=common.acgt(site.charAt(i));
+								int symid=common.acgt[site.charAt(i)];
 								if(symid<4)
 								{
 									sumexpLLR[i][symid]+=expLLR;
@@ -2514,7 +2519,7 @@ public class Pomoda {
 
 					
 					for (int i = 0; i < site.length(); i++) {
-						int symid=common.acgt(site.charAt(i));
+						int symid=common.acgt[site.charAt(i)];
 						if(symid>3)
 							continue; //meet new line separator
 						count_matrix[i][symid]+=prob_theta;
@@ -2994,7 +2999,7 @@ public class Pomoda {
 						for (int i = 0; i < site.length(); i++) {
 //							if(consensus.charAt(i)!='N')
 //								continue;
-							int symid=common.acgt(site.charAt(i));
+							int symid=common.acgt[site.charAt(i)];
 							if(symid>3)
 								continue; //meet new line separator
 							if(loglik>max_loglik_matrix[i][symid])
@@ -3008,7 +3013,7 @@ public class Pomoda {
 //						System.out.println(site);
 					
 					for (int i = 0; i < site.length(); i++) {
-						int symid=common.acgt(site.charAt(i));
+						int symid=common.acgt[site.charAt(i)];
 						if(symid>3)
 							continue; //meet new line separator
 						count_matrix[i][symid]+=1;

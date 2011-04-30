@@ -54,7 +54,7 @@ public class PWMcluster {
 	
 	public void initialize()
 	{
-
+		common.initialize();
 		SearchEngine=new LinearEngine(6);
 		SearchEngine.build_index(this.inputFasta);
 	
