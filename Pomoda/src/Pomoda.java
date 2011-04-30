@@ -867,7 +867,7 @@ public class Pomoda {
 		PWM bestPWM=motif.Clone();
 		bestPWM.Score=0;//ignore previous score
 		double sitesperSeq=0;
-		LinkedList<FastaLocation> Falocs=SearchEngine2.samplingPattern(motif,SearchEngine2.getSeqNum());
+		LinkedList<FastaLocation> Falocs=SearchEngine2.samplingPattern(motif,SearchEngine2.getSeqNum()*2);
 	
 		
 
@@ -1068,7 +1068,9 @@ public class Pomoda {
 						{
 							//NegBinFunction.plogis(max_seqloglik);
 							lastseq=currloc.getSeqId();
-							
+							if(matchsitecount_seq>currloc.getSeqLen())
+								matchsitecount_seq=currloc.getSeqLen();
+							 prior_gamma=1-Math.pow(1-Prior_EZ, matchsitecount_seq);
 							sitesperSeq=0;
 							{
 								for (int i = 0; i < motiflen; i++) {
@@ -1080,7 +1082,7 @@ public class Pomoda {
    								 for (int symid = 0; symid < 4; symid++) 
 									{
 									//m_matrix[i][symid]+=max_count_matrix[i][symid]/sitesperSeq;
-   									 prior_gamma=1-Math.pow(1-Prior_EZ, matchsitecount_seq);
+   									
    									 double temp=sumexpLLR[i][symid]*Prior_EZ/((1-prior_gamma)+sumexpLLRallsymid*Prior_EZ);
 									m_matrix[i][symid]+=temp;
 									sitesperSeq+=temp;
@@ -1273,7 +1275,7 @@ public class Pomoda {
 				
 					//not allow to grow in the iterations
 					flankingLen=0;
-					bestPWM.Prior_EZ=Prior_EZ;
+					bestPWM.Prior_EZ=Prior_EZ*seqcount/SearchEngine2.getSeqNum();
 					System.out.println("number of occurred sequences: "+String.valueOf(match_seqCount));
 			}while(motif.core_motiflen<max_motiflen&&iter_count<=max_iterNum);
 			
@@ -2778,13 +2780,13 @@ public class Pomoda {
 					chistat+=temp*temp/Ei;
 				}
 			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR/num_col_cand);
-			if(chistat>invFDR||motif.core_motiflen<=minmotiflen)//num_col_cand*  pvalue<this.FDR
+			if(chistat>invFDR)//num_col_cand*  pvalue<this.FDR
 			{
 			   motif.setWeights(bestCol, repColumnValue);
 			   extendedCols.add(bestCol);
 			}
 			//when sample size is small, then ostrich policy let it extend
-			if(total<100)
+			if(total<100||motif.core_motiflen<=minmotiflen)
 			{
 				int extralen=0;
 				if(bestCol<motif.head)
@@ -3571,11 +3573,14 @@ public class Pomoda {
 			formatter.printHelp( "JPomoda", options );
 			return;
 		}
-		
+		long fullstart = System.currentTimeMillis();
+		long start = System.currentTimeMillis();
 		//initialize Pomoda 
 		motifFinder.initialize();
+		long end = System.currentTimeMillis();
+		System.out.println("Initialization time was "+(end-start)/1000+" seconds.");
 
-		
+		 System.currentTimeMillis();
 		//get seed motifs
 		ArrayList<PWM>  seedPWMs=motifFinder.getSeedMotifs();
 		//LinkedList<PWM>  seedPWMs=new LinkedList<PWM>();
@@ -3628,8 +3633,11 @@ public class Pomoda {
 			writer.write(seedPWMs.get(i).toString());
 
 		}
-
+		end = System.currentTimeMillis();
+		System.out.println("Find "+seedPWMs.size()+" motifs time was "+(end-start)/1000+" seconds.");
+		
 		writer.close();
+		start = System.currentTimeMillis();
 		//restore the unmask fasta
 		if(motifFinder.maskflag)
 			motifFinder.SearchEngine2.build_index(motifFinder.inputFasta);
@@ -3637,16 +3645,19 @@ public class Pomoda {
 		//using full LLR score
 //		motifFinder.SearchEngine2.EnableBackground(motifFinder.background);
 		for (int i = 0; i < seedPWMs.size(); i++) {
-			double llrscore=evaluator.calcAUC(seedPWMs.get(i),null);//  motifFinder.sumLLR(seedPWMs.get(i));
+			double llrscore=evaluator.calcAUC(seedPWMs.get(i).trim(),null);//  motifFinder.sumLLR(seedPWMs.get(i));
 			System.out.println(seedPWMs.get(i).Consensus(true)+" LLR:"+ llrscore);
 			seedPWMs.get(i).Score=llrscore;
 		}
 //		motifFinder.SearchEngine2.DisableBackground();
+		end = System.currentTimeMillis();
 		
+		System.out.println("Evaluation time was "+(end-start)/1000+" seconds.");
 		evaluator.SearchEngine.DisableBackground();
 		file = new File(motifFinder.outputPrefix+"jpomoda_clust.pwm"); 
 		writer = new BufferedWriter(new FileWriter(file));
 		//clustering motif, re-initialize
+		start = System.currentTimeMillis();
 		System.out.println("Clustering...");
 		sortedPWMs.clear();
 		PWMcluster clustering=new PWMcluster(motifFinder);
@@ -3680,7 +3691,12 @@ public class Pomoda {
 			}
 			
 			writer.close();
-		
+			end = System.currentTimeMillis();
+			System.out.println("Clustering time was "+(end-start)/1000+" seconds.");
+			
+			long fullend = System.currentTimeMillis();
+			
+			System.out.println("Total time was "+(fullend-fullstart)/1000+" seconds.");
 		} 
 		catch (IOException e) {
 			// TODO Auto-generated catch block
