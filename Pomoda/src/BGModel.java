@@ -67,7 +67,10 @@ public class BGModel implements Serializable{
 				start++;
 			for (i = 0; i < order&&i<(seq.length()-start); i++) {
 				if(seq.charAt(start+i)=='N')
+				{
+					logprob+=Math.log(0.25);
 					break;
+				}
 				logprob+=Math.log( conditionProb.get(seq.substring(start,start+i+1)));
 
 			}
@@ -76,13 +79,17 @@ public class BGModel implements Serializable{
 			if(start+i<seq.length()&& seq.charAt(start+i)=='N')
 			{
 				start=start+i+1;
+					logprob+=Math.log(0.25);
 				continue;
 			}
 			
 			for (i = start+1; i < (seq.length()-order+1); i++) {
 				start=i+order-1;
 				if(seq.charAt(start)=='N')
+				{
+					logprob+=Math.log(0.25);
 					break;
+				}
 				logprob+=Math.log( conditionProb.get(seq.substring(i,i+order)));
 			}
 			start++;
