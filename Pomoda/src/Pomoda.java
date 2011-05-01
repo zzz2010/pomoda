@@ -424,7 +424,7 @@ public class Pomoda {
 	public void Masking(PWM motif)
 	{
 		int masklen=0;
-		double log_thresh=motif.getThresh(sampling_ratio, (double)SearchEngine.getSeqNum()/SearchEngine.TotalLen, background);
+		double log_thresh=motif.getThresh(sampling_ratio, (double)SearchEngine.getSeqNum()/SearchEngine.TotalLen/2, background);
 		String consensus_core=motif.Consensus(true);
 		
 		
@@ -445,7 +445,7 @@ public class Pomoda {
 		}
 		while(iter2.hasNext())
 		{
-			masklen+=seedlen;
+			//masklen+=seedlen;
 			FastaLocation currloc=iter2.next();
 			String Site1=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos()+(motiflen-seedlen)/2, seedlen);
 			//String Site2=SearchEngine.getSite(currloc.getMin()+currloc.getSeqId(),motiflen);
@@ -897,6 +897,7 @@ public class Pomoda {
 			double sampleweight=1.0/Math.exp(currloc.Score);
 			for (int i = 0; i < site.length(); i++) {
 				int symid=common.acgt[site.charAt(i)];
+				if(symid<4)
 				single_bgprob[symid]+=sampleweight;
 			}
 			//bgstrSet.put(site, sampleweight);
@@ -2226,6 +2227,8 @@ public class Pomoda {
 		int inst_hash=-1;
 		double thresh=motif.getThresh(this.sampling_ratio, this.FDR, this.background);
 		LinkedList<FastaLocation> origFalocs=SearchEngine.searchPattern(motif, thresh);
+		if(origFalocs.size()<10)
+			return null;
 		//int truepos=PWMevaluator.comparePositionList(origFalocs, "D:\\eclipse\\data\\batchsim\\ABI4.ans", motif.core_motiflen*2);
 		Prior_EZ=1- (Math.exp(background.Get_LOGPROB(motif.Consensus(true)))+Math.exp(background.Get_LOGPROB(common.getReverseCompletementString(motif.Consensus(true)))))*SearchEngine.TotalLen/origFalocs.size();
 		if(Prior_EZ<0)
@@ -2354,6 +2357,7 @@ public class Pomoda {
 						
 					}
 					site=sb.toString();
+		
 					double logprob_theta=motif.scoreWeightMatrix(site.substring(motif.head,motif.head+motiflen));
 					double logprob_BG=motifBG.Get_LOGPROB(site.substring(motif.head,motif.head+motiflen))-bgseed_ignore;
 
@@ -2617,7 +2621,7 @@ public class Pomoda {
 			if(bestCol==-1)
 				break;
 
-//		
+//		    common.print2DArray(count_matrix);
 			double X=count_matrix[bestCol][bestSym.get(0)]+1;
 			double total=0;
 //			for (int j = 0; j < 4; j++) {
@@ -2785,13 +2789,7 @@ public class Pomoda {
 			{
 			   motif.setWeights(bestCol, repColumnValue);
 			   extendedCols.add(bestCol);
-				int extralen=0;
-				if(bestCol<motif.head)
-					extralen=motif.head-bestCol;
-				if(bestCol>motif.columns()-motif.tail-1)
-					extralen=bestCol-(motif.columns()-motif.tail-1);
-				if(extralen>10)
-			   common.print2DArray(count_matrix);
+
 			}
 			//when sample size is small, then ostrich policy let it extend
 			if(total<100||motif.core_motiflen<=minmotiflen)
@@ -3598,14 +3596,14 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-//			seedPWMs.clear();
+			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGTCANNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAAACANNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNACAAANNNNNNNNNNN"}));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNGGCCANNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNGCCCCNNNNNNNNNNN"}));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
@@ -3624,13 +3622,22 @@ public class Pomoda {
 			
 			System.out.println("Extending...");
 			seedPWMs.set(i,motifFinder.Column_Replacement_2(motif));
+			if(seedPWMs.get(i)==null)
+			{
+				seedPWMs.remove(i);
+				continue;
+			}
 			System.out.println("Relaxing...");
 			seedPWMs.set(i, motifFinder.Relax_Seed_3(seedPWMs.get(i)));
-
+			if(seedPWMs.get(i)==null)
+			{
+				seedPWMs.remove(i);
+				continue;
+			}
 			seedPWMs.get(i).Name="Motif"+String.valueOf(i+1);
 			// to make different length comparable ,need to consider the instance coverage
 //			seedPWMs.get(i).Score=seedPWMs.get(i).Score/seedPWMs.get(i).inst_coverage;//corrected score
-			if(motifFinder.maskflag&&((1-seedPWMs.get(i).inst_FDR)*motifFinder.SearchEngine.TotalLen)>(0.8*motifFinder.SearchEngine.getSeqNum()))
+			if(motifFinder.maskflag&&(seedPWMs.get(i).Prior_EZ*motifFinder.SearchEngine.TotalLen)>(0.8*motifFinder.SearchEngine.getSeqNum()))
 			{
 				//do something to mark the locations in SearchEngine
 				System.out.println("Masking...");
@@ -3718,12 +3725,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-//		} catch (IllegalAlphabetException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} catch (IllegalSymbolException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 			
 			
 		}
