@@ -2411,13 +2411,14 @@ public class Pomoda {
 	                         for (int symid = 0; symid < 4; symid++) {
 	                        	 if(sitesperSeq<1)
 	                        		 sitesperSeq=1;
-	                        	 if(logBG_matrix[i][symid]!=Double.MIN_VALUE)
+	                        	// if(logBG_matrix[i][symid]!=Double.MIN_VALUE)
 	                        	 {
-									sumLogBG_matrix[i][symid]+=logBG_matrix[i][symid];
+								//	sumLogBG_matrix[i][symid]+=logBG_matrix[i][symid];
 
 								//	count_matrix[i][symid]+=max_count_matrix[i][symid]/sitesperSeq;
 									 prior_gamma=1-Math.pow(1-Prior_EZ, matchsitecount_seq);
-									count_matrix[i][symid]+=sumexpLLR[i][symid]*Prior_EZ/((1-prior_gamma)+sumexpLLRallsymid*Prior_EZ);
+									 double temp=sumexpLLR[i][symid]*Prior_EZ/((1-prior_gamma)+sumexpLLRallsymid*Prior_EZ);
+									count_matrix[i][symid]+=temp;
 	                        	 }
 							}
 
@@ -2616,7 +2617,7 @@ public class Pomoda {
 			if(bestCol==-1)
 				break;
 
-	//	common.print2DArray(count_matrix);
+//		
 			double X=count_matrix[bestCol][bestSym.get(0)]+1;
 			double total=0;
 //			for (int j = 0; j < 4; j++) {
@@ -2784,6 +2785,13 @@ public class Pomoda {
 			{
 			   motif.setWeights(bestCol, repColumnValue);
 			   extendedCols.add(bestCol);
+				int extralen=0;
+				if(bestCol<motif.head)
+					extralen=motif.head-bestCol;
+				if(bestCol>motif.columns()-motif.tail-1)
+					extralen=bestCol-(motif.columns()-motif.tail-1);
+				if(extralen>10)
+			   common.print2DArray(count_matrix);
 			}
 			//when sample size is small, then ostrich policy let it extend
 			if(total<100||motif.core_motiflen<=minmotiflen)
