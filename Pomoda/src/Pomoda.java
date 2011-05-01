@@ -1069,8 +1069,8 @@ public class Pomoda {
 						{
 							//NegBinFunction.plogis(max_seqloglik);
 							lastseq=currloc.getSeqId();
-							if(matchsitecount_seq>currloc.getSeqLen())
-								matchsitecount_seq=currloc.getSeqLen();
+//							if(matchsitecount_seq>currloc.getSeqLen())
+//								matchsitecount_seq=currloc.getSeqLen();
 							 prior_gamma=1-Math.pow(1-Prior_EZ, matchsitecount_seq);
 							sitesperSeq=0;
 							{
@@ -1108,7 +1108,7 @@ public class Pomoda {
 						
 						if(OOPS)
 						{
-							matchsitecount_seq+=sampleWeight;
+							matchsitecount_seq++;//=sampleWeight;
 						 double expLLR=Math.exp(loglik-Math.log(Prior_EZ/(1-Prior_EZ)));
 							
 								max_seqloglik+=prob_theta*loglik*sampleWeight; //re-weighting
@@ -1158,8 +1158,10 @@ public class Pomoda {
 					if(OOPS)
 					{
 						sitesperSeq=0;
+						 prior_gamma=1-Math.pow(1-Prior_EZ, matchsitecount_seq);
 						for (int i = 0; i < motiflen; i++) {
 							double sumexpLLRallsymid=0;
+							
 							for (int symid = 0; symid < 4; symid++) 
 							{
 								sumexpLLRallsymid+=sumexpLLR[i][symid];
@@ -1167,7 +1169,7 @@ public class Pomoda {
 							
 							for (int symid = 0; symid < 4; symid++) 
 							{
-								 prior_gamma=1-Math.pow(1-Prior_EZ, matchsitecount_seq);
+								
 							  //m_matrix[i][symid]+=max_count_matrix[i][symid]/sitesperSeq+common.DoubleMinNormal;// pesudo count
 								double temp=sumexpLLR[i][symid]*Prior_EZ/((1-prior_gamma)+sumexpLLRallsymid*Prior_EZ);
 								m_matrix[i][symid]+=temp;
@@ -2216,6 +2218,7 @@ public class Pomoda {
 	public PWM Column_Replacement_2(PWM motif)
 	{
 		int minmotiflen=7;
+		int maxmotiflen=(seedlen+motif.columns())/2;
 		double log025=Math.log(0.25);
 		if(this.pos_prior.size()>0)
 			motif.pos_prior=(ArrayList<Double>) this.pos_prior.clone();
@@ -2276,7 +2279,7 @@ public class Pomoda {
 		
 		LinkedList<FastaLocation> Falocs=origFalocs;
 		System.out.println(Falocs.size());
-		if(stateCodes.contains(consensus_core.hashCode()))
+		if(stateCodes.contains(consensus_core.hashCode())||motif.core_motiflen>maxmotiflen)
 			return motif;
 		else
 			stateCodes.add(consensus_core.hashCode());
@@ -3596,14 +3599,14 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-			seedPWMs.clear();
+//			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNTGACCNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAGTCANNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNAAACANNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNACAAANNNNNNNNNNN"}));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNGCCCCNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNGCCCCNNNNNNNNNNN"}));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		//extend and refine motifs
@@ -3725,12 +3728,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-		} catch (IllegalAlphabetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalSymbolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+//		} catch (IllegalAlphabetException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IllegalSymbolException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
 			
 			
 		}
