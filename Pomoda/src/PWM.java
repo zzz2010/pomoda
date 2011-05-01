@@ -373,16 +373,15 @@ public class PWM extends SimpleWeightMatrix {
 		StringBuffer sb=new StringBuffer(pattern);
 		//fill N with Random
 //		Random rand=new Random();
-//		int Ncount=0;
-//		for (int i = 0; i < pattern.length(); i++) {
-//			if(pattern.charAt(i)=='N')
-//			{
-//				sb.setCharAt(i,  ACGT[rand.nextInt(4)]);
-//				Ncount++;
-//			}
-//			
-//		}
-		logprob=model.Get_LOGPROB(sb.toString());//+Ncount*Math.log(4);
+		int Ncount=0;
+		for (int i = 0; i < pattern.length(); i++) {
+			if(pattern.charAt(i)=='N')
+			{
+				Ncount++;
+			}
+			
+		}
+		logprob=model.Get_LOGPROB(sb.toString())+Ncount*Math.log(4);
 		
 		
 		return logprob;
@@ -826,7 +825,7 @@ public class PWM extends SimpleWeightMatrix {
 			for (int j = 1; j<= 4; j++)
 			{  
 				double weight=m_matrix[i][j-1];
-				if(weight>(bg_prob[j-1]*1.2)&&weight!=0.25)//side effect control extending length
+				if(weight>(bg_prob[j-1]*1.1)&&weight!=0.25)//side effect control extending length
 					sb.append(ACGT.charAt(j-1));
 					
 			}
