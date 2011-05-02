@@ -746,6 +746,8 @@ public class PWM extends SimpleWeightMatrix {
 		    else
 		    	break;
 		}
+		if(newhead>=this.columns())
+			return null;
 		for (int i = this.columns()-tail-1; i > head; i--) {
 		    //calculate the information content
 		    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
@@ -778,6 +780,8 @@ public class PWM extends SimpleWeightMatrix {
 		    else
 		    	break;
 		}
+		if(newhead>=this.columns())
+			return "";
 		for (int i = this.columns()-tail-1; i > head; i--) {
 		    //calculate the information content
 		    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
@@ -825,7 +829,7 @@ public class PWM extends SimpleWeightMatrix {
 			for (int j = 1; j<= 4; j++)
 			{  
 				double weight=m_matrix[i][j-1];
-				if(weight>(bg_prob[j-1]*1.1)&&weight!=0.25)//side effect control extending length
+				if(weight>(bg_prob[j-1]+0.01)&&weight!=0.25)//side effect control extending length
 					sb.append(ACGT.charAt(j-1));
 					
 			}

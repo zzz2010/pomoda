@@ -156,8 +156,8 @@ public class FastaMask {
 		if(simlen>0)
 		{// turn on simulated data generation, turn off the fasta masking
 			String outputFasta=GImprover.outputPrefix+"/"+basename.split("\\.")[0]+topN+"_"+simlen+"_"+GImprover.FDR+".fa";
-			//generateSimulatedData(pwmlist, topN, simlen, outputFasta, GImprover.background, GImprover.FDR);
-			generateBatchSimulatedData(pwmlist, topN, simlen, GImprover.outputPrefix, GImprover.background, GImprover.FDR);
+			generateSimulatedData(pwmlist, topN, simlen, outputFasta, GImprover.background, GImprover.FDR);
+			//generateBatchSimulatedData(pwmlist, topN, simlen, GImprover.outputPrefix, GImprover.background, GImprover.FDR);
 			return ;
 		}
 		
