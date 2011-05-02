@@ -192,6 +192,8 @@ public class PWMevaluator {
 	
 	public double calcAUC(PWM motif,LinkedList<String> sequences)
 	{
+		if(motif==null)
+			return Double.NEGATIVE_INFINITY;
 		SearchThread.bestonly=true;
 		 LinearEngine SearEngine=null;
 		 if(sequences==null)
