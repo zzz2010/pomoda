@@ -240,6 +240,12 @@ public class PWMcluster {
 				break;
 		}
 		
+		if(clusterMoitfs.size()<num_cluster/2)
+		{
+			overlapThresh*=2;
+			return Clustering_Fast(sortedPWMs,num_cluster);
+		}
+		
 		return clusterMoitfs;
 	}
 	
