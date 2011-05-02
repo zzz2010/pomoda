@@ -813,7 +813,7 @@ public class common {
 	static void print2DArray(double[][] max_loglik_matrix)
 	{
 		for (int i = 0; i < max_loglik_matrix.length; i++) {
-			System.out.println( Arrays.toString(max_loglik_matrix[i]));
+			System.out.println( i+":"+Arrays.toString(max_loglik_matrix[i]));
 		}
 	}
 	
