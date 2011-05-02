@@ -1074,13 +1074,13 @@ public class Pomoda {
 							lastseq=currloc.getSeqId();
 //							if(matchsitecount_seq>currloc.getSeqLen())
 //								matchsitecount_seq=currloc.getSeqLen();
-							 prior_gamma=Prior_EZ*(currloc.getSeqLen()-motif.core_motiflen);
+							 prior_gamma=Prior_EZ*matchsitecount_seq; //(currloc.getSeqLen()-motif.core_motiflen);
 							if(prior_gamma>1)
 								prior_gamma=0.9999;
 							sitesperSeq=0;
 							if(matchsitecount_seq>0)
 							{
-								 double renomalizefactor=(currloc.getSeqLen()-motif.core_motiflen)/matchsitecount_seq;
+								 double renomalizefactor=1;//(currloc.getSeqLen()-motif.core_motiflen)/matchsitecount_seq;
 								for (int i = 0; i < motiflen; i++) {
 									double sumexpLLRallsymid=0;
 									 for (int symid = 0; symid < 4; symid++) 
@@ -1115,7 +1115,7 @@ public class Pomoda {
 						
 						if(OOPS)
 						{
-							matchsitecount_seq+=sampleWeight;
+							matchsitecount_seq++;//=sampleWeight;
 						 double expLLR=Math.exp(loglik-Math.log(Prior_EZ/(1-Prior_EZ)));
 							
 								max_seqloglik+=prob_theta*loglik*sampleWeight; //re-weighting
