@@ -929,6 +929,9 @@ public class Pomoda {
 			prior_gamma=0.9999;
 		///////////////build newBG for iterations////////////////////
 		
+		////////////////OOPS correction/////////////////
+			
+		////////////////OOPS correction/////////////////
 		
 		int motiflen=motif.core_motiflen+flankingLen*2; 
 //		Prior_EZ=(double)truepos/Falocs.size();
@@ -966,7 +969,7 @@ public class Pomoda {
 					int lastseq=-1;
 					String lastsite="";
 					double max_seqloglik=0;
-                    int matchsitecount_seq=0;
+                    double matchsitecount_seq=0;
 					String max_seqsite="";
 					while(iter2.hasNext())
 					{
@@ -1071,9 +1074,13 @@ public class Pomoda {
 							lastseq=currloc.getSeqId();
 //							if(matchsitecount_seq>currloc.getSeqLen())
 //								matchsitecount_seq=currloc.getSeqLen();
-							 prior_gamma=1-Math.pow(1-Prior_EZ, currloc.getSeqLen());
+							 prior_gamma=Prior_EZ*(currloc.getSeqLen()-motif.core_motiflen);
+							if(prior_gamma>1)
+								prior_gamma=0.9999;
 							sitesperSeq=0;
+							if(matchsitecount_seq>0)
 							{
+								 double renomalizefactor=(currloc.getSeqLen()-motif.core_motiflen)/matchsitecount_seq;
 								for (int i = 0; i < motiflen; i++) {
 									double sumexpLLRallsymid=0;
 									 for (int symid = 0; symid < 4; symid++) 
@@ -1084,7 +1091,7 @@ public class Pomoda {
 									{
 									//m_matrix[i][symid]+=max_count_matrix[i][symid]/sitesperSeq;
    									
-   									 double temp=sumexpLLR[i][symid]*Prior_EZ/((1-prior_gamma)+sumexpLLRallsymid*Prior_EZ);
+   									 double temp=sumexpLLR[i][symid]*Prior_EZ/((1-prior_gamma)/renomalizefactor+sumexpLLRallsymid*Prior_EZ);
 									m_matrix[i][symid]+=temp;
 									sitesperSeq+=temp;
 
@@ -1108,7 +1115,7 @@ public class Pomoda {
 						
 						if(OOPS)
 						{
-							matchsitecount_seq++;//=sampleWeight;
+							matchsitecount_seq+=sampleWeight;
 						 double expLLR=Math.exp(loglik-Math.log(Prior_EZ/(1-Prior_EZ)));
 							
 								max_seqloglik+=prob_theta*loglik*sampleWeight; //re-weighting
