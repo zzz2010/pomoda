@@ -82,7 +82,8 @@ import org.biojava.utils.ChangeVetoException;
 								reverse=true;
 							}
 							score=enhancefactor+score;
-							
+							if(score>0)
+								score=0;
 							if(score>Math.log(rand.nextDouble()))
 							{
 								int addpos=pos+i;
