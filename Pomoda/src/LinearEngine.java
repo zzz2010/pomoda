@@ -153,6 +153,8 @@ public class LinearEngine {
 
 	public LinkedList<FastaLocation> searchPattern(String pattern, int mismatch) {
 		// TODO Auto-generated method stub
+		if(num_thread>ForwardStrand.size())
+			num_thread=1;
 	    int workSize=ForwardStrand.size()/num_thread+1;
 	    Iterator<String> iter=ForwardStrand.iterator();
 	    LinkedList<FastaLocation> search_result=new LinkedList<FastaLocation>();
@@ -190,6 +192,8 @@ public class LinearEngine {
 		return search_result;
 	}
 	public LinkedList<FastaLocation> samplingPattern(PWM pattern, int Num_sample) {
+		if(num_thread>ForwardStrand.size())
+			num_thread=1;
 		// TODO Auto-generated method stub
 	    int workSize=ForwardStrand.size()/num_thread+1;
 	    Iterator<String> iter=ForwardStrand.iterator();
@@ -222,6 +226,8 @@ public class LinearEngine {
 	
 	public LinkedList<FastaLocation> searchPattern(PWM pattern, double thresh) {
 		// TODO Auto-generated method stub
+		if(num_thread>ForwardStrand.size())
+			num_thread=1;
 	    int workSize=ForwardStrand.size()/num_thread+1;
 	    Iterator<String> iter=ForwardStrand.iterator();
 	    LinkedList<FastaLocation> search_result=new LinkedList<FastaLocation>();

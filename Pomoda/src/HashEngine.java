@@ -59,8 +59,8 @@ public class HashEngine implements ISearchEngine {
 	            }
 	            else
 	            {
-	            	
-	            	
+
+	            	line=line.toUpperCase().replace("N", "");
 	            	for(i=0;i<line.length()-Hashlen;i++)
 	            	{
 	            		int hash=common.getHashing(line,i,Hashlen);
@@ -71,7 +71,7 @@ public class HashEngine implements ISearchEngine {
 	    				}
 	            	
 	            	}
-	            	line=line.toUpperCase().replace("N", "");
+	            	
 	            	TotalLen+=line.length();
 	            	CharText=CharText.concat(line).concat("N");
 	            	TotalLen+=1;
