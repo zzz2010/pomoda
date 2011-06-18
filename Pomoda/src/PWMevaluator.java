@@ -307,7 +307,7 @@ public class PWMevaluator {
 	       	for (int i = 0; i < labels.length; i++) {
 				if(labels[i]==1)
 					poscount++;
-				if(i%skip==0)
+				if(skip!=0&&i%skip==0)
 				{
 				series1.add((double)(i+1-poscount)/(labels.length-one), (double)(poscount)/one);
 				//System.err.println(labels[i]+"\t"+scores[i]);
