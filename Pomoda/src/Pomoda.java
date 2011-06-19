@@ -492,7 +492,7 @@ public class Pomoda {
 				continue;
 			double score=0;
 			if(pos_prior.size()==0&&!OOPS)
-				score=positionlist.size()/(SearchEngine.TotalLen*Math.exp(logprob_bg)); //positionlist.size()*(-common.DoubleMinNormal*seedlen-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
+				score=positionlist.size()*(-common.DoubleMinNormal*seedlen-logprob_bg);//positionlist.size()/(SearchEngine.TotalLen*Math.exp(logprob_bg)); //sum loglik ,-0.037267253272904234 is from pseudo count
 			else
 				score=sumLLR(LocList,-common.DoubleMinNormal*seedlen,logprob_bg);
 			seedScores.put(hash, score);

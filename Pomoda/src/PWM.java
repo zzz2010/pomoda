@@ -738,7 +738,7 @@ public class PWM extends SimpleWeightMatrix {
 		for (int i = head; i < this.columns()-tail; i++) {
 		    //calculate the information content
 		    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
-		    if(info<0.1)
+		    if(info<=0.4)
 		    {
 		    	newhead=i+1;
 		    	setWeights(i,nullarr);
