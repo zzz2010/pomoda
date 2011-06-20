@@ -77,7 +77,7 @@ public class Pomoda {
 	public String outputPrefix="./";
 	public String inputFasta;
 	public int max_iterNum=100;
-	public int MIN_SAMPLENUM=1000;
+	public int MIN_SAMPLENUM=10000;
 	public String ctrlFasta="";
 	public int BGorder=2;
 	public String bgmodelFile="";
@@ -89,6 +89,7 @@ public class Pomoda {
 	public int ending_windowsize=600;
 	public double FDR=0.05;
 	public int max_motiflen=55;
+	public int max_threadNum=6;
 	public int num_motif=5;
 	public double sampling_ratio=1;
 	public double min_support_ratio=0.1;
@@ -109,7 +110,7 @@ public class Pomoda {
 		common.initialize();
 		SearchEngine=new HashEngine(seedlen);
 		SearchEngine.build_index(this.inputFasta);
-		SearchEngine2=new LinearEngine(6);
+		SearchEngine2=new LinearEngine(Math.min(SearchEngine.SeqNum/500,max_threadNum));
 		SearchEngine2.build_index(this.inputFasta);
 //		if(SearchEngine_Test())
 //			System.out.println("SearchEngine_Test : pass");
@@ -144,7 +145,7 @@ public class Pomoda {
 			{
 			     background.BuildModel(ctrlFasta, bg_markov_order+1); //3-order bg
 			     background.SaveModel(ctrlFasta+".bgobj");
-				}
+			}
 				
 		}
 //		if(BGModel_Test())
@@ -907,6 +908,10 @@ public class Pomoda {
 		int bgorder=1;
 		/****************manual initialize********************/
 		motifBG.order=1;
+		single_bgprob[0]+=single_bgprob[3];
+		single_bgprob[1]+=single_bgprob[2];
+		single_bgprob[2]=single_bgprob[1];
+		single_bgprob[3]=single_bgprob[0];
 		common.Normalize(single_bgprob);
 		motifBG.conditionProb=new HashMap<String, Double>(4);
 		motifBG.conditionProb.put("A", single_bgprob[0]);
@@ -1013,8 +1018,6 @@ public class Pomoda {
 						{
 							//reverse site
 							site=common.getReverseCompletementString(site);
-				
-							
 						}
 
 						if(site.length()!=motiflen)
@@ -1036,7 +1039,7 @@ public class Pomoda {
 							if(currloc.ReverseStrand)
 								logprior+=Math.log((1-motif.strand_plus_prior)*2);
 							else
-							logprior+=Math.log(motif.strand_plus_prior*2);
+								logprior+=Math.log(motif.strand_plus_prior*2);
 						}
 						if(motif.peakrank_prior.size()!=0&&motif.peakrank_en)
 							logprior+=Math.log(motif.peakrank_prior.get(rankbin)+common.DoubleMinNormal)-lognullprior;
@@ -1150,7 +1153,7 @@ public class Pomoda {
 						
 						if(!OOPS)
 						{
-						for (int i = 0; i < motiflen; i++) {
+						for (int i = 0; i < site.length(); i++) {
 							int symid=common.acgt[site.charAt(i)];
 							if(symid>3)
 							{
@@ -1160,6 +1163,7 @@ public class Pomoda {
 								continue;
 							}
 							m_matrix[i][symid]+=prob_theta*sampleWeight;//prob_theta;
+							single_bgprob[symid]+=(1-prob_theta)*sampleWeight;
 						}
 						
 
@@ -1200,11 +1204,16 @@ public class Pomoda {
 					}
 					//total_sampleweight may introduce more fluctuation
 					Prior_EZ=match_seqCount/total_sampleweight;//SearchEngine2.TotalLen;  //total_sampleweight;
-					System.out.println(Prior_EZ);
+				//	System.out.println(Prior_EZ);
+					System.out.println(match_seqCount/total_sampleweight);
 					if(prior_gamma>1)
 						prior_gamma=0.9999;
 					//motifBG.BuildModel(bgstrSet, bgorder);
 					/****************manual initialize********************/
+					single_bgprob[0]+=single_bgprob[3];
+					single_bgprob[1]+=single_bgprob[2];
+					single_bgprob[2]=single_bgprob[1];
+					single_bgprob[3]=single_bgprob[0];
 					common.Normalize(single_bgprob);
 					motifBG.conditionProb.put("A", single_bgprob[0]);
 					motifBG.conditionProb.put("C", single_bgprob[1]);
