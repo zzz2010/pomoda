@@ -1072,7 +1072,20 @@ public class Pomoda {
 						if(!OOPS)
 							bestscore+=loglik;
 						
+						if(!OOPS)
+						{
+							for (int i = 0; i < site.length(); i++) {
+								int symid=common.acgt[site.charAt(i)];
+								if(symid>3)
+								{
+									continue;
+								}
+								m_matrix[i][symid]+=prob_theta*sampleWeight;//prob_theta;
+								single_bgprob[symid]+=(1-prob_theta)*sampleWeight;
+							}
 						
+
+						}
 						if(OOPS&&currloc.getSeqId()!=lastseq)
 						{
 							//NegBinFunction.plogis(max_seqloglik);
@@ -1151,23 +1164,7 @@ public class Pomoda {
 						}
 						
 						
-						if(!OOPS)
-						{
-						for (int i = 0; i < site.length(); i++) {
-							int symid=common.acgt[site.charAt(i)];
-							if(symid>3)
-							{
-//								for (int j = 0; j < 4; j++) {
-//									m_matrix[i][j]+=0.25*sampleWeight;//prob_theta;
-//								}
-								continue;
-							}
-							m_matrix[i][symid]+=prob_theta*sampleWeight;//prob_theta;
-							single_bgprob[symid]+=(1-prob_theta)*sampleWeight;
-						}
-						
 
-						}
 					}
 					
 					
