@@ -48,6 +48,7 @@ import org.biojava.utils.ChangeVetoException;
 		}
 		@Override
 		public void run() {
+			rand.setSeed(1258);
 			// TODO Auto-generated method stub
 			if(PWMflag)
 			{
@@ -55,7 +56,8 @@ import org.biojava.utils.ChangeVetoException;
 				boolean bg_buff_ready=true;
 				int totallen_db=accSeqLen.get(startSeqId+db.size())-accSeqLen.get(startSeqId);
 				double enhancefactor=motif.core_motiflen*Math.log(4)+Math.log((double)samplenum/totallen_db);
-				
+				//enhancefactor=Double.MAX_VALUE; //sample all site
+				double nulllog=motif.core_motiflen*Math.log(0.25);
 				Iterator<String> iter=db.iterator();
 				int seqid=startSeqId;
 				while(iter.hasNext())
@@ -66,7 +68,7 @@ import org.biojava.utils.ChangeVetoException;
 
 					FastaLocation bestpos=null;
 					try {
-
+						double minprob=Math.log(1.0/( seq.length()-motif.core_motiflen));
 						for (int i = 0; i < seq.length()-motif.core_motiflen; i++) {
 							String temp=seq.substring(i,i+motif.core_motiflen);
 							double score=motif.scoreWeightMatrix(temp);
@@ -76,14 +78,25 @@ import org.biojava.utils.ChangeVetoException;
 							double score2=motif.scoreWeightMatrix(common.getReverseCompletementString(temp));
 							
 							
-							if(score2>score)
+							if(score2>score||(score2==score&&rand.nextBoolean()))
 							{
 								score=score2;
 								reverse=true;
 							}
-							score=enhancefactor+score;
+							double Prior_EZ=0.0012468827930174563;
+							double loglik=score-nulllog-Math.log(2.0)+Math.log(Prior_EZ/(1-Prior_EZ));
+							
+							double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);
+							score=Math.log(prob_theta);
+							
+							
+							//score=enhancefactor+score;
+						
+//							if(minprob>score)
+//								score=minprob;
 							if(score>0)
 								score=0;
+
 							if(score>Math.log(rand.nextDouble()))
 							{
 								int addpos=pos+i;
@@ -92,7 +105,7 @@ import org.biojava.utils.ChangeVetoException;
 							//fapos.seq=temp;
 		
 							  fapos.ReverseStrand=reverse;
-						      fapos.Score=score;
+						      fapos.Score=score;//Math.log(Math.exp(score)+minprob);
 
 						    	  result.add(fapos);
 							}
@@ -100,6 +113,7 @@ import org.biojava.utils.ChangeVetoException;
 						}					 
 					    pos+=seq.length();
 					    seqid++;
+	
 					} catch (ChangeVetoException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();

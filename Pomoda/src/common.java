@@ -774,11 +774,18 @@ public class common {
 		}
 		return 'N';
 	}
+	static double[] prefixsum(double[] Arr)
+	{
+		for (int i = 1; i < Arr.length; i++) {
+			Arr[i]+=Arr[i-1];
+		}
+		return Arr;
+	}
 	static double[] Normalize(double[] Arr)
 	{
 		double sum=0;
 		for (int i = 0; i < Arr.length; i++) {
-			sum+=Arr[i]+DoubleMinNormal;
+			sum+=Arr[i];
 		}
 		if(sum==0)
 		{
@@ -788,7 +795,7 @@ public class common {
 			return Arr;
 		}
 		for (int i = 0; i < Arr.length; i++) {
-			Arr[i]=(Arr[i]+DoubleMinNormal)/sum;
+			Arr[i]=(Arr[i])/sum;
 		}
 		return Arr;
 		

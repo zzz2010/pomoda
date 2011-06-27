@@ -108,37 +108,39 @@ public class LinearEngine {
 			// ReverseStrand.clear();
 			 //Database to hold the training set
 			      BufferedReader br = new BufferedReader(new FileReader(inputfile));
-   		          SymbolTokenization toke = AlphabetManager.alphabetForName("DNA").getTokenization("token");
-   		          SequenceIterator seqi = RichSequence.IOTools.readFasta(br, toke,null);
+			      String Line="";
+			      String seqstr="";
+			      TotalLen=0;
+	   		       accSeqLen.add(0);
+			     while( (Line=br.readLine())!=null)
+			     {
+			    	 if(Line.length()>0)
+			    	 {
+			    		 if(Line.charAt(0)=='>')
+			    		 {
+			    			 if(seqstr!="")
+			    			 {
+			    			 seqstr=seqstr.replace("N", "");
+			    			 ForwardStrand.add(seqstr);
+			    			 TotalLen+=seqstr.length();
+			    			 accSeqLen.add(TotalLen);
+			    			 seqstr="";
+			    			 }
+			    			 
+			    		 }
+			    		 else
+			    		 {
+			    			 seqstr+=Line.trim();
+			    		 }
+			    	 }
+			     }
+
    		          
-   		          TotalLen=0;
-   		       accSeqLen.add(0);
-   			      while (seqi.hasNext()) {
-   			    	  
-   			    	  Sequence seq=seqi.nextSequence();
-   			    	  String seqstr=seq.seqString().replace("N", "");
-   				     ForwardStrand.add(seqstr);
-   				  //ReverseStrand.add(common.getReverseCompletementString( seqstr));
-   			
-   				TotalLen+=seqstr.length();
-   			 accSeqLen.add(TotalLen);
-   			      }
+   		    
    	
 			     
 			
-		} catch (IllegalSymbolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalTransitionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAlphabetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (BioException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (FileNotFoundException e) {
@@ -183,6 +185,38 @@ public class LinearEngine {
 			search_result.addAll(threadpool.get(i).getResult());
 			
 
+		}
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	    
+		return search_result;
+	}
+	public LinkedList<FastaLocation> samplingPattern_PS(PWM pattern, int Num_sample) {
+		if(num_thread>ForwardStrand.size())
+			num_thread=1;
+		// TODO Auto-generated method stub
+	    int workSize=ForwardStrand.size()/num_thread+1;
+	    Iterator<String> iter=ForwardStrand.iterator();
+	    LinkedList<FastaLocation> search_result=new LinkedList<FastaLocation>();
+	    int count=0;
+	    ArrayList<SamplingThread_PS> threadpool=new ArrayList<SamplingThread_PS>(num_thread);
+
+	    //Forward search
+	    for (int i = 0; i < num_thread; i++) {
+	    	SamplingThread_PS t1 = new SamplingThread_PS(pattern, Num_sample/num_thread, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize )),i*workSize,accSeqLen);
+
+	    	t1.start();
+			threadpool.add(t1);
+		}
+
+		try {
+	    for (int i = 0; i < threadpool.size(); i++) {
+				threadpool.get(i).join();
+				if(i==num_thread)
+					forwardCount=search_result.size();
+			search_result.addAll(threadpool.get(i).getResult());
 		}
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
