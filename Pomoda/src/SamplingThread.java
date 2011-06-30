@@ -48,7 +48,7 @@ import org.biojava.utils.ChangeVetoException;
 		}
 		@Override
 		public void run() {
-			rand.setSeed(1258);
+			
 			// TODO Auto-generated method stub
 			if(PWMflag)
 			{
@@ -68,7 +68,7 @@ import org.biojava.utils.ChangeVetoException;
 
 					FastaLocation bestpos=null;
 					try {
-						double minprob=Math.log(1.0/( seq.length()-motif.core_motiflen));
+						double minprob=Math.log(1.0/6);
 						for (int i = 0; i < seq.length()-motif.core_motiflen; i++) {
 							String temp=seq.substring(i,i+motif.core_motiflen);
 							double score=motif.scoreWeightMatrix(temp);
@@ -83,17 +83,17 @@ import org.biojava.utils.ChangeVetoException;
 								score=score2;
 								reverse=true;
 							}
-							double Prior_EZ=0.0012468827930174563;
-							double loglik=score-nulllog-Math.log(2.0)+Math.log(Prior_EZ/(1-Prior_EZ));
+//							double Prior_EZ=0.0012468827930174563;
+//							double loglik=score-nulllog-Math.log(2.0)+Math.log(Prior_EZ/(1-Prior_EZ));
+//							
+//							double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);
+//							score=Math.log(prob_theta*20);
 							
-							double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);
-							score=Math.log(prob_theta);
 							
-							
-							//score=enhancefactor+score;
+							score=enhancefactor+score;
 						
 //							if(minprob>score)
-//								score=minprob;
+//								continue;
 							if(score>0)
 								score=0;
 

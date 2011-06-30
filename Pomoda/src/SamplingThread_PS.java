@@ -120,7 +120,7 @@ public class SamplingThread_PS extends Thread {
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
-	
+			rand.setSeed(-1);
 			int pos=accSeqLen.get(startSeqId);
 			boolean bg_buff_ready=true;
 			int totallen_db=accSeqLen.get(startSeqId+db.size())-accSeqLen.get(startSeqId);
@@ -208,8 +208,9 @@ public class SamplingThread_PS extends Thread {
 					  fapos.Score=accProb[addpos]-accProb[addpos-1];
 				  else
 					  fapos.Score=accProb[addpos];
-				  if(fapos.Score<(maxprob*threshold))
-					  continue;
+//////////////////////////////cut the exceptional event////////////////////////////////////////////////////
+//				  if(fapos.Score<(threshold))
+//					  continue;
 				  fapos.Score=Math.log(fapos.Score*samplenum);
 			    	  result.add(fapos);
 			}

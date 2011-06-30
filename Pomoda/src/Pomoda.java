@@ -844,7 +844,7 @@ public class Pomoda {
 				
 			}
 		}
-		
+
 		//EM full site iteration
 		double Prior_EZ= (double)SearchEngine.getSeqNum()/(SearchEngine.getTotalLength()/motif.core_motiflen);
 		double bestscore=motif.Score;
@@ -874,9 +874,9 @@ public class Pomoda {
 		double sitesperSeq=0;
 		LinkedList<FastaLocation> Falocs=null;
 //		if(OOPS)
-			Falocs=SearchEngine2.samplingPattern_PS(motif,Math.max(MIN_SAMPLENUM,SearchEngine2.getSeqNum()*2));
+//			Falocs=SearchEngine2.samplingPattern_PS(motif,Math.max(MIN_SAMPLENUM,SearchEngine2.getSeqNum()*2));
 //		else
-//			Falocs=SearchEngine2.samplingPattern(motif,Math.max(MIN_SAMPLENUM,SearchEngine2.getSeqNum()*2));
+			Falocs=SearchEngine2.samplingPattern(motif,Math.max(MIN_SAMPLENUM,SearchEngine2.getSeqNum()*2));
 	
 
 		int newhead=motif.head;
@@ -935,10 +935,10 @@ public class Pomoda {
 		motifBG.conditionProb.put("C", single_bgprob[1]);
 		motifBG.conditionProb.put("G", single_bgprob[2]);
 		motifBG.conditionProb.put("T", single_bgprob[3]);
-		motifBG.conditionProb.put("A", 0.25);
-		motifBG.conditionProb.put("C", 0.25);
-		motifBG.conditionProb.put("G", 0.25);
-		motifBG.conditionProb.put("T", 0.25);
+//		motifBG.conditionProb.put("A", 0.25);
+//		motifBG.conditionProb.put("C", 0.25);
+//		motifBG.conditionProb.put("G", 0.25);
+//		motifBG.conditionProb.put("T", 0.25);
 		Arrays.fill(single_bgprob, 0);
 		/****************manual initialize********************/
 		
@@ -999,6 +999,7 @@ public class Pomoda {
 					int lastseq=-1;
 					lastpos=-1;
 					double lastpwmweight=0;
+					double lastprob_theta=0;
 					String lastsite="";
 					double max_seqloglik=0;
                     double matchsitecount_seq=0;
@@ -1110,23 +1111,23 @@ public class Pomoda {
 						if(!OOPS)
 						{
 							double pwmweight=prob_theta*sampleWeight;
-							if(sampleWeight>1&&prob_theta>0.5)
-								System.out.println(site+" "+pwmweight+" "+prob_theta+" "+sampleWeight);
+//							if(sampleWeight>1&&prob_theta>0.5)
+//								System.out.println(site+" "+pwmweight+" "+prob_theta+" "+sampleWeight);
 
-//								if((currloc.getMin()-lastpos)<site.length()&&pwmweight>(lastpwmweight+common.DoubleMinNormal))
-//								{
-//									for (int i = 0; i < lastsite.length(); i++) {
-//										int symid=common.acgt[lastsite.charAt(i)];
-//										if(symid>3)
-//										{
-//											continue;
-//										}
-//										
-//										m_matrix[i][symid]-=lastpwmweight;
-//									}
-//								}
-//								
-//								if((currloc.getMin()-lastpos)>=site.length()||pwmweight>(lastpwmweight+common.DoubleMinNormal))
+								if((currloc.getMin()-lastpos)<site.length()&&prob_theta>(lastprob_theta+common.DoubleMinNormal))
+								{
+									for (int i = 0; i < lastsite.length(); i++) {
+										int symid=common.acgt[lastsite.charAt(i)];
+										if(symid>3)
+										{
+											continue;
+										}
+										
+										m_matrix[i][symid]-=lastpwmweight*0.5;
+									}
+								}
+								
+								if((currloc.getMin()-lastpos)>=site.length()||prob_theta>(lastprob_theta+common.DoubleMinNormal))
 								{
 									for (int i = 0; i < site.length(); i++) {
 										int symid=common.acgt[site.charAt(i)];
@@ -1135,12 +1136,13 @@ public class Pomoda {
 											continue;
 										}	
 
-										m_matrix[i][symid]+=pwmweight;//prob_theta;
+										m_matrix[i][symid]+=pwmweight;//prob_theta;//
 										single_bgprob[symid]+=(1-prob_theta)*sampleWeight;
 										
 									}
 									lastpos=currloc.getMin();
 									lastsite=site;
+									lastprob_theta=prob_theta;
 									lastpwmweight=pwmweight;
 								}
 
@@ -1151,13 +1153,13 @@ public class Pomoda {
 							lastseq=currloc.getSeqId();
 //							if(matchsitecount_seq>currloc.getSeqLen())
 //								matchsitecount_seq=currloc.getSeqLen();
-							prior_gamma=Prior_EZ*(currloc.getSeqLen()-motif.core_motiflen);//matchsitecount_seq; //
+							prior_gamma=Prior_EZ*matchsitecount_seq; //(currloc.getSeqLen()-motif.core_motiflen);//
 							if(prior_gamma>1)
 								prior_gamma=0.9999;
 							sitesperSeq=0;
 							if(matchsitecount_seq>0)
 							{
-								 double renomalizefactor=(currloc.getSeqLen()-motif.core_motiflen)/matchsitecount_seq;
+								 double renomalizefactor=1;//(currloc.getSeqLen()-motif.core_motiflen)/matchsitecount_seq;
 								for (int i = 0; i < motiflen; i++) {
 									double sumexpLLRallsymid=0;
 									 for (int symid = 0; symid < 4; symid++) 
@@ -1191,7 +1193,7 @@ public class Pomoda {
 						
 						if(OOPS)
 						{
-							matchsitecount_seq+=sampleWeight;//+;//
+							matchsitecount_seq++;//=sampleWeight;//
 							double expLLR=Math.exp(loglik-Math.log(Prior_EZ/(1-Prior_EZ)));
 							
 								max_seqloglik+=prob_theta*loglik*sampleWeight; //re-weighting
@@ -1228,8 +1230,10 @@ public class Pomoda {
 					//last instance for OOPS
 					if(OOPS)
 					{
-						sitesperSeq=0;
-						 prior_gamma=1-Math.pow(1-Prior_EZ, matchsitecount_seq);
+						prior_gamma=Prior_EZ*matchsitecount_seq; //(400-motif.core_motiflen);//
+						 double renomalizefactor=(400-motif.core_motiflen)/matchsitecount_seq;
+						if(prior_gamma>1)
+							prior_gamma=0.9999;
 						for (int i = 0; i < motiflen; i++) {
 							double sumexpLLRallsymid=0;
 							
@@ -1242,7 +1246,7 @@ public class Pomoda {
 							{
 								
 							  //m_matrix[i][symid]+=max_count_matrix[i][symid]/sitesperSeq+common.DoubleMinNormal;// pesudo count
-								double temp=sumexpLLR[i][symid]*Prior_EZ/((1-prior_gamma)+sumexpLLRallsymid*Prior_EZ);
+								double temp=sumexpLLR[i][symid]*Prior_EZ/((1-prior_gamma)/renomalizefactor+sumexpLLRallsymid*Prior_EZ);
 								m_matrix[i][symid]+=temp;
 								sitesperSeq+=temp;
 								
@@ -1257,7 +1261,10 @@ public class Pomoda {
 						match_seqCount+=m_matrix[m_matrix.length/2][i];
 					}
 					//total_sampleweight may introduce more fluctuation
-					//Prior_EZ=match_seqCount/total_sampleweight;//SearchEngine2.TotalLen;  //total_sampleweight;
+					if(OOPS)
+						Prior_EZ=match_seqCount/SearchEngine2.TotalLen;//SearchEngine2.TotalLen;
+					else
+					Prior_EZ=match_seqCount/total_sampleweight;//SearchEngine2.TotalLen;  //total_sampleweight;
 					if(Prior_EZ>max_Prior_EZ)
 						Prior_EZ=max_Prior_EZ;
 					System.out.println(Prior_EZ);
@@ -1275,10 +1282,10 @@ public class Pomoda {
 					motifBG.conditionProb.put("C", single_bgprob[1]);
 					motifBG.conditionProb.put("G", single_bgprob[2]);
 					motifBG.conditionProb.put("T", single_bgprob[3]);
-					motifBG.conditionProb.put("A", 0.25);
-					motifBG.conditionProb.put("C", 0.25);
-					motifBG.conditionProb.put("G", 0.25);
-					motifBG.conditionProb.put("T", 0.25);
+//					motifBG.conditionProb.put("A", 0.25);
+//					motifBG.conditionProb.put("C", 0.25);
+//					motifBG.conditionProb.put("G", 0.25);
+//					motifBG.conditionProb.put("T", 0.25);
 					Arrays.fill(single_bgprob, 0);
 					/****************manual initialize********************/
 					
@@ -2445,7 +2452,7 @@ public class Pomoda {
 					}
 					site=sb.toString();
 		
-					double logprob_theta=motif.scoreWeightMatrix(site.substring(motif.head,motif.head+motiflen));
+					double logprob_theta=motif.scoreWeightMatrix(site.substring(motif.head,motif.head+motiflen))-Math.log(2.0);
 					double logprob_BG=motifBG.Get_LOGPROB(site.substring(motif.head,motif.head+motiflen))-bgseed_ignore;
 
 					int posbin=(int)(num_priorbin*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
