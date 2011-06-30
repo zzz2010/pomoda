@@ -795,7 +795,7 @@ public class common {
 			return Arr;
 		}
 		for (int i = 0; i < Arr.length; i++) {
-			Arr[i]=(Arr[i])/sum;
+			Arr[i]=(Arr[i]+Double.MIN_NORMAL)/sum;
 		}
 		return Arr;
 		

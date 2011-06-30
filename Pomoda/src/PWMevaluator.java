@@ -54,7 +54,7 @@ public class PWMevaluator {
 	public String inputFasta;
 	public String ctrlFasta="";
 //	public boolean OOPS=true; //only one dependence per sequence
-	public boolean removeBG=true; //false:uniform BG assume
+	public boolean removeBG=false; //false:uniform BG assume
 	public String bgmodelFile="";
 	LinearEngine SearchEngine;
 	public double sampling_ratio=1;
