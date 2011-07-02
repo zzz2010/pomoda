@@ -3,7 +3,7 @@
 	import java.util.Iterator;
 	import java.util.LinkedList;
 	import java.util.List;
-import java.util.Random;
+	import java.util.Random;
 
 import org.biojava.utils.ChangeVetoException;
 
@@ -48,7 +48,7 @@ import org.biojava.utils.ChangeVetoException;
 		}
 		@Override
 		public void run() {
-			
+			rand.setSeed(0);
 			// TODO Auto-generated method stub
 			if(PWMflag)
 			{

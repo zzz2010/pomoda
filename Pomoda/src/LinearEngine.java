@@ -29,6 +29,8 @@ public class LinearEngine {
 	public int TotalLen=0;
 	public ArrayList<Integer> accSeqLen;
 	public LinearEngine(int num_thread) {
+		if(num_thread<1)
+			num_thread=1;
 		this.num_thread=num_thread;
 		ForwardStrand=new LinkedList<String>();
 		//ReverseStrand=new LinkedList<String>();
