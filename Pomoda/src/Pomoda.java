@@ -88,7 +88,7 @@ public class Pomoda {
 	public int resolution=10;
 	public int starting_windowsize=200;
 	public int ending_windowsize=600;
-	public double FDR=0.0005;
+	public double FDR=0.05;
 	public int max_motiflen=55;
 	public int max_threadNum=6;
 	public int num_motif=5;
@@ -144,6 +144,7 @@ public class Pomoda {
 			}
 			else
 			{
+				bg_markov_order=5;
 			     background.BuildModel(ctrlFasta, bg_markov_order+1); //3-order bg
 			     background.SaveModel(ctrlFasta+".bgobj");
 			}
@@ -2691,6 +2692,15 @@ public class Pomoda {
 				//temploglik=temploglik-Falocs.size()*Math.log(0.25);//-common.lnEntropy(optimalcols[i])
 				if(temploglik>maxloglik)
 				{
+					////////////////////make sure bestcol not exceed maxlen///////////////////////
+					int extralen=0;
+					if(i<motif.head)
+						extralen=motif.head-i;
+					if(i>motif.columns()-motif.tail-1)
+						extralen=i-(motif.columns()-motif.tail-1);
+					if((extralen+motif.core_motiflen)>maxmotiflen)
+						continue;
+					////////////////////make sure bestcol not exceed maxlen///////////////////////
 					maxloglik=temploglik;
 					bestCol=i;
 					bestSym.clear();
@@ -2883,7 +2893,7 @@ public class Pomoda {
 			if(bestCol>motif.columns()-motif.tail-1)
 				extralen=bestCol-(motif.columns()-motif.tail-1);
 			//when sample size is small, then ostrich policy let it extend
-			if(total<100||motif.core_motiflen<=minmotiflen||extralen==0)
+			if(motif.core_motiflen<=minmotiflen||extralen==0)
 			{
 
 				if(extralen+motif.core_motiflen<(motif.columns()+seedlen)/2)
