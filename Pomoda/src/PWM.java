@@ -43,6 +43,7 @@ public class PWM extends SimpleWeightMatrix {
 	public int tail;
 	public double inst_coverage=1;
 	public double inst_FDR=1;
+	double infothresh=0.2;
 	public double Prior_EZ=0;
 	//public ArrayList<Double> debuglist=new ArrayList<Double>(); 
 	public double Score;
@@ -537,18 +538,22 @@ public class PWM extends SimpleWeightMatrix {
 						}
 					}
 				}
-				else if(str.startsWith("PO"))
+				else if(str.startsWith("P"))
 				{
 					continue;
 				}
 				else if(str.length()>2)
 				{
+					
 					String[] elms=str.split("\t| ");
+					elms=common.trim_StringArray(elms);
 					Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
 					if(elms.length<5)
 						break;
 					double [] count=new double[4];
+					
 					for (int i = 1; i <= 4; i++) {
+
 						count[i-1]=Double.parseDouble(elms[i])+common.DoubleMinNormal;
 					}
 					common.Normalize(count);
@@ -738,7 +743,7 @@ public class PWM extends SimpleWeightMatrix {
 		for (int i = head; i < this.columns()-tail; i++) {
 		    //calculate the information content
 		    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
-		    if(info<=0.4)
+		    if(info<=infothresh)
 		    {
 		    	newhead=i+1;
 		    	setWeights(i,nullarr);
@@ -751,7 +756,7 @@ public class PWM extends SimpleWeightMatrix {
 		for (int i = this.columns()-tail-1; i > head; i--) {
 		    //calculate the information content
 		    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
-		    if(info<0.1)
+		    if(info<infothresh)
 		    {
 		    	newtail=this.columns()-i;
 		    	setWeights(i,nullarr);
@@ -775,7 +780,7 @@ public class PWM extends SimpleWeightMatrix {
 		for (int i = head; i < this.columns()-tail; i++) {
 		    //calculate the information content
 		    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
-		    if(info<0.1)
+		    if(info<infothresh)
 		    	newhead=i+1;
 		    else
 		    	break;
@@ -785,7 +790,7 @@ public class PWM extends SimpleWeightMatrix {
 		for (int i = this.columns()-tail-1; i > head; i--) {
 		    //calculate the information content
 		    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
-		    if(info<0.1)
+		    if(info<infothresh)
 		    	newtail=this.columns()-i;
 		    else
 		    	break;

@@ -56,7 +56,7 @@ import org.biojava.utils.ChangeVetoException;
 				boolean bg_buff_ready=true;
 				int totallen_db=accSeqLen.get(startSeqId+db.size())-accSeqLen.get(startSeqId);
 				double enhancefactor=motif.core_motiflen*Math.log(4)+Math.log((double)samplenum/totallen_db);
-				//enhancefactor=Double.MAX_VALUE; //sample all site
+			//	enhancefactor=Double.MAX_VALUE; //sample all site
 				double nulllog=motif.core_motiflen*Math.log(0.25);
 				Iterator<String> iter=db.iterator();
 				int seqid=startSeqId;

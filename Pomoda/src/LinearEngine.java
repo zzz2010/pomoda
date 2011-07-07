@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.TreeMap;
 
 import org.biojava.bio.BioException;
 import org.biojava.bio.dp.IllegalTransitionException;
@@ -357,6 +358,70 @@ public class LinearEngine {
 	public int getSeqNum() {
 		// TODO Auto-generated method stub
 		return ForwardStrand.size();
+	}
+	
+	
+	public double[][] seq_similarity()
+	{
+		int test=common.longestSubstr("AAACAATTT", "AAAGTTATT");
+		double[][] sim_arr=new double[getSeqNum()][getSeqNum()];
+		Iterator<String> iter=ForwardStrand.iterator();
+		int seqid=0;
+		 TreeMap<String, Integer> StringMap=new TreeMap<String, Integer>();
+		 int wordlen=18;
+		 int seqnum=getSeqNum();
+		 while(iter.hasNext())
+		 {
+			 String seq=iter.next();
+			 for (int i = 0; i < seq.length()-wordlen; i++) {
+			       String word=seq.substring(i,i+wordlen);
+			       if(StringMap.containsKey(word))
+			       {
+			    	   if(StringMap.get(word)!=seqid)
+			    		   StringMap.put(word,StringMap.get(word)*seqnum+seqid);
+			    	   i+=wordlen;
+			       }
+			       else
+			       {
+			    	   StringMap.put(word, seqid);
+			       }
+			}
+			 seqid++;
+		 }
+		 //decode process
+		 for(Integer seqgroup : StringMap.values())
+		 {
+			 if(seqgroup<getSeqNum())
+				 continue;
+			 int round=(int)Math.ceil(Math.log(seqgroup)/Math.log(seqnum));
+			 ArrayList<Integer> seqlist=new ArrayList<Integer>(round);
+			 for (int i = 0; i < round; i++) {
+				 int rest=seqgroup%seqnum;
+				 seqlist.add(rest);
+				 seqgroup=(seqgroup-rest)/seqnum;
+			}
+			 System.out.print(round+":");
+			 for (int i = 0; i <seqlist.size()-1; i++) {
+				 int ii=seqlist.get(i);
+				 String seq1=ForwardStrand.get(ii);
+				 for (int j = i+1; j < seqlist.size(); j++)
+				 {
+					 int jj=seqlist.get(j);
+					 if(sim_arr[ii][jj]==0)
+					 {
+						 String seq2=ForwardStrand.get(jj);
+						 int lcs=common.longestSubstr(seq1, seq2);
+						 int lcs2=common.longestSubstr(common.getReverseCompletementString(seq1), seq2);
+						 lcs=Math.max(lcs, lcs2);
+						 System.out.println(lcs);
+						 sim_arr[ii][jj]=lcs;
+						 sim_arr[jj][ii]=lcs;
+					 }
+				 }
+		 }
+		 }
+		
+		return sim_arr;
 	}
 
 }

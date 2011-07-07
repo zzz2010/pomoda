@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 //
@@ -518,6 +519,39 @@ public class HashEngine implements ISearchEngine {
 		
 		
 		return ret;
+	}
+	
+	public double[][] seq_similarity()
+	{
+		double[][] sim_arr=new double[getSeqNum()][getSeqNum()];
+		
+		 Iterator<LinkedList<Integer>> iter=HashIndex.iterator();
+		 while(iter.hasNext())
+		 {
+			 LinkedList<Integer> poslist=iter.next();
+			 LinkedList<FastaLocation> falist=Int2Location(poslist);
+			  Iterator<FastaLocation> iter2= falist.iterator();
+			  HashSet<Integer> seqgroup=new HashSet<Integer>();
+			  while(iter2.hasNext())
+			  {
+				  FastaLocation curr= iter2.next();
+				  if(Math.abs((double)curr.getSeqPos()/curr.getSeqLen()-0.5)<0.2)
+					  seqgroup.add(curr.getSeqId());
+			  }
+			  
+			  if(seqgroup.size()<2)
+				  continue;
+			  Integer[] arr=seqgroup.toArray(new Integer[1]);
+			  for (int i = 0; i < arr.length-1; i++) {
+				for (int j = i+1; j < arr.length; j++) {
+					sim_arr[arr[i]][arr[j]]+=1;
+					sim_arr[arr[j]][arr[i]]+=1;
+				}
+			}
+			  
+		 }
+		
+		return sim_arr;
 	}
 
 	@Override
