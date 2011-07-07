@@ -11,6 +11,7 @@ import org.biojava.utils.ChangeVetoException;
 
 public class SamplingThread_PS extends Thread {
 	//static boolean bestonly=false;  //only get the best occurrence for each sequence
+	static BGModel background=null;
 	private LinkedList<FastaLocation> result;
 	PWM motif;
 	int samplenum;
@@ -156,7 +157,9 @@ public class SamplingThread_PS extends Thread {
 							reverse=true;
 						}
 						
-						double Prior_EZ=0.0012468827930174563;
+						double Prior_EZ=1.0/(seq.length()*2);
+						if(background!=null)
+							nulllog=background.Get_LOGPROB(temp)+Math.log(2.0);
 						double loglik=score-nulllog-Math.log(2.0)+Math.log(Prior_EZ/(1-Prior_EZ));
 						
 						double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);

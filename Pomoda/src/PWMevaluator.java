@@ -75,6 +75,7 @@ public class PWMevaluator {
 		sampling_ratio=motiffinder.sampling_ratio;
 		FDR=motiffinder.FDR;
 		background=motiffinder.background;
+		removeBG=true;
 		resolution=motiffinder.resolution;
 		
 	}
@@ -139,12 +140,16 @@ public class PWMevaluator {
 			file= new File(inputFasta+".bgobj");
 		}
 		else
+		{
 			file= new File(ctrlFasta+".bgobj");
+			removeBG=true;
+		}
 		
 		if(!bgmodelFile.isEmpty())
 		{
+			removeBG=true;
 			if(bgmodelFile.isEmpty())
-			background.LoadModel(file.getAbsolutePath());
+				background.LoadModel(file.getAbsolutePath());
 			else
 				background.LoadModel(bgmodelFile);
 		}
@@ -227,10 +232,10 @@ public class PWMevaluator {
 
      	TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
      	double lamda=(double)SearchEngine.getSeqNum()/SearEngine.TotalLen/2;
-         SearchThread.recordSiteThreshold=Math.log((1-lamda)/lamda)+motif.core_motiflen*Math.log(0.25);
+        // SearchThread.recordSiteThreshold=Math.log((1-lamda)/lamda)+motif.core_motiflen*Math.log(0.25);
          motif.matchsite.clear();
         	 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
-         SearchThread.recordSiteThreshold=Double.POSITIVE_INFINITY;
+     //    SearchThread.recordSiteThreshold=Double.POSITIVE_INFINITY;
         	 Iterator<FastaLocation> iter=falocs.iterator();
         	 int lastseq=-1;
         	 double seqcount=0;

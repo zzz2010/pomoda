@@ -79,6 +79,8 @@ public class common {
     	LinkedList<PWM> retlist = new LinkedList<PWM>();
         if (file.endsWith(".pomoda") )
         	retlist = TransfacHandler(file);
+        else if (file.endsWith(".dat") )
+        	retlist = TransfacHandler_dat(file);
         else if (file.endsWith(".traw"))
             retlist = TrawlerHandler(file);
         else if (file.endsWith(".dpwm"))
@@ -677,6 +679,48 @@ public class common {
 		return pwmlist;
 	}
 	
+	public static LinkedList<PWM> TransfacHandler_dat(String pwmfile)
+	{
+		LinkedList<PWM> pwmlist=new LinkedList<PWM>();
+		File file = new File(pwmfile);
+		try {
+			BufferedReader reader = new BufferedReader(new FileReader(file));
+			String text = null;
+			String content="";
+			boolean recordFlag=false;
+			String header="";
+			while ((text = reader.readLine()) != null) {
+				if(text.startsWith("ID"))
+				{
+					 header=text.replace("ID  ", "DE\t")+'\n';
+				}
+			    if(text.startsWith("P0"))
+			    {
+			    	content="";
+			    	recordFlag=true;
+			    }
+			    else if(text.startsWith("XX"))
+			    {
+			    	if(recordFlag)
+			    	pwmlist.add(PWM.parseTransfac(header+content));
+			    	
+			    	recordFlag=false;
+			    		
+			    }
+			    if(recordFlag)
+			    	content+=text+'\n';
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return pwmlist;
+	}
+	
 	public static int CountPositive(double[] arr)
 	{
 		int count=0;
@@ -888,6 +932,19 @@ public class common {
 	reverseC['D']='H';
 	}
 	
+	
+	static String[] trim_StringArray(String[] original)
+	{
+		ArrayList<String> ret=new ArrayList<String>(original.length);
+		for (int i = 0; i < original.length; i++) {
+			if(original[i].isEmpty())
+				continue;
+			ret.add(original[i]);
+		}
+		
+		return ret.toArray(new String[1]);
+	}
+	
 	static  int acgt(char w)
 	{
 		switch(w)
@@ -938,9 +995,96 @@ public class common {
 				return ret;
 
 	}
+	
+	public static double[][] forwardFiltering(BGModel bgmodel, int length, String seed)
+	{
+		double[][] prob_f=new double[length][4];
+		double[] last_prob=new double[(int)Math.pow(4,(bgmodel.order-1))];
+		double[] suffix_prob=new double[(int)Math.pow(4,(bgmodel.order-1))];
+		String ACGT="ACGT";
+		for (int i = 0; i <length; i++) {
+			if(i==0)
+			{
+				for (int j = 0; j < 4; j++) {
+					String temp=seed.substring(seed.length()-bgmodel.order+1, seed.length()*2-bgmodel.order)+ACGT.substring(j,j+1);
+					int hash=common.getHashing(temp, 1, temp.length()-1);
+					suffix_prob[hash]=bgmodel.conditionProb.get(temp);
+				}
+			}
+			else
+			{
+				for (int j = 0; j < last_prob.length; j++) {
+					if(last_prob[j]>0)
+					{
+						String prefix=common.Hash2ACGT(j, bgmodel.order-1);
+						for (int k = 0; k < 4; k++) {
+							String temp=prefix+ACGT.substring(k,k+1);
+							int hash=common.getHashing(temp, 1, temp.length()-1);
+							suffix_prob[hash]+=bgmodel.conditionProb.get(temp)*last_prob[j];
+						}
+					}
+				}
+				
+			}
+			
+			for (int j = 0; j < suffix_prob.length; j++) {
+				if(suffix_prob[j]>0)
+				prob_f[i][j%4]+=suffix_prob[j];
+			}
+			
+			last_prob=Arrays.copyOf(suffix_prob, suffix_prob.length);
+			Arrays.fill(suffix_prob, 0);
+		}
+		
+		
+		return prob_f;
+	}
+	
+	
+	
+	
+	public static double[][] backwardSmoothing(BGModel bgmodel, int length, String seed)
+	{
+		double[][] prob_b2=forwardFiltering(bgmodel,  length, common.getReverseCompletementString(seed));
+		double[][] prob_b=new double[length][4];
+		for (int i = 0; i < prob_b.length; i++) {
+			for (int j = 0; j < 4; j++) {
+				prob_b[i][j]=prob_b2[i][3-j];
+			}
+		}
+		
+		return prob_b;
+	}
+	
+	public static int longestSubstr(String first, String second) {
+	    if (first == null || second == null || first.length() == 0 || second.length() == 0) {
+	        return 0;
+	    }
+	 
+	    int maxLen = 0;
+	    int fl = first.length();
+	    int sl = second.length();
+	    int[][] table = new int[fl][sl];
+	 
+	    for (int i = 0; i < fl; i++) {
+	        for (int j = 0; j < sl; j++) {
+	            if (first.charAt(i) == second.charAt(j)) {
+	                if (i == 0 || j == 0) {
+	                    table[i][j] = 1;
+	                }
+	                else {
+	                    table[i][j] = table[i - 1][j - 1] + 1;
+	                }
+	                if (table[i][j] > maxLen) {
+	                    maxLen = table[i][j];
+	                }
+	            }
 
+	        }
+	    }
+	    return maxLen;
+	}
 }
-
 class  AlignmentResult
 {
 	  int bestaln;
