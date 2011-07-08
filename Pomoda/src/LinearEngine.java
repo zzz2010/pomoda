@@ -167,7 +167,7 @@ public class LinearEngine {
 	    ArrayList<SearchThread> threadpool=new ArrayList<SearchThread>(num_thread);
 	    //Forward search
 	    for (int i = 0; i < num_thread; i++) {
-	    	SearchThread t1 = new SearchThread(pattern, mismatch, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize ) ),i*workSize,accSeqLen);
+	    	SearchThread t1 = new SearchThread(pattern, mismatch, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize )),i*workSize,accSeqLen);
 			if(background!=null)
 			{
 				t1.bgmodel=background;

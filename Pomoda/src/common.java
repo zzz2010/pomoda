@@ -827,6 +827,7 @@ public class common {
 	}
 	static double[] Normalize(double[] Arr)
 	{
+		double[] Arr2=new double[Arr.length];
 		double sum=0;
 		for (int i = 0; i < Arr.length; i++) {
 			sum+=Arr[i];
@@ -834,14 +835,14 @@ public class common {
 		if(sum==0)
 		{
 			for (int i = 0; i < Arr.length; i++) {
-				Arr[i]=1.0/ Arr.length;
+				Arr2[i]=1.0/ Arr.length;
 			}
-			return Arr;
+			return Arr2;
 		}
 		for (int i = 0; i < Arr.length; i++) {
-			Arr[i]=(Arr[i]+Double.MIN_NORMAL)/sum;
+			Arr2[i]=(Arr[i]+Double.MIN_NORMAL)/sum;
 		}
-		return Arr;
+		return Arr2;
 		
 	}
 	
