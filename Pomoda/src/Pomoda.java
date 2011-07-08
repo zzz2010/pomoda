@@ -968,7 +968,7 @@ public class Pomoda {
 		
 		motifBG.BuildModel(bgstrSet, bgorder);
 		bgstrSet.clear();
-		motifBG=this.background;
+		
 		
 		
 		//int truepos=PWMevaluator.comparePositionList(Falocs, "D:\\eclipse\\data\\batchsim\\ESR1.ans", motif.core_motiflen);
@@ -1302,7 +1302,7 @@ public class Pomoda {
 						prior_gamma=0.9999;
 					
 					motifBG.BuildModel(bgstrSet, bgorder);
-					motifBG=this.background;
+					
 					/****************manual initialize********************/
 //					single_bgprob[0]+=single_bgprob[3];
 //					single_bgprob[1]+=single_bgprob[2];
@@ -2390,6 +2390,7 @@ public class Pomoda {
 		///////////////build newBG for iterations////////////////////
 		
 		double[][] single_logprob_bg_=new double[motif.columns()][4];
+		common.fill2DArray(single_logprob_bg_, 1.0);
 		String seed=motif.Consensus(true);
 		double[][] tempM=common.forwardFiltering(this.background, (motif.columns()-seedlen)/2, seed);
 		for (int i = (motif.columns()-seedlen)/2+seedlen; i < tempM.length; i++) {
@@ -2400,12 +2401,14 @@ public class Pomoda {
 		tempM=common.backwardSmoothing(this.background, (motif.columns()-seedlen)/2, seed);
 		for (int i = (motif.columns()-seedlen)/2-1; i >=0; i--) {
 			for (int j = 0; j < 4; j++) {
-				single_logprob_bg_[i][j]=tempM[(motif.columns()-seedlen)/2-1-i][j];
+				single_logprob_bg_[i][j]=Math.log(tempM[(motif.columns()-seedlen)/2-1-i][j]);
 			}
 		}
 		
 		do
 		{
+		double[]  A=new double[4];
+		double[]  B=new double[4];
 		String consensus_core=motif.Consensus(true);
 		double bgseed_ignore=motifBG.Get_LOGPROB(seedstring)-seedscore;
 		System.out.println(consensus_core+"\t"+String.valueOf(bestscore));
@@ -2529,18 +2532,17 @@ public class Pomoda {
 					double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);//Math.exp(currloc.Score);				
 					if(Double.isNaN(prob_theta))
 						prob_theta=1;
+					
 				//	bgstrSet.put(site.substring(0,(motif.columns()-seedlen)/2)+site.substring((motif.columns()-seedlen)/2+seedlen), 1-prob_theta);
 					temp_peakrank[rankbin]+=prob_theta;
 					temp_prior[posbin]+=prob_theta;
 					if(currloc.ReverseStrand)
 					{
-						
 						temp_strand[1]+=prob_theta;   
 					}
 					else
 					{
 						temp_strand[0]+=prob_theta;
-						
 					}
 
 					if(OOPS)
@@ -2674,10 +2676,10 @@ public class Pomoda {
 						int symid=common.acgt[site.charAt(i)];
 						if(symid>3)
 							continue; //meet new line separator
-						count_matrix[i][symid]+=1;//prob_theta;
+						count_matrix[i][symid]+=prob_theta;
 						if(consensus.charAt(i)!='N')
 							continue;
-						sumLogBG_matrix[i][symid]+=single_logprob_bg[symid];
+						sumLogBG_matrix[i][symid]+=single_logprob_bg_[i][symid];//single_logprob_bg[symid];
 					}
 					//////////////////////////////TCM/////////////////////////////
 			}
@@ -2733,7 +2735,7 @@ public class Pomoda {
 						break;
 					int symid=orderSym.get(key);
 					//extra base, the only difference is  
-					temploglik+=count_matrix[i][symid]*(Math.log(optimalcols[i][symid])-single_logprob_bg[symid]); //key*(1+boundaryLoss);
+					temploglik+=count_matrix[i][symid]*(Math.log(optimalcols[i][symid])-single_logprob_bg_[i][symid]); //key*(1+boundaryLoss);
 					
 					sumcount+=count_matrix[i][symid];
 					c++;			
@@ -2780,7 +2782,7 @@ public class Pomoda {
 
 
 
-		    common.print2DArray(count_matrix);
+//		    common.print2DArray(count_matrix);
 	
 
 
@@ -2915,7 +2917,7 @@ public class Pomoda {
 			for (int i = 0; i < 4; i++) {
 				total+=count_matrix[bestCol][i];
 			}
-			double rescale=1;
+			double rescale=seedlen/2.0;
 			for (int j = 0; j < 4; j++) {
 					double Ei=total*Math.exp(single_logprob_bg[j])*rescale;
 					double temp=count_matrix[bestCol][j]*rescale-Ei;
