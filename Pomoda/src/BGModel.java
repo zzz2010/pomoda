@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
@@ -11,12 +12,18 @@ import org.biojava.bio.seq.io.*;
 import org.biojava.bio.symbol.*;
 import org.biojavax.bio.seq.RichSequence;
 
+import com.sun.corba.se.impl.encoding.OSFCodeSetRegistry.Entry;
+
 
 
 public class BGModel implements Serializable{
 	
 	
 	HashMap<String, Double> conditionProb;
+	HashMap<String, PWM> kmerPWMBG=null;
+	boolean EnablePWMBG=false;
+	int kmerlen=5;
+	int flanklen=25;
 	 Random r=new Random();
 	public int order;
 	
@@ -111,8 +118,8 @@ public class BGModel implements Serializable{
 		}
 		 
 		 normalizeConditionProb();
-		
 	}
+	
 	public void BuildModel(Map<String,Double> Seqs, int order)
 	{
 		this.order=order;
@@ -141,6 +148,66 @@ public class BGModel implements Serializable{
 //			   {
 //				   conditionProb.put(segment, 1.0);
 //			   }
+			}
+			
+			if(EnablePWMBG&&seq.length()>(2*flanklen+kmerlen))
+			{
+				String kmer=seq.substring(i, i+kmerlen);
+				String seq1="";
+				if(i<flanklen)
+				{
+					String N="";
+					for (int j = 0; j < (flanklen-i); j++) {
+						N+="N";
+					}
+					seq1=N+seq.substring(0,i+kmerlen+flanklen);
+				}
+				else if((seq.length()-i-kmerlen)<flanklen)
+				{
+					String N="";
+					for (int j = 0; j < (flanklen+i-seq.length()+kmerlen); j++) {
+						N+="N";
+					}
+					seq1=seq.substring(i-flanklen,seq.length())+N;
+				}
+				else
+				{
+					seq1=seq.substring(i-flanklen,i+kmerlen+flanklen);
+				}
+				if(kmerPWMBG.containsKey(kmer))
+				{
+					PWM temp=kmerPWMBG.get(kmer);
+					for (int j = 0; j < temp.columns(); j++) {
+						int symid=common.acgt(seq1.charAt(j));
+						if(symid>3)
+						{
+							for (int k = 0; k < 4; k++) {
+								temp.m_matrix[j][k]+=0.25;
+								
+							}
+						}
+						else
+						{
+							temp.m_matrix[j][symid]+=1;
+						}
+					}
+					//kmerPWMBG.put(kmer, temp);
+				}
+				else
+				{
+					try {
+						PWM temp=new PWM(new String[]{seq1});
+						kmerPWMBG.put(kmer, temp);
+					} catch (IllegalAlphabetException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IllegalSymbolException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+				
+				
 			}
 			
 		}
@@ -173,13 +240,29 @@ public class BGModel implements Serializable{
 				else
 				conditionProb.put(pattern, conditionProb.get(pattern)/conditionProb.get(pattern.substring(0, pattern.length()-1)));
 			}
-			
+		}
+		if(EnablePWMBG)
+		{
+			Iterator<java.util.Map.Entry<String, PWM>> iter=kmerPWMBG.entrySet().iterator();
+			while(iter.hasNext())
+			{
+				java.util.Map.Entry<String, PWM> curr=iter.next();
+				String kmer=curr.getKey();
+				PWM temp=curr.getValue();
+				for (int i = 0; i < temp.columns(); i++) {
+					temp.setWeights(i, common.Normalize(temp.m_matrix[i]));
+				}
+			}
 		}
 		
 	}
 	
 	private void initializeConditionProb()
-	{
+	{	
+		if(EnablePWMBG)
+		{
+			kmerPWMBG=new HashMap<String, PWM>();
+		}
 		conditionProb=new HashMap<String, Double>();
 		for (int i = 0; i < order; i++) {
 			int total=1<<(2*(i+1));;
@@ -263,6 +346,10 @@ public class BGModel implements Serializable{
 			BGModel loaded=(BGModel)si.readObject();
 			conditionProb=loaded.conditionProb;
 			order=loaded.order;
+			kmerPWMBG=loaded.kmerPWMBG;
+			kmerlen=loaded.kmerlen;
+			flanklen=loaded.flanklen;
+			EnablePWMBG=loaded.EnablePWMBG;
 			si.close();
 			
 		} catch (FileNotFoundException e) {

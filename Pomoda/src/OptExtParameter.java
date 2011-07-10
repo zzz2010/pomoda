@@ -60,7 +60,7 @@ public void find_parameter()
 	}));
 		for (int i = 0; i < A.length; i++) {
 			//compute FG model first
-			System.err.println(i);
+			
 			if(A[i][0]==0)
 				continue;
 			EEM_auxfunction func=new EEM_auxfunction(A[i], B[i]);
