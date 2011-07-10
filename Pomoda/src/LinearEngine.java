@@ -423,5 +423,36 @@ public class LinearEngine {
 		
 		return sim_arr;
 	}
+	
+	public PWM getPWM_fromMatch(PWM pattern)
+	{
+		PWM ret=null;
+		LinkedList<FastaLocation> origFalocs=this.searchPattern(pattern, pattern.core_motiflen*Math.log(0.25));
+		Iterator<FastaLocation> iter=origFalocs.iterator();
+		String[] allsites=new String[origFalocs.size()];
+		int sitecount=0;
+		while(iter.hasNext())
+		{
+			FastaLocation currloc=iter.next();
+
+			String site=this.getSite(currloc.getSeqId(),currloc.getSeqPos()-pattern.head, pattern.columns());
+			if(currloc.ReverseStrand)
+				site=common.getReverseCompletementString(site);
+			allsites[sitecount]=site;
+			sitecount++;
+		}
+		
+			try {
+				ret=new PWM(allsites);
+			} catch (IllegalAlphabetException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalSymbolException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+		return ret;
+	}
 
 }
