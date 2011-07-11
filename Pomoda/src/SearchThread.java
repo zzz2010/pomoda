@@ -130,7 +130,7 @@ public class SearchThread extends Thread  {
 					if(bestonly&&bestpos!=null)
 					{
 						result.add(bestpos);
-						result.addAll(tempbestpos);
+						//result.addAll(tempbestpos);
 					}					 
 				    pos+=seq.length();
 				    seqid++;

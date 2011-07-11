@@ -41,6 +41,8 @@ import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RectangleInsets;
 import org.jfree.ui.RefineryUtilities;
 
+import umontreal.iro.lecuyer.probdist.HypergeometricDist;
+
 import auc.AUCCalculator;
 import auc.Confusion;
 
@@ -57,6 +59,7 @@ public class PWMevaluator {
 	public boolean removeBG=false; //false:uniform BG assume
 	public String bgmodelFile="";
 	LinearEngine SearchEngine;
+	LinearEngine BGSearchEngine;
 	public double sampling_ratio=1;
 	public double FDR=0.01;
 	public double entropyThresh=1;
@@ -137,11 +140,12 @@ public class PWMevaluator {
 		if(ctrlFasta.isEmpty())
 		{
 			bg_markov_order=0;
-			file= new File(inputFasta+".bgobj");
+			file= new File(inputFasta+".bg");
 		}
 		else
 		{
-			file= new File(ctrlFasta+".bgobj");
+			BGSearchEngine=new LinearEngine(4);
+			BGSearchEngine.build_index(this.ctrlFasta);
 			removeBG=true;
 		}
 		
@@ -158,13 +162,8 @@ public class PWMevaluator {
 			if(ctrlFasta.isEmpty())
 			{
 		     background.BuildModel(inputFasta, bg_markov_order+1); //1-order bg
-		     background.SaveModel(inputFasta+".bgobj");
-			}
-			else
-			{
-			     background.BuildModel(ctrlFasta, bg_markov_order+1); //3-order bg
-			     background.SaveModel(ctrlFasta+".bgobj");
-			}				
+		     background.SaveModel(inputFasta+".bg");
+			}			
 		}
 		
 	}
@@ -195,20 +194,19 @@ public class PWMevaluator {
 		return similarList;
 	}
 	
-	public double calcAUC(PWM motif,LinkedList<String> sequences)
+	public double calcAUC(PWM motif,LinearEngine bg_search)
 	{
 		if(motif==null)
 			return Double.NEGATIVE_INFINITY;
 		SearchThread.bestonly=true;
 		 LinearEngine SearEngine=null;
-		 if(sequences==null)
+		
 			 SearEngine=this.SearchEngine;
-		 else
-		 {
-			 SearEngine=new LinearEngine(6);
-			 SearEngine.ForwardStrand=sequences;
-		 }
-		 LinearEngine BGSearch=new LinearEngine(6);
+
+			 LinearEngine BGSearch=null;
+		if(bg_search==null)
+		{
+		  BGSearch=new LinearEngine(6);
          Iterator<String> iter2=SearchEngine.ForwardStrand.iterator();
          background.r.setSeed(0);
          while(iter2.hasNext())
@@ -229,6 +227,11 @@ public class PWMevaluator {
         	 BGSearch.TotalLen+=bgstr.length();
         	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
          }
+		}
+		else
+		{
+			BGSearch=bg_search;
+		}
 
      	TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
      	double lamda=(double)SearchEngine.getSeqNum()/SearEngine.TotalLen/2;
@@ -324,6 +327,20 @@ public class PWMevaluator {
          SearchThread.bestonly=false;
          return AUCscore;
 
+	}
+	
+	public double HyperGeometricScore(PWM motif, LinearEngine BGsearch)
+	{
+		double HGscore=0;
+		double thresh=motif.getThresh(1, 0.0001, background);
+		SearchThread.bestonly=true;
+		LinkedList<FastaLocation> falocs= this.SearchEngine.searchPattern(motif, thresh);
+		
+		LinkedList<FastaLocation> falocs_bg= BGsearch.searchPattern(motif, thresh);
+		
+		HGscore=HypergeometricDist.cdf(falocs_bg.size(), BGsearch.ForwardStrand.size(), this.SearchEngine.ForwardStrand.size(), falocs.size()) ;
+		SearchThread.bestonly=false;
+		return HGscore;
 	}
 	
 	public double calcAUC(PWM motif,ArrayList<Double[]> DnaseLib, LinkedList<String> sequences)
@@ -567,6 +584,7 @@ public class PWMevaluator {
 		PWMevaluator evaluator=new PWMevaluator();
 		boolean rocflag=false;
 		boolean convertflag=false;
+		
 		LinkedList<PWM> PWMLibrary=null;
 		int topN=1000000;
 		try {
@@ -648,7 +666,11 @@ public class PWMevaluator {
 		while(iter.hasNext())
 		{
 			PWM p1=iter.next();
-			double auc=evaluator.calcAUC(p1, null);
+			double auc=0;
+			if(evaluator.BGSearchEngine==null)
+				auc=evaluator.calcAUC(p1, null);
+			else
+				auc=evaluator.HyperGeometricScore(p1, evaluator.BGSearchEngine);
 			p1.Score=auc;
 			writer.write(p1.Name+"\t"+auc+"\n");
 			sortedPWMs.put(auc, p1);

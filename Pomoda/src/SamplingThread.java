@@ -9,7 +9,7 @@ import org.biojava.utils.ChangeVetoException;
 
 	public class SamplingThread  extends Thread {
 
-
+		static BGModel background=null;
 
 		//static boolean bestonly=false;  //only get the best occurrence for each sequence
 		private LinkedList<FastaLocation> result;
@@ -83,14 +83,17 @@ import org.biojava.utils.ChangeVetoException;
 								score=score2;
 								reverse=true;
 							}
-//							double Prior_EZ=0.0012468827930174563;
-//							double loglik=score-nulllog-Math.log(2.0)+Math.log(Prior_EZ/(1-Prior_EZ));
-//							
-//							double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);
-//							score=Math.log(prob_theta*20);
+							double Prior_EZ=1.0/(seq.length()*2);
+							if(background!=null)
+								nulllog=background.Get_LOGPROB(temp)+Math.log(2.0);
+							double loglik=score-nulllog-Math.log(2.0)+Math.log(Prior_EZ/(1-Prior_EZ));
+							
+							double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);
+							double rescale=(double)samplenum/totallen_db/Prior_EZ;
+							score=Math.log(prob_theta*rescale);
 							
 							
-							score=enhancefactor+score;
+//							score=enhancefactor+score;
 						
 //							if(minprob>score)
 //								continue;

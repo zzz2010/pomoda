@@ -453,7 +453,7 @@ public class PWM extends SimpleWeightMatrix {
 		//number sampling
 		int num_sampl=100000;
 		boolean samplflag=false;
-		if((num_sampl)>num_path)//zzz
+		if((num_sampl)>num_path||bgmodel.conditionProb==null)//zzz
 		{
 
 			LinkedList<Map.Entry<Double,String>> inst=GenerateInstanceFromPWMPQ(sampleratio, FDRthresh, bgmodel);
