@@ -177,6 +177,7 @@ public class BGModel implements Serializable{
 				if(kmerPWMBG.containsKey(kmer))
 				{
 					PWM temp=kmerPWMBG.get(kmer);
+					temp.inst_coverage+=1;
 					for (int j = 0; j < temp.columns(); j++) {
 						int symid=common.acgt(seq1.charAt(j));
 						if(symid>3)
@@ -197,6 +198,7 @@ public class BGModel implements Serializable{
 				{
 					try {
 						PWM temp=new PWM(new String[]{seq1});
+						temp.inst_coverage=1;
 						kmerPWMBG.put(kmer, temp);
 					} catch (IllegalAlphabetException e) {
 						// TODO Auto-generated catch block
@@ -221,6 +223,81 @@ public class BGModel implements Serializable{
 			for (int j = 0; j < order; j++) {
 				String segment=seq.substring(i, i+j+1);
 				   conditionProb.put(segment, conditionProb.get(segment)+prob);
+			}
+			
+			if(EnablePWMBG&&seq.length()>(2*flanklen+kmerlen))
+			{
+				String kmer=seq.substring(i, i+kmerlen);
+				String seq1="";
+				if(i<flanklen)
+				{
+					String N="";
+					for (int j = 0; j < (flanklen-i); j++) {
+						N+="N";
+					}
+					seq1=N+seq.substring(0,i+kmerlen+flanklen);
+				}
+				else if((seq.length()-i-kmerlen)<flanklen)
+				{
+					String N="";
+					for (int j = 0; j < (flanklen+i-seq.length()+kmerlen); j++) {
+						N+="N";
+					}
+					seq1=seq.substring(i-flanklen,seq.length())+N;
+				}
+				else
+				{
+					seq1=seq.substring(i-flanklen,i+kmerlen+flanklen);
+				}
+				if(kmerPWMBG.containsKey(kmer))
+				{
+				
+					PWM temp=kmerPWMBG.get(kmer);
+					temp.inst_coverage+=prob;
+					for (int j = 0; j < temp.columns(); j++) {
+						int symid=common.acgt(seq1.charAt(j));
+						if(symid>3)
+						{
+							for (int k = 0; k < 4; k++) {
+								temp.m_matrix[j][k]+=0.25*prob;
+								
+							}
+						}
+						else
+						{
+							temp.m_matrix[j][symid]+=prob;
+						}
+					}
+					//kmerPWMBG.put(kmer, temp);
+				}
+				else
+				{
+					try {
+						PWM temp=new PWM(new String[]{seq1});
+						for (int j = 0; j < temp.columns(); j++) {
+							int symid=common.acgt(seq1.charAt(j));
+							if(symid>3)
+							{
+								for (int k = 0; k < 4; k++) {
+									temp.m_matrix[j][k]*=prob;
+									
+								}
+							}
+							else
+							{
+								temp.m_matrix[j][symid]*=prob;
+							}
+						}
+						temp.inst_coverage=prob;
+						kmerPWMBG.put(kmer, temp);
+					} catch (IllegalAlphabetException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IllegalSymbolException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
 			}
 			
 		}
@@ -320,53 +397,166 @@ public class BGModel implements Serializable{
 		
 	}
 	
+//	public void SaveModel(String filename)
+//	{
+//		
+//
+//		try {
+//			FileOutputStream fo=new FileOutputStream(filename);
+//	        ObjectOutputStream oos;
+//			oos = new ObjectOutputStream(fo);
+//			oos.writeObject(this);
+//			oos.close();			
+//			
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}  
+//        
+//        
+//	}
 	public void SaveModel(String filename)
 	{
-		
+		try {
+			BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
+			for (int i = 0; i < order; i++) {
+				writer.write("# order "+(i)+"\n");
+				int entryNum=(int)Math.pow(4, i+1);
+				for (int j = 0; j < entryNum; j++) {
+					String key=common.Hash2ACGT(j, i+1);
+					double prob=conditionProb.get(key);
+					writer.write(key+" "+prob+"\n");
+				}
+			}
+			if(EnablePWMBG)
+			{
+				for(java.util.Map.Entry<String, PWM> pair: kmerPWMBG.entrySet())
+				{
+					String kmer=pair.getKey();
+					PWM motif=pair.getValue();
+					StringBuffer TransStr=new StringBuffer("");
+					TransStr.append("DE\t"+kmer+"\t"+motif.inst_coverage+"\n");
+					TransStr.append("PO\tA\tC\tG\tT\n");
+					for (int i = 0; i < motif.columns(); i++) {
 
-		try {
-			FileOutputStream fo=new FileOutputStream(filename);
-	        ObjectOutputStream oos;
-			oos = new ObjectOutputStream(fo);
-			oos.writeObject(this);
-			oos.close();			
-			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}  
-        
-        
-	}
-	public void LoadModel(String filename)
-	{
-		try {
-			FileInputStream fi=new FileInputStream(filename);
-			ObjectInputStream si=new ObjectInputStream(fi);
-			BGModel loaded=(BGModel)si.readObject();
-			conditionProb=loaded.conditionProb;
-			order=loaded.order;
-			kmerPWMBG=loaded.kmerPWMBG;
-			kmerlen=loaded.kmerlen;
-			flanklen=loaded.flanklen;
-			EnablePWMBG=loaded.EnablePWMBG;
-			si.close();
-			
+						TransStr.append(i+1);
+						TransStr.append('\t');
+						for (int j = 0; j< 4; j++)
+						{  
+							double weight=motif.m_matrix[i][j];
+							TransStr.append(String.valueOf(weight));
+							TransStr.append('\t');								
+						}
+						TransStr.append("X\n");
+				
+					}
+					TransStr.append("XX\n");
+
+					writer.write(TransStr.toString());
+				}
+			}
+			writer.close();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
-		
+		}
+
 	}
+	
+	public void LoadModel(String filename)
+	{
+		  try {
+			conditionProb=new HashMap<String, Double>();
+			kmerPWMBG=new HashMap<String, PWM>();
+			order=0;
+			BufferedReader sr = new BufferedReader(new FileReader(new File(filename)));
+			String line="";
+			boolean PWMregion=false;
+			String  pwmcontent="";
+			String kmer="";
+			double inst_cover=0;
+			while ((line = sr.readLine()) != null)
+			{
+				if(line.startsWith("#"))
+				{
+					PWMregion=false;
+					continue;
+				}
+				if(line.startsWith("DE"))
+				{
+					PWMregion=true;
+					String[] comps=line.split("\t| ");
+					kmer=comps[1];
+					if(comps.length>2)
+						inst_cover=Double.valueOf(comps[2]);
+					pwmcontent=line+"\n";
+				}
+				if(line.startsWith("XX"))
+				{
+					pwmcontent+=line+"\n";
+					PWM temp=PWM.parseTransfac(pwmcontent);
+					temp.inst_coverage=inst_cover;
+					kmerPWMBG.put(kmer, temp);
+					kmerlen=kmer.length();
+					flanklen=(temp.columns()-kmerlen)/2;
+					EnablePWMBG=true;
+				}
+				if(PWMregion)
+				{
+					pwmcontent+=line+"\n";
+				}
+				else
+				{
+					String[] comps=line.split(" ");
+					if(comps.length==2)
+					{
+						conditionProb.put(comps[0],Double.valueOf(comps[1]));
+						if(comps[0].length()>order)
+							order=comps[0].length();
+					}
+				}
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+//	public void LoadModel(String filename)
+//	{
+//		try {
+//			FileInputStream fi=new FileInputStream(filename);
+//			ObjectInputStream si=new ObjectInputStream(fi);
+//			BGModel loaded=(BGModel)si.readObject();
+//			conditionProb=loaded.conditionProb;
+//			order=loaded.order;
+//			kmerPWMBG=loaded.kmerPWMBG;
+//			kmerlen=loaded.kmerlen;
+//			flanklen=loaded.flanklen;
+//			EnablePWMBG=loaded.EnablePWMBG;
+//			si.close();
+//			
+//		} catch (FileNotFoundException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (ClassNotFoundException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IllegalArgumentException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} 
+//		
+//	}
 	
 
 }

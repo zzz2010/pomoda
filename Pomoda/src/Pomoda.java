@@ -141,11 +141,11 @@ public class Pomoda {
 		if(ctrlFasta.isEmpty())
 		{
 			bg_markov_order=1;
-			file= new File(inputFasta+".bgobj");
+			file= new File(inputFasta+".bg");
 		}
 		else
 		{
-			file= new File(ctrlFasta+".bgobj");
+			file= new File(ctrlFasta+".bg");
 			
 		}
 		
@@ -161,7 +161,7 @@ public class Pomoda {
 			if(ctrlFasta.isEmpty())
 			{
 		     background.BuildModel(inputFasta, bg_markov_order+1); //3-order bg
-		     background.SaveModel(inputFasta+".bgobj");
+		     background.SaveModel(inputFasta+".bg");
 			}
 			else
 			{
@@ -170,7 +170,7 @@ public class Pomoda {
 				background.kmerlen=seedlen;
 				background.flanklen=(this.max_motiflen-seedlen)/2;
 			     background.BuildModel(ctrlFasta, bg_markov_order+1); //3-order bg
-			     background.SaveModel(ctrlFasta+".bgobj");
+			     background.SaveModel(ctrlFasta+".bg");
 			}
 				
 		}
@@ -898,13 +898,16 @@ public class Pomoda {
 		bestPWM.Score=0;//ignore previous score
 		double sitesperSeq=0;
 		LinkedList<FastaLocation> Falocs=null;
-		if(OOPS)
+//		if(OOPS)
+//		{
+//			SamplingThread_PS.background=this.background;
+//			Falocs=SearchEngine2.samplingPattern_PS(motif,Math.max(MIN_SAMPLENUM,(int)(SearchEngine2.TotalLen*sampling_ratio)));
+//		}
+//		else
 		{
-			SamplingThread_PS.background=this.background;
-			Falocs=SearchEngine2.samplingPattern_PS(motif,Math.max(MIN_SAMPLENUM,(int)(SearchEngine2.TotalLen*sampling_ratio)));
-		}
-		else
+			SamplingThread.background=this.background;
 			Falocs=SearchEngine2.samplingPattern(motif,Math.max(MIN_SAMPLENUM,(int)(SearchEngine2.TotalLen*sampling_ratio)));
+		}
 	
 
 		int newhead=motif.head;
@@ -3904,10 +3907,13 @@ public class Pomoda {
 		
 		 ArrayList<AUCComputeThread> threadpool=new ArrayList<AUCComputeThread>(seedPWMs.size());
 			ExecutorService executor = Executors.newFixedThreadPool(Math.min(motifFinder.max_threadNum,seedPWMs.size()));
+			LinearEngine BGSearch=new LinearEngine(4);
+			BGSearch.build_index("D:/eclipse/data/promoter_bg.fa");
 ///////////////////////////////////////evaluate different motif in parallel///////////////////////////////////////////		 
 		for (int i = 0; i < seedPWMs.size(); i++) {
-			AUCComputeThread t1=new AUCComputeThread(evaluator, seedPWMs.get(i).trim(), null);
-			executor.execute(t1);
+			AUCComputeThread t1=new AUCComputeThread(evaluator, seedPWMs.get(i).trim(), BGSearch);
+			t1.run();
+			//executor.execute(t1);
 			threadpool.add(t1);
 		}
 		executor.shutdown();

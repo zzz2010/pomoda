@@ -4,15 +4,15 @@ import java.util.LinkedList;
 public class AUCComputeThread extends Thread {
 
 	public AUCComputeThread(PWMevaluator evaluator, PWM motif,
-			LinkedList<String> sequences) {
+			LinearEngine bGSearch) {
 		super();
 		Evaluator = evaluator;
 		this.motif = motif;
-		this.sequences = sequences;
+		this.sequences = bGSearch;
 	}
 	PWMevaluator Evaluator;
 	PWM motif;
-	LinkedList<String> sequences;
+	LinearEngine sequences;
 	double AUCresult=0;
 	@Override
 	public void run() {
