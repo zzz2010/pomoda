@@ -667,10 +667,10 @@ public class PWMevaluator {
 		{
 			PWM p1=iter.next();
 			double auc=0;
-			if(evaluator.BGSearchEngine==null)
-				auc=evaluator.calcAUC(p1, null);
-			else
-				auc=evaluator.HyperGeometricScore(p1, evaluator.BGSearchEngine);
+//			if(evaluator.BGSearchEngine==null)
+				auc=evaluator.calcAUC(p1, evaluator.BGSearchEngine);
+//			else
+//				auc=evaluator.HyperGeometricScore(p1, evaluator.BGSearchEngine);
 			p1.Score=auc;
 			writer.write(p1.Name+"\t"+auc+"\n");
 			sortedPWMs.put(auc, p1);
