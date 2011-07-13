@@ -113,8 +113,10 @@ public class Pomoda {
 		//build hash index
 		common.initialize();
 		
-		SearchEngine=new HashEngine(seedlen);
-		SearchEngine.build_index(this.inputFasta);
+//		SearchEngine=new HashEngine(seedlen);
+//		SearchEngine.build_index(this.inputFasta);
+		
+		
 		
 
 		SearchEngine2=new LinearEngine(max_threadNum);
@@ -122,6 +124,8 @@ public class Pomoda {
 		if(SearchEngine2.num_thread>SearchEngine2.TotalLen/400000)
 			SearchEngine2.num_thread=SearchEngine2.TotalLen/400000+1;
 		SearchEngine2.build_KmerHitList(seedlen);
+		
+
 		
 //		if(SearchEngine_Test())
 //			System.out.println("SearchEngine_Test : pass");
@@ -2369,6 +2373,7 @@ public class Pomoda {
 		double Prior_EZ=0.5;
 		int inst_hash=-1;
 		String seedstring=motif.Consensus(true);
+
 		//double thresh=motif.getThresh(1.0, this.FDR, this.background);
 		LinkedList<FastaLocation> origFalocs=new LinkedList<FastaLocation>();//SearchEngine.searchPattern(motif, thresh);
 		LinkedList<FastaLocation> tempfalocs=(SearchEngine2.KmerHitList.get(seedstring));
@@ -2390,22 +2395,43 @@ public class Pomoda {
 				origFalocs.addAll(tempfalocs);
 			else
 			{
-				Iterator<FastaLocation> iter1=tempfalocs2.iterator();
+				Iterator<FastaLocation> iter1=tempfalocs.iterator();
 				Iterator<FastaLocation> iter2=tempfalocs2.iterator();
 				FastaLocation pos1 = iter1.next();
 				FastaLocation pos2 = iter2.next();
 				while(iter2.hasNext()||iter1.hasNext())
 				{
-					if((pos2==null&&pos1!=null)||pos1.getMin()<pos2.getMin())
+					if(pos1.getMin()<pos2.getMin())
 					{
 						origFalocs.add(pos1);
+						if(iter1.hasNext())
 						pos1=iter1.next();
 					}
-					else
+					else 
 					{
 						pos2.ReverseStrand=true;
 						origFalocs.add(pos2);
+						if(iter2.hasNext())
 						pos2=iter2.next();
+					}
+					if(!iter2.hasNext())
+					{
+						while(iter1.hasNext())
+						{
+							pos1=iter1.next();
+							origFalocs.add(pos1);
+						}
+							
+					}
+					if(!iter1.hasNext())
+					{
+						while(iter2.hasNext())
+						{
+							pos2=iter2.next();
+							pos2.ReverseStrand=true;
+							origFalocs.add(pos2);
+						}
+							
 					}
 					
 				}
@@ -2635,27 +2661,31 @@ public class Pomoda {
 					
 					//////////////////////////////first time estimate/////////////////////////////
 					if(motif.core_motiflen==seedlen)
-					for (int i = 0; i < site.length(); i++) {
-						int symid=common.acgt[site.charAt(i)];
-						if(symid>3)
-						{
-							for (int j = 0; j < 4; j++) {
-								double ratio=Math.exp(loglik-single_logprob_bg_[i][j]);
-								A[i][j]+=ratio*0.25;
-								B[i][j]+=ratio*Math.log(ratio)*0.25;
-							}
-							
-							continue; //meet new line separator
-						}
-		
-
-						if(consensus.charAt(i)!='N')
-							continue;
+					{
+						common.fill2DArray(A, 1);
 						
-						double ratio=Math.exp(loglik-single_logprob_bg_[i][symid]);						
-						A[i][symid]+=ratio;
-						B[i][symid]+=ratio*Math.log(ratio);
-
+						for (int i = 0; i < site.length(); i++) {
+							int symid=common.acgt[site.charAt(i)];
+							if(symid>3)
+							{
+								for (int j = 0; j < 4; j++) {
+									double ratio=Math.exp(loglik-single_logprob_bg_[i][j]);
+									A[i][j]+=ratio*0.25;
+									B[i][j]+=ratio*Math.log(ratio)*0.25;
+								}
+								
+								continue; //meet new line separator
+							}
+			
+	
+							if(consensus.charAt(i)!='N')
+								continue;
+							
+							double ratio=Math.exp(loglik-single_logprob_bg_[i][symid]);						
+							A[i][symid]+=ratio;
+							B[i][symid]+=ratio*Math.log(ratio);
+	
+						}
 					}
 					//////////////////////////////first time estimate/////////////////////////////
 					if(OOPS&&currloc.getSeqId()!=lastseq)
@@ -2822,7 +2852,6 @@ public class Pomoda {
 		if(motif.core_motiflen==seedlen)
 		{
 			OptExtParameter optimzer=new OptExtParameter(A, B);
-			
 			optimzer.count_matrix=count_matrix;
 			optimzer.log_bg_matrix=single_logprob_bg_;
 			optimzer.llr=llr;

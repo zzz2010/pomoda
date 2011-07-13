@@ -33,6 +33,11 @@ public class EEM_auxfunction implements GradientOptimizableFunction {
 			f+=Math.exp((y-A[i]-B[i])/A[i]);
 		}
 		f=(f-1)*(f-1);
+//		if(Double.isNaN(f))
+//		{	x[0]=0;
+//		f=0;
+//		}
+		
 		return f;
 	}
 
@@ -44,6 +49,11 @@ public class EEM_auxfunction implements GradientOptimizableFunction {
 		for (int i = 0; i < 4; i++) {
 			f+=Math.exp((y-A[i]-B[i])/A[i]);
 		}
+//		if(Double.isNaN(f))
+//		{
+//			x[0]=0;
+//			f=0;
+//		}
 		double df=2*(f-1);
 		double sum=0;
 		for (int i = 0; i < 4; i++) {

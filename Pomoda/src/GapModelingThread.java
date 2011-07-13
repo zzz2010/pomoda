@@ -78,11 +78,11 @@ public class GapModelingThread extends Thread {
 				dmerCount[hash]+=1;
 				}
 			}
-			common.Normalize(gapmerCount);
+			gapmerCount=	common.Normalize(gapmerCount);
 			int num_top=4* depend_Pos.size()-1;
 			if(depend_Pos.size()>1)
 			{
-				common.Normalize(dmerCount);
+				dmerCount=common.Normalize(dmerCount);
 				TreeMap<Double,Integer> sorted_column=new TreeMap<Double,Integer>();
 				for (int j = 0; j< dmerSize; j++)
 				{  

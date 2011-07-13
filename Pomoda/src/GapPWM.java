@@ -113,7 +113,7 @@ public class GapPWM extends PWM {
 					for (int i = 1; i <= 4; i++) {
 						count[i-1]=Double.parseDouble(elms[i])+common.DoubleMinNormal;
 					}
-					common.Normalize(count);
+					count=common.Normalize(count);
 				
 						di.setWeight(DNATools.a(), count[0]);
 						di.setWeight(DNATools.c(), count[1]);
