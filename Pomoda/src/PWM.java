@@ -556,7 +556,7 @@ public class PWM extends SimpleWeightMatrix {
 
 						count[i-1]=Double.parseDouble(elms[i])+common.DoubleMinNormal;
 					}
-					common.Normalize(count);
+					count=common.Normalize(count);
 				
 						di.setWeight(DNATools.a(), count[0]);
 						di.setWeight(DNATools.c(), count[1]);

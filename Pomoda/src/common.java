@@ -143,7 +143,7 @@ public class common {
  			  ArrayList<Distribution> dists=new ArrayList<Distribution>();
  			for (int i = 0; i < m_matrix.length; i++) {
 				double [] col=m_matrix[i];
- 				  common.Normalize(col);
+				col= common.Normalize(col);
 		            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
 		             di.setWeight(DNATools.a(), col[0]);
 						di.setWeight(DNATools.c(), col[1]);
@@ -217,7 +217,7 @@ public class common {
  		 			  ArrayList<Distribution> dists=new ArrayList<Distribution>();
  		  			for (int i = 0; i < m_matrix.length; i++) {
  		 				double [] col=m_matrix[i];
- 		  				  common.Normalize(col);
+ 		 				col=common.Normalize(col);
  		 		            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
  		 		             di.setWeight(DNATools.a(), col[0]);
  		 						di.setWeight(DNATools.c(), col[1]);
@@ -284,7 +284,7 @@ public class common {
  			                sum += tt;
  			                col[i]=tt;
  			            }
- 			            common.Normalize(col);
+ 			           col= common.Normalize(col);
  			            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
  			             di.setWeight(DNATools.a(), col[0]);
  							di.setWeight(DNATools.c(), col[1]);
@@ -355,7 +355,7 @@ public class common {
  			                sum += tt;
  			                col[i]=tt;
  			            }
- 			            common.Normalize(col);
+ 			           col=common.Normalize(col);
  			            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
  			             di.setWeight(DNATools.a(), col[0]);
  							di.setWeight(DNATools.c(), col[1]);
@@ -498,7 +498,7 @@ public class common {
 			                sum += tt;
 			                col[i]=tt;
 			            }
-			            common.Normalize(col);
+			            col= common.Normalize(col);
 			            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
 			             di.setWeight(DNATools.a(), col[0]);
 							di.setWeight(DNATools.c(), col[1]);

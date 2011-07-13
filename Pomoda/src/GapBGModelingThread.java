@@ -71,7 +71,7 @@ public class GapBGModelingThread extends Thread {
 			if(Pt[i]<0)
 				Pt[i]=0;
 		}
-		common.Normalize(Pt);
+		Pt=common.Normalize(Pt);
 		return lamda;
 	}
 	
@@ -89,7 +89,7 @@ public class GapBGModelingThread extends Thread {
 				if(Pt[i]<0)
 					Pt[i]=0;
 			}
-			common.Normalize(Pt);
+			Pt=common.Normalize(Pt);
 			sqerror=0;
 			double A,B;
 			B=A=0;
@@ -166,12 +166,12 @@ public class GapBGModelingThread extends Thread {
 				dmerCount[hash]+=1;
 				}
 			}
-			common.Normalize(gapmerCount);
+			gapmerCount=common.Normalize(gapmerCount);
 		
 			int num_top=4* depend_Pos.size()-1;
 			if(depend_Pos.size()>1)
 			{
-				common.Normalize(dmerCount);
+				dmerCount=common.Normalize(dmerCount);
 				
 				if(background!=null)
 				{

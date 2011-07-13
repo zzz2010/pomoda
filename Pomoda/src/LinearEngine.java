@@ -60,14 +60,12 @@ public class LinearEngine {
 		{
 			String seq=iter.next();
 			for (int i = 0; i < seq.length()-kmerlen; i++) {
-				String kmer=seq.substring(i, i+kmerlen);
+				String kmer=seq.substring(i, i+kmerlen).toUpperCase();
 				
 				
 				if(!KmerHitList.containsKey(kmer))
 				{
 					KmerHitList.put(kmer, new LinkedList<FastaLocation>());
-					
-					
 				}
 				FastaLocation fa=new FastaLocation(pos+i, seqid, i, seq.length());
 				KmerHitList.get(kmer).add(fa);
