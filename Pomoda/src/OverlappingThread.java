@@ -21,10 +21,11 @@ public class OverlappingThread extends Thread {
 	
 	@Override
 	public void run() {
-		Iterator<Integer> iter1=list1.iterator();
-		Iterator<Integer> iter2=list2.iterator();
 		if(list1.size()==0||list2.size()==0)
 			return;
+		Iterator<Integer> iter1=list1.iterator();
+		Iterator<Integer> iter2=list2.iterator();
+
 		Integer pos1 = iter1.next();
 		Integer pos2 = iter2.next();
 		while(iter1.hasNext()&&iter2.hasNext())

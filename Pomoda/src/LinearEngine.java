@@ -25,6 +25,7 @@ public class LinearEngine {
 	//LinkedList<String> ReverseStrand;
 	int num_thread;
 	BGModel background=null;
+	public HashMap<String,LinkedList<FastaLocation>> KmerHitList=null;
 	public HashMap<Integer,HashMap<Integer,ArrayList<Double>>> BGscoreMap=null;
     public int forwardCount; //the first n entry in the searchPattern is forward.
 	public int TotalLen=0;
@@ -49,7 +50,35 @@ public class LinearEngine {
 		background=null;
 	}
 	
-	
+	public void build_KmerHitList(int kmerlen)
+	{
+		KmerHitList=new HashMap<String, LinkedList<FastaLocation>>((int)Math.pow(4, kmerlen));
+		Iterator<String> iter=ForwardStrand.iterator();
+		int seqid=0;
+		int pos=0;
+		while(iter.hasNext())
+		{
+			String seq=iter.next();
+			for (int i = 0; i < seq.length()-kmerlen; i++) {
+				String kmer=seq.substring(i, i+kmerlen);
+				
+				
+				if(!KmerHitList.containsKey(kmer))
+				{
+					KmerHitList.put(kmer, new LinkedList<FastaLocation>());
+					
+					
+				}
+				FastaLocation fa=new FastaLocation(pos+i, seqid, i, seq.length());
+				KmerHitList.get(kmer).add(fa);
+			
+				
+			
+			}
+			seqid++;
+			pos+=seq.length();
+		}
+	}
 	public void build_index(String inputfile,int maxSeq) {
 		accSeqLen.clear();
 		// TODO Auto-generated method stub
