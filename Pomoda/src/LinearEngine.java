@@ -4,6 +4,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.TreeMap;
@@ -129,6 +130,79 @@ public class LinearEngine {
 
 	}
 	
+	public void build_index(String inputfile, LinkedList<String> FilteredSeqs)
+	{
+		int idlen=100;
+		HashSet<Integer> filtercode=new HashSet<Integer>(FilteredSeqs.size());
+		for(String seq :FilteredSeqs)
+		{
+			for (int i = 0; i < seq.length()-idlen; i++) {
+				filtercode.add(seq.substring(i, i+idlen).hashCode());
+			}
+		}
+		 try {
+			 ForwardStrand.clear();
+			 accSeqLen.clear();
+			// ReverseStrand.clear();
+			 //Database to hold the training set
+			      BufferedReader br = new BufferedReader(new FileReader(inputfile));
+			      int filternum=0;
+			      String Line="";
+			      String seqstr="";
+			      TotalLen=0;
+	   		       accSeqLen.add(0);
+			     while( (Line=br.readLine())!=null)
+			     {
+			    	 if(Line.length()>0)
+			    	 {
+			    		 if(Line.charAt(0)=='>')
+			    		 {
+			    			 if(seqstr!="")
+			    			 {
+			    			 seqstr=seqstr.replace("N", "");
+			    			 boolean filterflag=false;
+			    			 for (int i = 0; i < seqstr.length()-idlen; i++) {
+			    					if(filtercode.contains(seqstr.substring(i, i+idlen).hashCode()))
+			    					{
+			    						filterflag=true;
+			    						break;
+			    					}
+			    				}
+			    			 if(!filterflag)
+			    			 {
+				    			 ForwardStrand.add(seqstr);
+				    			 TotalLen+=seqstr.length();
+				    			 accSeqLen.add(TotalLen);
+			    			 }
+			    			 else
+			    				 filternum++;
+			    			 seqstr="";
+			    			 }
+			    			 
+			    		 }
+			    		 else
+			    		 {
+			    			 seqstr+=Line.trim();
+			    		 }
+			    	 }
+			     }
+
+   		          System.out.println("Filter Sequences: "+filternum);
+   		    
+   	
+			     
+			
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	
 	public void build_index(String inputfile) {
 		// TODO Auto-generated method stub

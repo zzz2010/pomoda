@@ -33,6 +33,7 @@ import org.jfree.ui.RectangleInsets;
  */
 public class common {
 	
+
 	
 	static double DoubleMinNormal=0.00000000000001;
 	public static double lnEntropy(double[] arr)
@@ -1003,35 +1004,49 @@ public class common {
 		double[] last_prob=new double[(int)Math.pow(4,(bgmodel.order-1))];
 		double[] suffix_prob=new double[(int)Math.pow(4,(bgmodel.order-1))];
 		String ACGT="ACGT";
+		
 		for (int i = 0; i <length; i++) {
-			if(i==0)
+			if(bgmodel.order>1)
 			{
-				for (int j = 0; j < 4; j++) {
-					String temp=seed.substring(seed.length()-bgmodel.order+1, seed.length()*2-bgmodel.order)+ACGT.substring(j,j+1);
-					int hash=common.getHashing(temp, 1, temp.length()-1);
-					suffix_prob[hash]=bgmodel.conditionProb.get(temp);
+				if(i==0)
+				{
+					for (int j = 0; j < 4; j++) {
+						String temp=ACGT.substring(j,j+1);
+							temp=seed.substring(seed.length()-bgmodel.order+1, seed.length())+temp;
+						int hash=common.getHashing(temp, temp.length()-bgmodel.order+1, bgmodel.order-1);
+						suffix_prob[hash]=bgmodel.conditionProb.get(temp);
+					}
+				}
+				else
+				{
+					for (int j = 0; j < last_prob.length; j++) {
+						if(last_prob[j]>0)
+						{
+							String prefix=common.Hash2ACGT(j, bgmodel.order-1);
+							for (int k = 0; k < 4; k++) {
+								String temp=prefix+ACGT.substring(k,k+1);
+								int hash=common.getHashing(temp, temp.length()-bgmodel.order+1, bgmodel.order-1);
+								suffix_prob[hash]+=bgmodel.conditionProb.get(temp)*last_prob[j];
+							}
+						}
+					}
+					
 				}
 			}
 			else
 			{
-				for (int j = 0; j < last_prob.length; j++) {
-					if(last_prob[j]>0)
-					{
-						String prefix=common.Hash2ACGT(j, bgmodel.order-1);
-						for (int k = 0; k < 4; k++) {
-							String temp=prefix+ACGT.substring(k,k+1);
-							int hash=common.getHashing(temp, 1, temp.length()-1);
-							suffix_prob[hash]+=bgmodel.conditionProb.get(temp)*last_prob[j];
-						}
-					}
+				for (int j = 0; j < 4; j++)
+				{
+					String temp=ACGT.substring(j,j+1);
+					prob_f[i][j]=bgmodel.conditionProb.get(temp);
 				}
-				
 			}
 			
 			for (int j = 0; j < suffix_prob.length; j++) {
 				if(suffix_prob[j]>0)
 				prob_f[i][j%4]+=suffix_prob[j];
 			}
+			
 			
 			last_prob=Arrays.copyOf(suffix_prob, suffix_prob.length);
 			Arrays.fill(suffix_prob, 0);

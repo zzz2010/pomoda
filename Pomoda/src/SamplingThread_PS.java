@@ -204,13 +204,13 @@ public class SamplingThread_PS extends Thread {
 				if(seqid<0)
 				 seqid=Math.abs(seqid)-2;
 
-				FastaLocation fapos=new FastaLocation(addpos,seqid , addpos-accSeqLen.get(seqid), db.get(seqid).length());
+				FastaLocation fapos=new FastaLocation(addpos,seqid , addpos-accSeqLen.get(seqid), db.get(seqid-startSeqId).length());
 
-				  fapos.ReverseStrand=posStrand[addpos];
-				  if(addpos>0)
-					  fapos.Score=accProb[addpos]-accProb[addpos-1];
+				  fapos.ReverseStrand=posStrand[sel];
+				  if(sel>0)
+					  fapos.Score=accProb[sel]-accProb[sel-1];
 				  else
-					  fapos.Score=accProb[addpos];
+					  fapos.Score=accProb[sel];
 //////////////////////////////cut the exceptional event////////////////////////////////////////////////////
 //				  if(fapos.Score<(threshold))
 //					  continue;
