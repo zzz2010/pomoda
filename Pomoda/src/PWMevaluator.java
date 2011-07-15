@@ -681,7 +681,8 @@ public class PWMevaluator {
 			BufferedWriter writer2= new BufferedWriter(new FileWriter(file2));
 			for(Double key:sortedPWMs.descendingKeySet())
 			{
-				writer2.write(sortedPWMs.get(key).toString());
+				PWM motif=sortedPWMs.get(key);
+				writer2.write(motif.toString());
 			}
 			writer2.close();
 			convertflag=false;
