@@ -90,10 +90,10 @@ import org.biojava.utils.ChangeVetoException;
 							
 							double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);
 							double rescale=(double)samplenum/totallen_db/Prior_EZ;
-							score=Math.log(prob_theta*rescale);
+//							score=Math.log(prob_theta*rescale);
 							
 							
-//							score=enhancefactor+score;
+							score=enhancefactor+score;
 						
 //							if(minprob>score)
 //								continue;

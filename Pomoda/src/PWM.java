@@ -777,23 +777,26 @@ public class PWM extends SimpleWeightMatrix {
 		String consensus=Consensus(true);
 		int newhead=head;
 		int newtail=tail;
-		for (int i = head; i < this.columns()-tail; i++) {
-		    //calculate the information content
-		    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
-		    if(info<infothresh)
-		    	newhead=i+1;
-		    else
-		    	break;
-		}
-		if(newhead>=this.columns())
-			return "";
-		for (int i = this.columns()-tail-1; i > head; i--) {
-		    //calculate the information content
-		    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
-		    if(info<infothresh)
-		    	newtail=this.columns()-i;
-		    else
-		    	break;
+		if(consensus.length()>8)
+		{
+			for (int i = head; i < this.columns()-tail; i++) {
+			    //calculate the information content
+			    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
+			    if(info<infothresh)
+			    	newhead=i+1;
+			    else
+			    	break;
+			}
+			if(newhead>=this.columns())
+				return "";
+			for (int i = this.columns()-tail-1; i > head; i--) {
+			    //calculate the information content
+			    double info = DistributionTools.bitsOfInformation(this.getColumn(i));
+			    if(info<infothresh)
+			    	newtail=this.columns()-i;
+			    else
+			    	break;
+			}
 		}
 		String priorlist="";
 		if(pos_en)
