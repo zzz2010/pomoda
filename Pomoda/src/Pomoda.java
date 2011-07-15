@@ -91,7 +91,7 @@ public class Pomoda {
 	public int resolution=10;
 	public int min_motiflen=7;
 	public int ending_windowsize=600;
-	public double FDR=0.05;
+	public double FDR=0.0001;
 	public int max_motiflen=55;
 	public int max_threadNum=6;
 	public int num_motif=5;
@@ -953,6 +953,8 @@ public class Pomoda {
 		double [] pos_renorm=new double[num_priorbin];
 		int truecount=0;
 		int scount=0;
+		double prob_fsum=0;
+		double prob_rsum=0;
 		while(iter.hasNext())
 		{
 			FastaLocation currloc=iter.next();
@@ -961,22 +963,28 @@ public class Pomoda {
 				seqcount++;
 				last=currloc.getSeqId();
 			}
-			
+			double probtheta=Math.exp(currloc.Score);
 			int rankbin=num_priorbin*currloc.getSeqId()/SearchEngine2.getSeqNum();
 			int prior_bin=(int)(num_priorbin*((currloc.getSeqPos()+motif.core_motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
-			peakrank_renorm[rankbin]+=1;
-			pos_renorm[prior_bin]+=1;
+			peakrank_renorm[rankbin]+=probtheta;
+			pos_renorm[prior_bin]+=probtheta;
 			if(currloc.ReverseStrand)
-				strand_renorm[1]+=1;
+				strand_renorm[1]+=probtheta;
 			else
-				strand_renorm[0]+=1;
+				strand_renorm[0]+=probtheta;
 			String site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(),motif.core_motiflen);
-			double sampleweight=1.0/Math.exp(currloc.Score);
+			
+			double sampleweight=1.0/probtheta;
 			if((Character.isLowerCase( site.charAt(motif.columns()/2-motif.head))||Character.isLowerCase( site.charAt(motif.columns()/2-motif.tail)))&&Math.abs(currloc.getMin()-lastpos)>site.length())//
 			{
 				truecount++;
 				if(currloc.ReverseStrand)
+				{
 					scount++;
+					prob_rsum+=1.0/sampleweight;
+				}
+				else
+					prob_fsum+=1.0/sampleweight;
 			lastpos=currloc.getMin();
 			}
 			for (int i = 0; i < site.length(); i++) {
@@ -1338,7 +1346,7 @@ public class Pomoda {
 					}
 					//total_sampleweight may introduce more fluctuation
 					if(OOPS)
-						Prior_EZ=match_seqCount/SearchEngine2.TotalLen;//SearchEngine2.TotalLen;
+						Prior_EZ=match_seqCount/(SearchEngine2.TotalLen*(double)seqcount/SearchEngine2.getSeqNum());//SearchEngine2.TotalLen;
 					else
 						Prior_EZ=match_seqCount/total_sampleweight;//SearchEngine2.TotalLen;  //total_sampleweight;
 					if(Prior_EZ>max_Prior_EZ)
@@ -3871,7 +3879,7 @@ public class Pomoda {
 		options.addOption("maxw",true, "maximum size of motif binding region (default 600bp)");
 		options.addOption("mask",false,"whether marking the top motif location in order to find co-motif");
 		options.addOption("oops",false,"whether assuming only one occurrence per sequence");
-		options.addOption("FDR",true,"fasle positive rate (default 0.05)");
+		options.addOption("FDR",true,"fasle positive rate (default 0.0001)");
 		options.addOption("clust",true,"linkage type of hierachical clustering:"+Arrays.toString(LinkageCriterion.values()) );
 		
 		CommandLineParser parser = new GnuParser();
@@ -4066,8 +4074,9 @@ public class Pomoda {
 			
 			if(motifFinder.ctrlFasta!="")
 			{
-				motifFinder.BGSearch=new LinearEngine(4);
+				motifFinder.BGSearch=new LinearEngine(2);
 				motifFinder.BGSearch.build_index(motifFinder.ctrlFasta);
+				System.gc();
 			}
 ///////////////////////////////////////evaluate different motif in parallel///////////////////////////////////////////		 
 		for (int i = 0; i < seedPWMs.size(); i++) {

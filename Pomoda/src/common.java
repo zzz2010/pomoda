@@ -691,9 +691,9 @@ public class common {
 			boolean recordFlag=false;
 			String header="";
 			while ((text = reader.readLine()) != null) {
-				if(text.startsWith("ID"))
+				if(text.startsWith("NA"))
 				{
-					 header=text.replace("ID  ", "DE\t")+'\n';
+					 header=text.replace("NA  ", "DE\t")+'\n';
 				}
 			    if(text.startsWith("P0"))
 			    {
