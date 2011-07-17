@@ -26,7 +26,7 @@ import umontreal.iro.lecuyer.probdist.HypergeometricDist;
 public class PWMcluster {
 
 	LinearEngine SearchEngine;
-	public double sampling_ratio=0.8;
+	public double sampling_ratio=1;
 	public double FDR=0.001;
 	public LinkageCriterion linkage=LinkageCriterion.WPGMA;
 	public BGModel background;
@@ -44,7 +44,7 @@ public class PWMcluster {
 	public PWMcluster(Pomoda motiffinder)
 	{
 		SearchEngine=motiffinder.SearchEngine2;
-		sampling_ratio=motiffinder.sampling_ratio;
+		//sampling_ratio=motiffinder.sampling_ratio;
 		//FDR=motiffinder.FDR;
 		background=motiffinder.background;
 		linkage=LinkageCriterion.valueOf(motiffinder.linkage);
@@ -60,14 +60,14 @@ public class PWMcluster {
 	
 		background=new BGModel();
 		File file=null;
-		int bg_markov_order=3;
+		int bg_markov_order=5;
 		if(ctrlFasta.isEmpty())
 		{
 			bg_markov_order=1;
-			file= new File(inputFasta+".bgobj");
+			file= new File(inputFasta+".bg");
 		}
 		else
-			file= new File(ctrlFasta+".bgobj");
+			file= new File(ctrlFasta+".bg");
 		
 		if(file.exists()||!bgmodelFile.isEmpty())
 		{
@@ -81,12 +81,12 @@ public class PWMcluster {
 			if(ctrlFasta.isEmpty())
 			{
 		     background.BuildModel(inputFasta, bg_markov_order+1); //1-order bg
-		     background.SaveModel(inputFasta+".bgobj");
+		     background.SaveModel(inputFasta+".bg");
 			}
 			else
 			{
 			     background.BuildModel(ctrlFasta, bg_markov_order+1); //3-order bg
-			     background.SaveModel(ctrlFasta+".bgobj");
+			     background.SaveModel(ctrlFasta+".bg");
 			}				
 		}
 		
@@ -94,6 +94,7 @@ public class PWMcluster {
 	
 	public ArrayList<PWM> Clustering_(List<PWM> rawPwms,int num_cluster)
 	{
+		
 		ArrayList<PWM> clusterMoitfs=new ArrayList<PWM>(num_cluster);
 		TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		for (int i = 0; i <rawPwms.size(); i++) {
@@ -106,7 +107,10 @@ public class PWMcluster {
 		SearchEngine.DisableBackground();
 		for(Double key:sortedPWMs.descendingKeySet())
 		{
+			
 			PWM rawpwm=sortedPWMs.get(key);
+			if(rawpwm.core_motiflen<6)
+				continue;
 			System.out.println(rawpwm.Consensus(true)+'\t'+rawpwm.Score);
 			double thresh=rawpwm.getThresh(sampling_ratio, FDR, background);
 
@@ -199,6 +203,8 @@ public class PWMcluster {
 		ArrayList<Integer> clusterMoitfsId=new ArrayList<Integer>(num_cluster);
 		for(PWM motif:sortedPWMs)
 		{
+			if(motif.core_motiflen<6)
+				continue;
 			if(clusterMoitfsId.size()==0)
 			{
 				clusterMoitfsId.add(id);	
