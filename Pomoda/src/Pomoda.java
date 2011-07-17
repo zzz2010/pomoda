@@ -4101,10 +4101,10 @@ public class Pomoda {
 ///////////////////////////////////////evaluate different motif in parallel///////////////////////////////////////////		 
 		for (int i = 0; i < seedPWMs.size(); i++) {
 			AUCComputeThread t1=new AUCComputeThread(evaluator, seedPWMs.get(i).trim(), motifFinder.BGSearch);
-			if( motifFinder.BGSearch!=null)
+//			if( motifFinder.BGSearch!=null)
 				t1.run();
-			else
-				executor.execute(t1);
+//			else
+//				executor.execute(t1);
 			threadpool.add(t1);
 		}
 		
