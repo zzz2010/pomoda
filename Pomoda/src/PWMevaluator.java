@@ -194,6 +194,79 @@ public class PWMevaluator {
 		return similarList;
 	}
 	
+	
+	public HashMap<String,Double> calc_mutliscore(PWM motif,LinearEngine bg_search)
+	{
+		///////////////compute SN,PPV,PC,ASP,CC////////////
+		HashMap<String,Double> retscores=new HashMap<String,Double>();
+		
+		if(motif==null)
+			return retscores;
+		BGModel uniform_bg=new  BGModel();
+		uniform_bg.BuildModel(new String[]{"ACGT"}, 1);
+		double thresh=motif.getThresh(0.9999, 0.0001, uniform_bg);
+		SearchThread.bestonly=true;
+		 LinearEngine SearEngine=null;
+		
+			 SearEngine=this.SearchEngine;
+
+			 LinearEngine BGSearch=null;
+		if(bg_search==null)
+		{
+		  BGSearch=new LinearEngine(6);
+         Iterator<String> iter2=SearchEngine.ForwardStrand.iterator();
+         background.r.setSeed(0);
+         while(iter2.hasNext())
+         {
+        	 int len=iter2.next().length();
+        	 String bgstr="";
+        	 if(removeBG)
+        	 {
+	        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
+	        	 bgstr=bgstr_p.value;
+        	 }
+        	 else
+        	 {
+	        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
+	        	 bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
+        	 }
+        	 BGSearch.ForwardStrand.add(bgstr);	 
+        	 BGSearch.TotalLen+=bgstr.length();
+        	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
+         }
+		}
+		else
+		{
+			BGSearch=bg_search;
+		}
+
+     	TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
+     	double lamda=(double)SearchEngine.getSeqNum()/SearEngine.TotalLen/2;
+        // SearchThread.recordSiteThreshold=Math.log((1-lamda)/lamda)+motif.core_motiflen*Math.log(0.25);
+         motif.matchsite.clear();
+        	 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, thresh);
+      double TP=falocs.size();
+      double FN=SearchEngine.ForwardStrand.size()-TP;
+        	 //bg sequences
+        	 falocs =BGSearch.searchPattern(motif, thresh);
+     double FP=falocs.size();
+     double TN=BGSearch.ForwardStrand.size()-FP;
+    double HGscore=HypergeometricDist.cdf((int)FP, BGSearch.ForwardStrand.size(), this.SearchEngine.ForwardStrand.size(), (int)TP) ;
+    retscores.put("HG", HGscore);
+    double SN=TP/(TP+FN);
+    double SPC=TN/BGSearch.ForwardStrand.size();
+    double PPV=TP/(TP+FP);
+    double ASP=(SN+PPV)/2;
+    double CC=(TP*TN-FP*FN)/Math.sqrt((TP+FN)*(TN+FP)*(TP+FP)*(TN*FN));
+    retscores.put("SN", SN);
+    retscores.put("SPC", SPC);
+    retscores.put("PPV", PPV);
+    retscores.put("ASP", ASP);
+    retscores.put("CC", CC);
+    return retscores;
+
+	}
+	
 	public double calcAUC(PWM motif,LinearEngine bg_search)
 	{
 		if(motif==null)
@@ -573,6 +646,7 @@ public class PWMevaluator {
 		options.addOption("c", true, "control fasta file");
 		options.addOption("convert", false, "convert input PWM file to the transfac format");
 		options.addOption("roc", false, "compute AUC and draw ROC curve for the given pwm file");
+		options.addOption("multiscore", false, "compute SN,PPV,PC,ASP,CC for the given pwm file");
 		options.addOption("match", true, "find similar motifs in known PWM library (path to the library, e.g., jaspar.pwm)");
 		options.addOption("bgmodel", true, "background model file");
 		options.addOption("prefix", true, "output directory");
@@ -583,6 +657,7 @@ public class PWMevaluator {
 		CommandLineParser parser = new GnuParser();
 		PWMevaluator evaluator=new PWMevaluator();
 		boolean rocflag=false;
+		boolean multiscore_flag=false;
 		boolean convertflag=false;
 		
 		LinkedList<PWM> PWMLibrary=null;
@@ -620,6 +695,10 @@ public class PWMevaluator {
 			if(cmd.hasOption("roc"))
 			{
 				rocflag=true;
+			}
+			if(cmd.hasOption("multiscore"))
+			{
+				multiscore_flag=true;
 			}
 			if(cmd.hasOption("convert"))
 			{
@@ -692,6 +771,34 @@ public class PWMevaluator {
 	     //   RefineryUtilities.centerFrameOnScreen(evaluator);
 	      //  evaluator.setVisible(true);
 		}
+		
+		
+		if(multiscore_flag)
+		{
+			evaluator.initialize();
+			
+			List<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+			if(pwmlist.size()>topN)
+				pwmlist= pwmlist.subList(0, topN);
+			Iterator<PWM> iter=pwmlist.iterator();
+			writer.write("MultiScore Result:\n");
+			while(iter.hasNext())
+			{
+				PWM p1=iter.next();
+				HashMap<String,Double> multiscore=evaluator.calc_mutliscore(p1, evaluator.BGSearchEngine);
+				writer.write(p1.Name);
+				String scoreresult="";
+				for(String scorename:multiscore.keySet())
+				{
+					scoreresult+="\t"+scorename+"|";
+					scoreresult+=multiscore.get(scorename).toString();
+				}
+				writer.write(scoreresult+"\n");
+			}
+			
+		}
+		
+		
 		if(convertflag)
 		{
 			File file2 = new File(inputPWM+"_sorted.pwm"); 
