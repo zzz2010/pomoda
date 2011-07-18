@@ -63,8 +63,8 @@ public class BGModel implements Serializable{
 	public double Get_LOGPROB(String seq)
 	{
 		seq=seq.toUpperCase();
-		if(seq.contains("X"))
-			return Double.POSITIVE_INFINITY;
+//		if(seq.contains("X"))
+//			return Double.POSITIVE_INFINITY;
 		double logprob=0;
 		int start=0;
 		int i;
@@ -73,7 +73,7 @@ public class BGModel implements Serializable{
 			while(start<seq.length()&&seq.charAt(start)=='N')
 				start++;
 			for (i = 0; i < order&&i<(seq.length()-start); i++) {
-				if(seq.charAt(start+i)=='N')
+				if(common.acgt[ seq.charAt(start+i)]>3)
 				{
 					logprob+=Math.log(0.25);
 					break;
@@ -83,7 +83,7 @@ public class BGModel implements Serializable{
 			}
 			if(start+i==seq.length())
 				break;
-			if(start+i<seq.length()&& seq.charAt(start+i)=='N')
+			if(start+i<seq.length()&& common.acgt[seq.charAt(start+i)]>3)
 			{
 				start=start+i+1;
 					logprob+=Math.log(0.25);
@@ -92,7 +92,7 @@ public class BGModel implements Serializable{
 			
 			for (i = start+1; i < (seq.length()-order+1); i++) {
 				start=i+order-1;
-				if(seq.charAt(start)=='N')
+				if(common.acgt[seq.charAt(start)]>3)
 				{
 					logprob+=Math.log(0.25);
 					break;
