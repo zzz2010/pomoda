@@ -35,6 +35,7 @@ public class PWMcluster {
 	public String outputPrefix="./";
 	public String inputFasta;
 	public String ctrlFasta="";
+	public int min_motiflen=7;
 
 	public PWMcluster()
 	{
@@ -47,6 +48,7 @@ public class PWMcluster {
 		//sampling_ratio=motiffinder.sampling_ratio;
 		//FDR=motiffinder.FDR;
 		background=motiffinder.background;
+		min_motiflen=motiffinder.min_motiflen;
 		linkage=LinkageCriterion.valueOf(motiffinder.linkage);
 		System.out.println("LinkageCriterion: "+motiffinder.linkage);
 		
@@ -109,7 +111,7 @@ public class PWMcluster {
 		{
 			
 			PWM rawpwm=sortedPWMs.get(key);
-			if(rawpwm.core_motiflen<6)
+			if(rawpwm.core_motiflen<min_motiflen)
 				continue;
 			System.out.println(rawpwm.Consensus(true)+'\t'+rawpwm.Score);
 			double thresh=rawpwm.getThresh(sampling_ratio, FDR, background);
