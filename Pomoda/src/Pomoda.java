@@ -2080,7 +2080,7 @@ public class Pomoda {
 			for (int j = 0; j < 4; j++) {
 				max_sumCount+=count_matrix[bestCol][j];
 			}
-			Prior_EZ=max_sumCount/Falocs.size();
+		//	Prior_EZ=max_sumCount/Falocs.size();
 			
 		//	motifBG.BuildModel(bgstrSet, bgorder);
 			
@@ -2594,7 +2594,8 @@ public class Pomoda {
 		for (int i = 0; i < seedPWMs.size(); i++) {
 			PWM motif=seedPWMs.get(i);
 			motif.Score=1;
-
+			try
+			{
 					int num_priorbin=motifFinder.SearchEngine2.getTotalLength()/motifFinder.SearchEngine2.getSeqNum()/motifFinder.resolution;
 					
 					if(motif.pos_prior.size()==0)
@@ -2638,13 +2639,20 @@ public class Pomoda {
 				//do something to mark the locations in SearchEngine
 				System.out.println("Masking...");
 				PWM mainmotif=seedPWMs.get(i).trim();
+				if(mainmotif==null)
+					continue;
 				if(mainmotif.core_motiflen>=motifFinder.min_motiflen)
 						motifFinder.Masking(mainmotif);
 				topseed_Score=seedPWMs.get(i).Score;
 				//motifFinder.SearchEngine2.EnableBackground(motifFinder.background);
 			}		
 			writer.write(seedPWMs.get(i).toString());
-
+			}
+			catch (Exception ex)
+			{
+				ex.printStackTrace();
+				continue;
+			}
 
 		}
 		end = System.currentTimeMillis();
