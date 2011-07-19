@@ -251,7 +251,7 @@ public class PWMevaluator {
         	 falocs =BGSearch.searchPattern(motif, thresh);
      double FP=falocs.size();
      double TN=BGSearch.ForwardStrand.size()-FP;
-    double HGscore=HypergeometricDist.cdf((int)FP+1, BGSearch.ForwardStrand.size()+1, this.SearchEngine.ForwardStrand.size()+1, (int)TP+1) ;
+    double HGscore=HypergeometricDist.cdf((int)FP+1, BGSearch.ForwardStrand.size()+2, this.SearchEngine.ForwardStrand.size()+2, (int)TP+1) ;
     retscores.put("HG", HGscore);
     double SN=TP/(TP+FN);
     double SPC=TN/BGSearch.ForwardStrand.size();

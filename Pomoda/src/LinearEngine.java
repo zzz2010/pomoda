@@ -132,6 +132,8 @@ public class LinearEngine {
 	
 	public void build_index(String inputfile, LinkedList<String> FilteredSeqs)
 	{
+		int maxctrlseq=Math.max(1000,FilteredSeqs.size()*2);
+		
 		int idlen=100;
 		HashSet<Integer> filtercode=new HashSet<Integer>(FilteredSeqs.size());
 		for(String seq :FilteredSeqs)
@@ -168,7 +170,7 @@ public class LinearEngine {
 			    						break;
 			    					}
 			    				}
-			    			 if(!filterflag)
+			    			 if(!filterflag&&ForwardStrand.size()<=maxctrlseq)
 			    			 {
 				    			 ForwardStrand.add(seqstr);
 				    			 TotalLen+=seqstr.length();
