@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
@@ -34,6 +35,29 @@ import org.jfree.ui.RectangleInsets;
 public class common {
 	
 
+	public static double SeqComplexity(int order, String seq)
+	{
+		double complexity=0;
+		HashMap<String, Double> countmap=new HashMap<String, Double>();
+		for (int i = 0; i < seq.length()-order+1; i++) {
+			String kmer=seq.substring(i,i+order);
+			if(countmap.containsKey(kmer))
+			{
+				countmap.put(kmer,countmap.get(kmer)+1.0);
+			}
+			else
+				countmap.put(kmer, 1.0);
+		}
+		int total=seq.length()-order+1;
+		//entropy
+		for(Double count:countmap.values())
+		{
+			double p=count/total;
+			complexity-=p*Math.log(p)/Math.log(2.0);
+		}
+		
+		return complexity;
+	}
 	
 	static double DoubleMinNormal=0.00000000000001;
 	public static double lnEntropy(double[] arr)
