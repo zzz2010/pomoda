@@ -1143,7 +1143,7 @@ public class Pomoda {
 						if(Double.isInfinite(bestscore))
 							break;
 
-
+						
 						if(!OOPS)
 						{
 							if(sampleWeight>1)
@@ -2263,7 +2263,7 @@ public class Pomoda {
 					chistat+=temp*temp/Ei;
 				}
 		
-			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR/num_col_cand);
+			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR);
 			int extralen=0;
 			if(bestCol<motif.head)
 				extralen=motif.head-bestCol;
