@@ -845,13 +845,13 @@ public class Pomoda {
 		LinkedList<FastaLocation> Falocs=null;
 //		if(OOPS)
 		{
-			SamplingThread_PS.background=this.background;
-			Falocs=SearchEngine2.samplingPattern_PS(motif,Math.max(MIN_SAMPLENUM,(int)(SearchEngine2.TotalLen*sampling_ratio)));
+//			SamplingThread_PS.background=this.background;
+//			Falocs=SearchEngine2.samplingPattern_PS(motif,Math.max(MIN_SAMPLENUM,(int)(SearchEngine2.TotalLen*sampling_ratio)));
 		}
 //		else
 //		{
-//			SamplingThread.background=this.background;
-//			Falocs=SearchEngine2.samplingPattern(motif,Math.max(MIN_SAMPLENUM,(int)(SearchEngine2.TotalLen*sampling_ratio)));
+			SamplingThread.background=this.background;
+			Falocs=SearchEngine2.samplingPattern(motif,Math.max(MIN_SAMPLENUM,(int)(SearchEngine2.TotalLen*sampling_ratio)));
 //		}
 	
 
@@ -904,10 +904,10 @@ public class Pomoda {
 //				continue;
 
 			double probtheta=Math.exp(currloc.Score);
-			int rankbin=num_priorbin*currloc.getSeqId()/SearchEngine2.getSeqNum();
-			int prior_bin=(int)(num_priorbin*((currloc.getSeqPos()+motif.core_motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
-			peakrank_renorm[rankbin]+=1;//probtheta;
-			pos_renorm[prior_bin]+=1;//probtheta;
+//			int rankbin=num_priorbin*currloc.getSeqId()/SearchEngine2.getSeqNum();
+//			int prior_bin=(int)(num_priorbin*((currloc.getSeqPos()+motif.core_motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
+//			peakrank_renorm[rankbin]+=1;//probtheta;
+//			pos_renorm[prior_bin]+=1;//probtheta;
 			if(currloc.ReverseStrand)
 				strand_renorm[1]+=probtheta;
 			else
@@ -943,11 +943,11 @@ public class Pomoda {
 				continue;
 			if(site.length()!=motif.core_motiflen)
 				continue;
-			if(lastpos==currloc.getMin())
-			{
-				filtered_Falocs.get(filtered_Falocs.size()-1).Score+=currloc.Score;
-				continue;
-			}
+//			if(lastpos==currloc.getMin())
+//			{
+//				filtered_Falocs.get(filtered_Falocs.size()-1).Score+=currloc.Score;
+//				continue;
+//			}
 			
 			Siteslist.add(site);
 			filtered_Falocs.add(currloc);
@@ -1238,27 +1238,27 @@ public class Pomoda {
 						if(OOPS)
 						{
 							double overlapfactor=1;
-							if(currloc.getSeqPos()-overlap_pos<motif.core_motiflen)
-							{
-								
-								if(overlap_prob<prob_theta)
-								{
-									overlapfactor=0.8;
-									for (int i = 0; i < lastsite.length(); i++) {
-										int symid=common.acgt[lastsite.charAt(i)];									
-										if(symid>3)
-										{
-											for (int j = 0; j < 4; j++) {
-												sumexpLLR[i][j]-=0.25*overlap_expLLR*overlapfactor; //re-weighting
-											}
-											continue;
-										}
-									sumexpLLR[i][symid]-=overlap_expLLR*overlapfactor; //re-weighting
-									}
-								}
-								else
-									overlapfactor=0.2;
-							}
+//							if(currloc.getSeqPos()-overlap_pos<motif.core_motiflen)
+//							{
+//								
+//								if(overlap_prob<prob_theta)
+//								{
+//									overlapfactor=0.8;
+//									for (int i = 0; i < lastsite.length(); i++) {
+//										int symid=common.acgt[lastsite.charAt(i)];									
+//										if(symid>3)
+//										{
+//											for (int j = 0; j < 4; j++) {
+//												sumexpLLR[i][j]-=0.25*overlap_expLLR*overlapfactor; //re-weighting
+//											}
+//											continue;
+//										}
+//									sumexpLLR[i][symid]-=overlap_expLLR*overlapfactor; //re-weighting
+//									}
+//								}
+//								else
+//									overlapfactor=0.2;
+//							}
 
 							
 							matchsitecount_seq++;//=sampleWeight;//
@@ -1336,7 +1336,7 @@ public class Pomoda {
 					}
 					//total_sampleweight may introduce more fluctuation
 					if(OOPS)
-						Prior_EZ=(SearchEngine2.TotalLen*(double)seqcount/SearchEngine2.getSeqNum());//SearchEngine2.TotalLen;
+						Prior_EZ=match_seqCount/(SearchEngine2.TotalLen*(double)seqcount/SearchEngine2.getSeqNum());//SearchEngine2.TotalLen;
 					else
 						Prior_EZ=match_seqCount/total_sampleweight;//SearchEngine2.TotalLen;  //total_sampleweight;
 					
@@ -2284,7 +2284,7 @@ public class Pomoda {
 			}
 
 			//when sample size is small, then ostrich policy let it extend
-			if(total<100||motif.core_motiflen<=minmotiflen||extralen==0)
+			if(total<50||motif.core_motiflen<=minmotiflen||extralen==0)
 			{
 
 				if(extralen+motif.core_motiflen<(motif.columns()+seedlen)/2)
@@ -2675,10 +2675,10 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-			seedPWMs.clear();
+//			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGAAAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGGTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCAAACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNTCACANNNNNNNNNNNNNNNN"}));
@@ -2857,12 +2857,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-		} catch (IllegalAlphabetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalSymbolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+//		} catch (IllegalAlphabetException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IllegalSymbolException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
 			
 			
 		} catch (InterruptedException e) {
