@@ -948,6 +948,7 @@ public class Pomoda {
 				filtered_Falocs.get(filtered_Falocs.size()-1).Score+=currloc.Score;
 				continue;
 			}
+			
 			Siteslist.add(site);
 			filtered_Falocs.add(currloc);
 			
@@ -962,8 +963,9 @@ public class Pomoda {
 				}
 				else
 					prob_fsum+=1.0/sampleweight;
-			lastpos=currloc.getMin();
+			
 			}
+			lastpos=currloc.getMin();
 			for (int i = 0; i < site.length(); i++) {
 				int symid=common.acgt[site.charAt(i)];
 				if(symid<4)
@@ -2279,7 +2281,7 @@ public class Pomoda {
 			}
 
 			//when sample size is small, then ostrich policy let it extend
-			if(total<50||motif.core_motiflen<=minmotiflen||extralen==0)
+			if(total<100||motif.core_motiflen<=minmotiflen||extralen==0)
 			{
 
 				if(extralen+motif.core_motiflen<(motif.columns()+seedlen)/2)
