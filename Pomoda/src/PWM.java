@@ -248,7 +248,9 @@ public class PWM extends SimpleWeightMatrix {
 		
 	    
 	}
-	 public PWM ReverseComplement()
+
+
+	public PWM ReverseComplement()
      {
 		  PWM rc =null;
 		 try {

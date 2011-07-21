@@ -1013,8 +1013,8 @@ public class Pomoda {
 		//Prior_EZ=(double)truepos/Falocs.size();
 		//double prior_fp=motif.getFDR(log_thresh,background);
     double    Prior_EZ=(double)SearchEngine2.getSeqNum()*0.5/SearchEngine2.TotalLen;//motif.inst_coverage/Falocs.size();//1-SearchEngine.TotalLen*prior_fp/Falocs.size();
-    Prior_EZ=Math.min(Prior_EZ, motif.inst_coverage/SearchEngine2.TotalLen);	
-    Prior_EZ=Prior_EZ*SearchEngine2.TotalLen*seqcount/SearchEngine2.getSeqNum()/filtered_Falocs.size();
+   // Prior_EZ=Math.min(Prior_EZ, motif.inst_coverage/SearchEngine2.TotalLen);	
+    //Prior_EZ=Prior_EZ*SearchEngine2.TotalLen*seqcount/SearchEngine2.getSeqNum()/filtered_Falocs.size();
     
     
     double max_Prior_EZ=(double)SearchEngine2.getSeqNum()*MAX_P/SearchEngine2.TotalLen;
@@ -1059,6 +1059,7 @@ public class Pomoda {
 			
 			double [][]m_matrix=new double [motiflen][4];
 			double [][] sumexpLLR=new double[motif.columns()][4];
+			double [][] bgprob=new double[motif.columns()][4];
 			//update the loglik matrix
 			//LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
 			System.out.println("number of occurrences: "+String.valueOf(Falocs.size()));
@@ -1145,7 +1146,7 @@ public class Pomoda {
 						if(Double.isInfinite(bestscore))
 							break;
 
-						
+					
 						if(!OOPS)
 						{
 							if(sampleWeight>1)
@@ -1194,13 +1195,14 @@ public class Pomoda {
 							lastseq=currloc.getSeqId();
 //							if(matchsitecount_seq>currloc.getSeqLen())
 //								matchsitecount_seq=currloc.getSeqLen();
-							prior_gamma=Prior_EZ*matchsitecount_seq; //(currloc.getSeqLen()-motif.core_motiflen);//
+							double seqlen=(currloc.getSeqLen()-motif.core_motiflen);
+							prior_gamma=Prior_EZ*seqlen;//
 							if(prior_gamma>1)
 								prior_gamma=0.9999;
 							sitesperSeq=0;
 							if(matchsitecount_seq>0)
 							{
-								 double renomalizefactor=matchsitecount_seq/matchsiteweight_seq;
+								 double renomalizefactor=1;//matchsitecount_seq/matchsiteweight_seq;
 								for (int i = 0; i < motiflen; i++) {
 									double sumexpLLRallsymid=0;
 									 for (int symid = 0; symid < 4; symid++) 
@@ -1301,8 +1303,9 @@ public class Pomoda {
 					//last instance for OOPS
 					if(OOPS)
 					{
-						prior_gamma=Prior_EZ*matchsitecount_seq;//(SearchEngine2.TotalLen/SearchEngine2.getSeqNum()-motif.core_motiflen);//
-						 double renomalizefactor=matchsitecount_seq/matchsiteweight_seq;
+						double seqlen=(SearchEngine2.TotalLen/SearchEngine2.getSeqNum()-motif.core_motiflen);
+						prior_gamma=Prior_EZ*seqlen;//
+						 double renomalizefactor=1;//matchsitecount_seq/matchsiteweight_seq;
 						if(prior_gamma>1)
 							prior_gamma=0.9999;
 						for (int i = 0; i < motiflen; i++) {
@@ -1333,7 +1336,7 @@ public class Pomoda {
 					}
 					//total_sampleweight may introduce more fluctuation
 					if(OOPS)
-						Prior_EZ=match_seqCount/filtered_Falocs.size(); //(SearchEngine2.TotalLen*(double)seqcount/SearchEngine2.getSeqNum());//SearchEngine2.TotalLen;
+						Prior_EZ=(SearchEngine2.TotalLen*(double)seqcount/SearchEngine2.getSeqNum());//SearchEngine2.TotalLen;
 					else
 						Prior_EZ=match_seqCount/total_sampleweight;//SearchEngine2.TotalLen;  //total_sampleweight;
 					
