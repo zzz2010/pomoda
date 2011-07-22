@@ -12,9 +12,11 @@ import java.util.Map.Entry;
 import java.util.Iterator;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.biojava.bio.dist.Count;
 import org.biojava.bio.dist.Distribution;
 import org.biojava.bio.dist.DistributionFactory;
 import org.biojava.bio.dist.DistributionTools;
+import org.biojava.bio.dist.IndexedCount;
 import org.biojava.bio.dp.DP;
 import org.biojava.bio.dp.ScoreType;
 import org.biojava.bio.dp.SimpleWeightMatrix;
@@ -84,6 +86,8 @@ public class PWM extends SimpleWeightMatrix {
 			e.printStackTrace();
 		}
 	}
+	
+	
 	
 //	public double calcLogDnaseProb(Double[] data, int start)
 //	{
@@ -161,7 +165,24 @@ public class PWM extends SimpleWeightMatrix {
 		return p2-Math.log(Dnase_prob.size());
 	}
 	
+	public static final Distribution[] countMatrix2Distribution(double[][] count_matrix) throws IllegalSymbolException, IllegalAlphabetException
+	{
 
+	    //make a Distribution[] of the motif
+	    Distribution[] dists =new Distribution[count_matrix.length];
+	    FiniteAlphabet alpha = DNATools.getDNA();
+	    for (int i = 0; i < dists.length; i++) {
+	    	Count c = new IndexedCount(alpha);
+	        c.increaseCount(DNATools.a(),count_matrix[i][0]);
+	        c.increaseCount(DNATools.c(),count_matrix[i][1]);
+	        c.increaseCount(DNATools.g(),count_matrix[i][2]);
+	        c.increaseCount(DNATools.t(),count_matrix[i][3]);
+	    	dists[i]=DistributionTools.countToDistribution(c);
+		}
+	    
+	    return	dists;
+			
+	}
 	public static final Distribution[] alignment2Distribution(String[] alignments) throws IllegalSymbolException, IllegalAlphabetException
 	{
 		Map<String, SymbolList> map = new HashMap<String, SymbolList>();
@@ -249,6 +270,11 @@ public class PWM extends SimpleWeightMatrix {
 	    
 	}
 
+	public PWM(double[][] count_matrix)throws IllegalAlphabetException, IllegalSymbolException  {
+
+	    this(countMatrix2Distribution(count_matrix));
+		
+	}
 
 	public PWM ReverseComplement()
      {
