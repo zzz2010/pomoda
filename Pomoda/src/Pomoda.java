@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -957,7 +958,7 @@ public class Pomoda {
 			double sampleweight=1.0/probtheta;
 			boolean truesite=false;
 			boolean overlapflag=Math.abs(currloc.getMin()-lastpos)<motif.core_motiflen;
-			if((Character.isLowerCase( site.charAt(motif.columns()/2-motif.head))||Character.isLowerCase( site.charAt(motif.columns()/2-motif.tail)))&&!overlapflag)//
+			if((Character.isLowerCase( site.charAt(0))&&Character.isLowerCase( site.charAt(site.length()-1))))//
 			{
 				
 				truecount++;
@@ -979,9 +980,9 @@ public class Pomoda {
 				int symid=common.acgt[site.charAt(i)];
 				if(symid<4)
 				{
-				if(!truesite&&!overlapflag)
-				single_bgprob[symid]+=sampleweight;
-				bgprob[i][symid]+=sampleweight;
+//				if(!truesite&&!overlapflag)
+				single_bgprob[symid]+=(1-probtheta)*sampleweight;
+				bgprob[i][symid]+=(1-probtheta)*sampleweight;
 				}
 				else
 				{
@@ -1042,10 +1043,10 @@ public class Pomoda {
 		//Prior_EZ=(double)truepos/Falocs.size();
 		//double prior_fp=motif.getFDR(log_thresh,background);
     double    Prior_EZ=(double)SearchEngine2.getSeqNum()*0.5/SearchEngine2.TotalLen;//motif.inst_coverage/Falocs.size();//1-SearchEngine.TotalLen*prior_fp/Falocs.size();
-   // Prior_EZ=Math.min(Prior_EZ, motif.inst_coverage/SearchEngine2.TotalLen);	
+   Prior_EZ=Math.min(Prior_EZ, motif.inst_coverage/SearchEngine2.TotalLen);	
     //Prior_EZ=Prior_EZ*SearchEngine2.TotalLen*seqcount/SearchEngine2.getSeqNum()/filtered_Falocs.size();
     
-    
+   RandomEngine rand=RandomEngine.makeDefault();
     double max_Prior_EZ=(double)SearchEngine2.getSeqNum()*MAX_P/SearchEngine2.TotalLen;
         if(Prior_EZ<0)
 			Prior_EZ=FDR;
@@ -1079,6 +1080,7 @@ public class Pomoda {
 			double overlap_expLLR=0;
 			double overlap_prob=0;
 			
+			double matchcount=0;
 			int overlap_pos=-motiflen;
 			double lognullprior=Math.log(1.0/num_priorbin);
 			//make sure head, tail the same in the iteration
@@ -1115,13 +1117,13 @@ public class Pomoda {
 
 						
 						//double logprob_theta=currloc.Score;//include the bg log_prob in the score
-						double logpwm=motif.scoreWeightMatrix(site);//-Math.log(2.0);
-						double logbg=PWMBG.scoreWeightMatrix(site);//motifBG.Get_LOGPROB(site);
+						double logpwm=motif.scoreWeightMatrix(site)-Math.log(2.0);
+						double logbg=motifBG.Get_LOGPROB(site);//PWMBG.scoreWeightMatrix(site);//
 						double llc=Math.log(Math.exp(logpwm)*Prior_EZ+(1-Prior_EZ)*Math.exp(logbg))/10000;
 						double logprob_theta=logpwm-logbg;//  //
 					//	double logprob_theta=motif.scoreWeightMatrix(site)-SearchEngine2.BGscoreMap.get(motif.core_motiflen).get(currloc.getSeqId()).get(currloc.getSeqPos());
 
-						
+					
 						//double logprob_BG=background.Get_LOGPROB(site.substring((site.length()-motiflen)/2, motiflen));
 						double logprior=0;
                    ///////////////////////////// extra feature integration ////////////////////////////
@@ -1158,6 +1160,7 @@ public class Pomoda {
 						
 //						bgstrSet.put(site, (1-prob_theta)*sampleWeight);
 						
+
 						
 						temp_peakrank[rankbin]+=prob_theta/(peakrank_renorm[rankbin]*num_priorbin);
 						temp_prior[prior_bin]+=prob_theta/(pos_renorm[prior_bin]*num_priorbin);//make smaller
@@ -1182,7 +1185,8 @@ public class Pomoda {
 						{
 //							if(sampleWeight>1)
 //								sampleWeight=1;
-
+							
+								matchcount+=prob_theta*sampleWeight;
 							double pwmweight=prob_theta*sampleWeight;
 //							if(sampleWeight>1&&prob_theta>0.5)
 //								System.out.println(site+" "+pwmweight+" "+prob_theta+" "+sampleWeight);
@@ -1201,18 +1205,25 @@ public class Pomoda {
 //								}
 								
 								//if((currloc.getMin()-lastpos)>=site.length()||prob_theta>(lastprob_theta+common.DoubleMinNormal))
-								{
+//							if(Character.isLowerCase(site.charAt(0))&&Character.isLowerCase(site.charAt(site.length()-1)))
+//								System.out.println(prob_theta);
+							
+							{
 									for (int i = 0; i < site.length(); i++) {
 										int symid=common.acgt[site.charAt(i)];
 										if(symid>3)
 										{
 											continue;
 										}	
-
-										m_matrix[i][symid]+=pwmweight;//prob_theta;//
-										single_bgprob[symid]+=(1-prob_theta)*sampleWeight;
-										bgprob[i][symid]+=(1-prob_theta)*sampleWeight;
-										
+									
+										if(Character.isLowerCase(site.charAt(0))&&Character.isLowerCase(site.charAt(site.length()-1)))
+										{
+												m_matrix[i][symid]+=sampleWeight;//prob_theta;//
+										}
+										else{
+												single_bgprob[symid]+=sampleWeight;
+												bgprob[i][symid]+=sampleWeight;	
+										}
 									}
 									lastpos=currloc.getMin();
 									lastsite=site;
@@ -1372,7 +1383,8 @@ public class Pomoda {
 					if(OOPS)
 						Prior_EZ=match_seqCount/(SearchEngine2.TotalLen*(double)seqcount/SearchEngine2.getSeqNum());//SearchEngine2.TotalLen;
 					else
-						Prior_EZ=match_seqCount/total_sampleweight;//SearchEngine2.TotalLen;  //total_sampleweight;
+						Prior_EZ=(double)matchcount/total_sampleweight;//match_seqCount/total_sampleweight;//SearchEngine2.TotalLen;  //total_sampleweight;
+					
 					
 //					if(Prior_EZ>max_Prior_EZ)
 //						Prior_EZ=max_Prior_EZ;
@@ -1475,7 +1487,7 @@ public class Pomoda {
 								motif.pos_prior.add(temp_prior[i]);
 							}
 							//determine whether strand_prior is significant needed
-							RandomEngine rand=RandomEngine.makeDefault();
+							
 							temp_strand[0]/=duplicateFactor;
 							temp_strand[1]/=duplicateFactor;
 							double X=Math.max(temp_strand[0], temp_strand[1])+1;
