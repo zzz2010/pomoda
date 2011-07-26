@@ -19,7 +19,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -328,6 +330,29 @@ public class Pomoda {
 		return pass;
 	}
 	
+	
+	public HashSet<String> MismatchSet(String pattern, int mismatch)
+	{
+		HashSet<String> scannedSet=new HashSet<String>();
+		char[] ACGT=new char[]{'A','C','G','T'};
+		scannedSet.add(pattern);
+		scannedSet.add(common.getReverseCompletementString(pattern));
+		for (int i = 0; i < mismatch; i++) {
+			HashSet<String> tempset=new HashSet<String>(); 
+			for(String patt:scannedSet)
+			for (int j = 0; j < patt.length(); j++) {
+				StringBuilder sb=new StringBuilder(patt);
+				for (int k = 0; k < 4; k++) {
+					sb.setCharAt(j, ACGT[k]);
+					tempset.add(sb.toString());
+				}
+				sb.setCharAt(j, patt.charAt(j));
+			}
+			
+			scannedSet.addAll(tempset);
+		}
+		return scannedSet;
+	}
 	private boolean MatrixAnnotatorTest()
 	{
 		
@@ -417,7 +442,99 @@ public class Pomoda {
 		SearchEngine2.TotalLen-=masklen;
 		
 	}
-	
+	public ArrayList<PWM>	 getSeedMotifs2() {
+		int max_num_Seeds=num_motif*num_motif;
+		ArrayList<PWM>	SeedMotifs=new	ArrayList<PWM>(max_num_Seeds);
+		TreeMap<Double,String> overrepKmer=new TreeMap<Double, String>();
+		TreeMap<String,Double> PatternLib=new TreeMap<String, Double>();
+		for(String patt:SearchEngine2.KmerHitList.keySet())
+		{
+			double orratio=SearchEngine2.KmerHitList.get(patt).size()/Math.exp(background.Get_LOGPROB(patt))/SearchEngine2.TotalLen;
+			if(orratio>1)
+			overrepKmer.put(orratio, patt);
+		}
+		for(Double orratio:overrepKmer.descendingKeySet())
+		{
+			String patt=overrepKmer.get(orratio);
+			HashMap<Integer,Double> pattScore=new HashMap<Integer, Double>();
+			for(Entry<Double, String> pair: overrepKmer.entrySet())
+			{
+				String patt2=pair.getValue();
+				
+				int mismatch=0;
+				int pattCode=0;
+				for (int i = 0; i < patt2.length(); i++) {
+					if(patt2.charAt(i)!=patt.charAt(i))
+					{
+						pattCode+=i*Math.pow(patt.length(),mismatch);
+						mismatch++;
+						if(mismatch>patt.length()-seedlen)
+							break;
+					}
+				}
+				if(mismatch<=patt.length()-seedlen)
+				{
+					if(pattScore.containsKey(pattCode))
+					{
+						pattScore.put(pattCode, pattScore.get(pattCode)+orratio);
+					}
+					else
+					{
+						pattScore.put(pattCode, orratio);
+					}
+				}
+			}
+			//find the best gap pattern
+			int bestPattCode=0;
+			double bestscore=0;
+			for(Entry<Integer,Double> pair:pattScore.entrySet())
+			{
+				if(pair.getValue()>bestscore)
+				{
+					bestPattCode=pair.getKey();
+					bestscore=pair.getValue();
+				}
+			}
+			StringBuilder sb=new StringBuilder(patt);
+			for (int i = 0; i < patt.length()-seedlen; i++) {
+				int pos=bestPattCode%patt.length();
+				sb.setCharAt(pos,'N');
+				bestPattCode-=pos;
+				bestPattCode/=patt.length();
+			}
+			PatternLib.put(sb.toString(), bestscore+orratio);
+		}
+		 ValueComparator bvc =  new ValueComparator();
+			List<Map.Entry<String,Double>> mappingList=new ArrayList<Map.Entry<String,Double>>(PatternLib.entrySet());
+			Collections.sort(mappingList, bvc);
+			//just take top ones
+		    for (Map.Entry<String,Double> pair : mappingList) {
+		    	if(SeedMotifs.size()==max_num_Seeds)
+		    		break;
+			    String toppattern=pair.getKey();
+			    System.out.println(toppattern+"\t"+pair.getValue());
+			    StringBuffer sb=new StringBuffer(toppattern);
+			    for (int j = 0; j < (max_motiflen-this.min_motiflen)/2; j++) {
+			    	sb.insert(0, '-');
+			    	sb.append('-');					
+				}
+			    
+			    String[] seqs={sb.toString()};
+			    try {
+					PWM a=new PWM(seqs);
+					a.Score=pair.getValue();
+					SeedMotifs.add(a);
+					//System.out.println(a.Score);
+				} catch (IllegalAlphabetException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalSymbolException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+		    }
+		return SeedMotifs;
+	}
 	
 	public ArrayList<PWM>	 getSeedMotifs() {
 		int max_num_Seeds=num_motif*num_motif;
@@ -427,29 +544,39 @@ public class Pomoda {
 		int loopnum=1<<(2*seedlen);
 		int maxRange=1<<(2*seedlen);
 		 ValueComparator bvc =  new ValueComparator();
-		TreeMap<Integer,Double> seedScores=new TreeMap<Integer,Double>();
-		for (int i = 0; i < loopnum; i++) {
-			String pattern="";
-			int hash=i;
-			//ignore the reverseComplement
-			if(common.getReverseComplementHashing(hash,seedlen)<i)
-			{
-				continue;
-			}
-			else
-			pattern=common.Hash2ACGT(hash,seedlen);
+		TreeMap<String,Double> seedScores=new TreeMap<String,Double>();
+		for (String pattern:SearchEngine2.KmerHitList.keySet()) {
+//			String pattern="";
+//			int hash=i;
+//			//ignore the reverseComplement
+//			if(common.getReverseComplementHashing(hash,seedlen)<i)
+//			{
+//				continue;
+//			}
+//			else
+//			pattern=common.Hash2ACGT(hash,seedlen);
 			
 			//LinkedList<Integer> positionlist=SearchEngine.searchPattern(pattern,0);
 			LinkedList<FastaLocation> LocList=new LinkedList<FastaLocation>(); //SearchEngine.Int2Location(positionlist);
-			LinkedList<FastaLocation> templist=SearchEngine2.KmerHitList.get(pattern);
-			if(templist!=null)
-			LocList.addAll(templist);//
-			if(!pattern.equalsIgnoreCase(common.getReverseCompletementString(pattern)))
+
+			int mismatch=0;
+//			if(pattern.length()>=6)
+//				mismatch=1;
+//			if(pattern.length()>=8)
+//				mismatch=2;
+//			if(pattern.length()>=10)
+//				mismatch=3;
+
+			HashSet<String> candPatt=MismatchSet(pattern,mismatch);
+			candPatt.addAll(MismatchSet(common.getReverseCompletementString(pattern),mismatch));
+			for(String candp:candPatt)
 			{
-				templist=SearchEngine2.KmerHitList.get(common.getReverseCompletementString(pattern));
+				LinkedList<FastaLocation> templist=SearchEngine2.KmerHitList.get(candp);
 				if(templist!=null)
-				LocList.addAll(templist);
+					LocList.addAll(templist);
 			}
+			
+			
 			double logprob_bg=Math.log(Math.exp(background.Get_LOGPROB(pattern))+Math.exp(background.Get_LOGPROB(common.getReverseCompletementString(pattern)) )) ;
 			if((SearchEngine2.TotalLen*Math.exp(logprob_bg))>LocList.size())
 				continue;
@@ -468,17 +595,17 @@ public class Pomoda {
 				continue;
 				//else
 //				score=sumLLR(LocList,-common.DoubleMinNormal*seedlen,logprob_bg);
-			seedScores.put(hash, score);
+			seedScores.put(pattern, score);
 		}
 		//sort by score
-		List<Map.Entry<Integer,Double>> mappingList=new ArrayList<Map.Entry<Integer,Double>>(seedScores.entrySet());
+		List<Map.Entry<String,Double>> mappingList=new ArrayList<Map.Entry<String,Double>>(seedScores.entrySet());
 		Collections.sort(mappingList, bvc);
 		
 		//just take top ones
-		    for (Map.Entry<Integer,Double> pair : mappingList) {
+		    for (Map.Entry<String,Double> pair : mappingList) {
 		    	if(SeedMotifs.size()==max_num_Seeds)
 		    		break;
-			    String toppattern=common.Hash2ACGT(pair.getKey(),seedlen);
+			    String toppattern=pair.getKey();
 			    System.out.println(toppattern+"\t"+pair.getValue());
 			    StringBuffer sb=new StringBuffer(toppattern);
 			    for (int j = 0; j < (max_motiflen-seedlen)/2; j++) {
@@ -784,7 +911,7 @@ public class Pomoda {
 		double log025=Math.log(0.25);
 		//relax the conserved column 
 		String consensus=motif.Consensus(false);
-		double main_prop=0.504166667;//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
+		double main_prop=0.704166667;//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
 		if(motif.core_motiflen<10)
 			main_prop= 0.504166667;
 			//Math.pow(3*sampling_ratio/(seedlen-2), 1.0/(seedlen-1));// 1 mismatch
@@ -918,9 +1045,9 @@ public class Pomoda {
 //			peakrank_renorm[rankbin]+=1;//probtheta;
 //			pos_renorm[prior_bin]+=1;//probtheta;
 			if(currloc.ReverseStrand)
-				strand_renorm[1]+=probtheta;
+				strand_renorm[1]+=1;
 			else
-				strand_renorm[0]+=probtheta;
+				strand_renorm[0]+=1;
 			//assume only one N for line break
 			StringBuffer sb=new StringBuffer(site);
 			for (int i = 0; i < site.length(); i++) {
@@ -2726,10 +2853,10 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-//			seedPWMs.clear();
+			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGAAAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGCGCCAAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCAAACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNTCACANNNNNNNNNNNNNNNN"}));
@@ -2909,12 +3036,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-//		} catch (IllegalAlphabetException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} catch (IllegalSymbolException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 			
 			
 		} catch (InterruptedException e) {

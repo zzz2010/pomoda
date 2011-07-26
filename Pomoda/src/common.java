@@ -35,6 +35,7 @@ import org.jfree.ui.RectangleInsets;
 public class common {
 	
 
+
 	public static double SeqComplexity(int order, String seq)
 	{
 		double complexity=0;
@@ -1132,11 +1133,11 @@ class  AlignmentResult
       int bestoverlap;
 }
 
-class ValueComparator implements Comparator<Map.Entry<Integer,Double>> {
+class ValueComparator implements Comparator<Map.Entry<String,Double>> {
 
 	
 	  @Override
-	public int compare(Map.Entry<Integer,Double> e1, Map.Entry<Integer,Double> e2) {
+	public int compare(Map.Entry<String,Double> e1, Map.Entry<String,Double> e2) {
 	        if (e1.getValue() < e2.getValue()){
 	            return 1;
 	        } else if (e1.getValue() == e2.getValue()) {
