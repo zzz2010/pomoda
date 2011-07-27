@@ -408,7 +408,7 @@ public class Pomoda {
 	public void Masking(PWM motif)
 	{
 		int masklen=0;
-		double log_thresh=motif.getThresh(0.99, (double)SearchEngine2.getSeqNum()/SearchEngine2.TotalLen/2, background);
+		double log_thresh=motif.getThresh(1.0, 0.0001, background);
 		String consensus_core=motif.Consensus(true);
 		
 		
@@ -424,14 +424,14 @@ public class Pomoda {
 		int lastseq=-1;
 	
 		String X_Str="";
-		for (int i = 0; i < seedlen; i++) {
+		for (int i = 0; i < motiflen; i++) {
 			X_Str+="N";
 		}
 		while(iter2.hasNext())
 		{
 			//masklen+=seedlen;
 			FastaLocation currloc=iter2.next();
-			String Site1=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos()+(motiflen-seedlen)/2, seedlen);
+			String Site1=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(), motiflen);
 			
 			String rep=SearchEngine2.ForwardStrand.get(currloc.getSeqId()).replace(Site1, X_Str);
 			SearchEngine2.ForwardStrand.set(currloc.getSeqId(), rep);
@@ -974,10 +974,10 @@ public class Pomoda {
 		double sitesperSeq=0;
 		LinkedList<FastaLocation> Falocs=null;
 //		if(OOPS)
-		{
+//		{
 //			SamplingThread_PS.background=this.background;
 //			Falocs=SearchEngine2.samplingPattern_PS(motif,Math.max(MIN_SAMPLENUM,(int)(SearchEngine2.TotalLen*sampling_ratio)));
-		}
+//		}
 //		else
 //		{
 			SamplingThread.background=this.background;
@@ -2857,9 +2857,9 @@ public class Pomoda {
 //			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCCAAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGGTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCAAACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNAAACANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNTCACANNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGTTAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
