@@ -911,7 +911,7 @@ public class Pomoda {
 		double log025=Math.log(0.25);
 		//relax the conserved column 
 		String consensus=motif.Consensus(false);
-		double main_prop=0.704166667;//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
+		double main_prop=0.504166667;//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
 		if(motif.core_motiflen<10)
 			main_prop= 0.504166667;
 			//Math.pow(3*sampling_ratio/(seedlen-2), 1.0/(seedlen-1));// 1 mismatch
@@ -1336,12 +1336,12 @@ public class Pomoda {
 											continue;
 										}
 										
-										m_matrix[i][symid]-=lastpwmweight;
+										m_matrix[i][symid]-=lastpwmweight*0.5;
 									}
 								}
 								
 
-//							if((currloc.getMin()-lastpos)>=site.length()||prob_theta>(lastprob_theta+common.DoubleMinNormal))
+							if((currloc.getMin()-lastpos)>=site.length()||prob_theta>(lastprob_theta+common.DoubleMinNormal))
 							{
 								
 									for (int i = 0; i < site.length(); i++) {
@@ -1578,20 +1578,20 @@ public class Pomoda {
 						if(divergence<0.001)
 							break;
 						
-						if(OOPS)
-						{
-							double sumprob=temp_strand[0]+temp_strand[1];
-							if(sumprob>seqcount)
-							{
-								duplicateFactor=sumprob/seqcount;
-							}
-
-						}
+//						if(OOPS)
+//						{
+//							double sumprob=temp_strand[0]+temp_strand[1];
+//							if(sumprob>seqcount)
+//							{
+//								duplicateFactor=sumprob/seqcount;
+//							}
+//
+//						}
 						//determine whether pos_prior is significant needed
 						double chistat=0;
 						double sumPrior=0;
 						for (int i = 0; i < temp_prior.length; i++) {
-							temp_peakrank[i]/=duplicateFactor;
+//							temp_peakrank[i]/=duplicateFactor;
 							sumPrior+=temp_prior[i];
 						}
 						//ignore the first and last bin
@@ -1622,8 +1622,8 @@ public class Pomoda {
 							}
 							//determine whether strand_prior is significant needed
 							
-							temp_strand[0]/=duplicateFactor;
-							temp_strand[1]/=duplicateFactor;
+//							temp_strand[0]/=duplicateFactor;
+//							temp_strand[1]/=duplicateFactor;
 							double X=Math.max(temp_strand[0], temp_strand[1])+1;
 							Binomial binomial=new Binomial((int)(temp_strand[0]+temp_strand[1])+2,0.5,rand);
 							double pvalue_strand=1.0-binomial.cdf((int)X);
@@ -1645,7 +1645,7 @@ public class Pomoda {
 							chistat=0;
 							sumPrior=0;
 							for (int i = 0; i < temp_peakrank.length; i++) {
-								temp_peakrank[i]/=duplicateFactor;
+//								temp_peakrank[i]/=duplicateFactor;
 								sumPrior+=temp_peakrank[i];
 							}
 							avgE=(sumPrior-temp_peakrank[temp_peakrank.length-1])/(temp_peakrank.length-1);
@@ -2856,7 +2856,7 @@ public class Pomoda {
 			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGCGCCAAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCCAAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCAAACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNTCACANNNNNNNNNNNNNNNN"}));
