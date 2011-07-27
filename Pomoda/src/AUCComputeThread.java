@@ -18,7 +18,13 @@ public class AUCComputeThread extends Thread {
 	public void run() {
 		// TODO Auto-generated method stub
 		super.run();
+		if(motif==null)
+			return;
+		int avglen=Evaluator.SearchEngine.TotalLen/Evaluator.SearchEngine.getSeqNum();
+		if(avglen<500)
 		AUCresult=Evaluator.calcAUC(motif,sequences);
+		else
+		AUCresult=Evaluator.HyperGeometricScore(motif, sequences);
 	}
 	public double getResult()
 	{

@@ -402,16 +402,52 @@ public class PWMevaluator {
 
 	}
 	
-	public double HyperGeometricScore(PWM motif, LinearEngine BGsearch)
+	public double HyperGeometricScore(PWM motif, LinearEngine bg_search)
 	{
 		double HGscore=0;
+		 LinearEngine SearEngine=null;
+			
+		 SearEngine=this.SearchEngine;
 		double thresh=motif.getThresh(1, 0.0001, background);
 		SearchThread.bestonly=true;
+		double lamda=(double)SearchEngine.getSeqNum()/SearEngine.TotalLen/2;
+		 SearchThread.recordSiteThreshold=Math.log((1-lamda)/lamda)+motif.core_motiflen*Math.log(0.25);
+	        motif.matchsite.clear();
 		LinkedList<FastaLocation> falocs= this.SearchEngine.searchPattern(motif, thresh);
+	      SearchThread.recordSiteThreshold=Double.POSITIVE_INFINITY;
+	      
+			 LinearEngine BGSearch=null;
+				if(bg_search==null)
+				{
+				  BGSearch=new LinearEngine(6);
+		         Iterator<String> iter2=SearchEngine.ForwardStrand.iterator();
+		         background.r.setSeed(0);
+		         while(iter2.hasNext())
+		         {
+		        	 int len=iter2.next().length();
+		        	 String bgstr="";
+		        	 if(removeBG)
+		        	 {
+			        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
+			        	 bgstr=bgstr_p.value;
+		        	 }
+		        	 else
+		        	 {
+			        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
+			        	 bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
+		        	 }
+		        	 BGSearch.ForwardStrand.add(bgstr);	 
+		        	 BGSearch.TotalLen+=bgstr.length();
+		        	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
+		         }
+				}
+				else
+				{
+					BGSearch=bg_search;
+				}
+		LinkedList<FastaLocation> falocs_bg= BGSearch.searchPattern(motif, thresh);
 		
-		LinkedList<FastaLocation> falocs_bg= BGsearch.searchPattern(motif, thresh);
-		
-		HGscore=HypergeometricDist.cdf(falocs_bg.size(), BGsearch.ForwardStrand.size(), this.SearchEngine.ForwardStrand.size(), falocs.size()) ;
+		HGscore=HypergeometricDist.cdf(falocs_bg.size()+1, BGSearch.ForwardStrand.size()+2, this.SearchEngine.ForwardStrand.size()+2, falocs.size()+1) ;
 		SearchThread.bestonly=false;
 		return HGscore;
 	}
