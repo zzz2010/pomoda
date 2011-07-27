@@ -1252,6 +1252,7 @@ public class Pomoda {
 						//double logprob_theta=currloc.Score;//include the bg log_prob in the score
 						double logpwm=motif.scoreWeightMatrix(site);//-Math.log(2.0);
 						double logbg=PWMBG.scoreWeightMatrix(site);//motifBG.Get_LOGPROB(site);//
+						logbg=Math.max(logbg, background.Get_LOGPROB(site));
 						double llc=Math.log(Math.exp(logpwm)*Prior_EZ+(1-Prior_EZ)*Math.exp(logbg))/10000;
 						double logprob_theta=logpwm-logbg;//  //
 					//	double logprob_theta=motif.scoreWeightMatrix(site)-SearchEngine2.BGscoreMap.get(motif.core_motiflen).get(currloc.getSeqId()).get(currloc.getSeqPos());
@@ -2853,10 +2854,10 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-			seedPWMs.clear();
+//			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCCAAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCCAAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCAAACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNTCACANNNNNNNNNNNNNNNN"}));
@@ -2965,16 +2966,17 @@ public class Pomoda {
 		}
 		
 		// Wait until all threads are finish
-		while (!executor.isTerminated()) {
-			Thread.sleep(3000);
-			executor.shutdown();
-		}
+//		while (!executor.isTerminated()) {
+//			Thread.sleep(3000);
+//			executor.shutdown();
+//		}
+		
 		  for (int i = 0; i < threadpool.size(); i++) {
 				double llrscore=threadpool.get(i).getResult();
 				System.out.println(seedPWMs.get(i).Consensus(true)+" AUC:"+ llrscore);
 				seedPWMs.get(i).Score=llrscore;
 				if(llrscore>0.5)
-				sortedPWMs.put(llrscore, seedPWMs.get(i));
+				sortedPWMs.put(llrscore+seedPWMs.get(i).Prior_EZ/1000, seedPWMs.get(i));
 		  }
 ///////////////////////////////////////evaluate different motif in parallel///////////////////////////////////////////			
 		seedPWMs.clear();
@@ -3036,18 +3038,15 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-		} catch (IllegalAlphabetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalSymbolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+//		} catch (IllegalAlphabetException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IllegalSymbolException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
 			
 			
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		}
 		
 
