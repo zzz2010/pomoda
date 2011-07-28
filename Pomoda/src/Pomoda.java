@@ -94,7 +94,7 @@ public class Pomoda {
 	public int resolution=10;
 	public int min_motiflen=7;
 	public int ending_windowsize=600;
-	public double FDR=0.0001;
+	public double FDR=0.01;
 	public int max_motiflen=55;
 	public int max_threadNum=6;
 	public int num_motif=5;
@@ -546,6 +546,8 @@ public class Pomoda {
 		 ValueComparator bvc =  new ValueComparator();
 		TreeMap<String,Double> seedScores=new TreeMap<String,Double>();
 		for (String pattern:SearchEngine2.KmerHitList.keySet()) {
+			if(seedScores.containsKey(common.getReverseCompletementString(pattern)))
+				continue;
 //			String pattern="";
 //			int hash=i;
 //			//ignore the reverseComplement
@@ -2740,7 +2742,7 @@ public class Pomoda {
 		options.addOption("maxw",true, "maximum size of motif binding region (default 600bp)");
 		options.addOption("mask",false,"whether marking the top motif location in order to find co-motif");
 		options.addOption("oops",false,"whether assuming only one occurrence per sequence");
-		options.addOption("FDR",true,"fasle positive rate (default 0.0001)");
+		options.addOption("FDR",true,"fasle positive rate (default 0.01)");
 		options.addOption("clust",true,"linkage type of hierachical clustering:"+Arrays.toString(LinkageCriterion.values()) );
 		
 		CommandLineParser parser = new GnuParser();
