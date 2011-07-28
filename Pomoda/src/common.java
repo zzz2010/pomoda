@@ -1029,7 +1029,7 @@ public class common {
 		double[] last_prob=new double[(int)Math.pow(4,(bgmodel.order-1))];
 		double[] suffix_prob=new double[(int)Math.pow(4,(bgmodel.order-1))];
 		String ACGT="ACGT";
-		
+		seed=seed.replace("N", "");
 		for (int i = 0; i <length; i++) {
 			if(bgmodel.order>1)
 			{

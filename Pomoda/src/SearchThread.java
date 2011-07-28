@@ -39,6 +39,7 @@ public class SearchThread extends Thread  {
 	{
 		this.pattern=pattern;
 		this.mismatch=mismatch;
+		startSeqId= startseqNum;
 		this.db=db;
 		result=new LinkedList<FastaLocation>();
 		this.PWMflag=false;
@@ -146,8 +147,8 @@ public class SearchThread extends Thread  {
 			
 			Iterator<String> iter=db.iterator();
 			int seqid=startSeqId;
-while(iter.hasNext())
-{
+			while(iter.hasNext())
+			{
 
 			String seq=iter.next().toUpperCase();
 			
@@ -194,6 +195,7 @@ while(iter.hasNext())
 				{
 					FastaLocation fapos=new FastaLocation(pos+i,seqid , i, seq.length());
 				    fapos.Score=num_mismatch;  
+
 				    fapos.ReverseStrand=reverse;
 					result.add(fapos);
 				}
@@ -203,7 +205,7 @@ while(iter.hasNext())
 		    pos+=seq.length();
 		    seqid++;
 			
-}
+			}
 			
 		}
 			
