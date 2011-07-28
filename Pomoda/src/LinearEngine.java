@@ -439,6 +439,8 @@ public class LinearEngine {
 	public String getSite(int seqid, int location, int len) {
 		// TODO Auto-generated method stub
 		String temp=ForwardStrand.get(seqid);
+		if(location>temp.length())
+			return "";
 		 String onsite=temp.substring(Math.max(0, location),  Math.min(temp.length(), location+len));
 		 int head=-location;
 		 int tail=location+len-temp.length();
