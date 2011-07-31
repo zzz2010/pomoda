@@ -10,7 +10,10 @@ import java.util.LinkedList;
 import java.util.TreeMap;
 
 import org.biojava.bio.BioException;
+import org.biojava.bio.dist.DistributionTools;
+import org.biojava.bio.dist.UniformDistribution;
 import org.biojava.bio.dp.IllegalTransitionException;
+import org.biojava.bio.seq.DNATools;
 import org.biojava.bio.seq.Sequence;
 import org.biojava.bio.seq.SequenceIterator;
 import org.biojava.bio.seq.io.SymbolTokenization;
@@ -218,6 +221,8 @@ public class LinearEngine {
 			      String seqstr="";
 			      TotalLen=0;
 	   		       accSeqLen.add(0);
+//	   		    UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
+	        	 
 			     while( (Line=br.readLine())!=null)
 			     {
 			    	 if(Line.length()>0)
@@ -226,6 +231,8 @@ public class LinearEngine {
 			    		 {
 			    			 if(seqstr!="")
 			    			 {
+//			    			String	 bgstr1=DistributionTools.generateSymbolList(ud, 400).seqString();
+//			    			String	 bgstr2=DistributionTools.generateSymbolList(ud, 400).seqString();
 			    			 seqstr=seqstr.replace("N", "");
 			    			 ForwardStrand.add(seqstr);
 			    			 TotalLen+=seqstr.length();
