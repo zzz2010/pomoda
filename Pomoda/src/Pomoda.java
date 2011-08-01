@@ -443,6 +443,80 @@ public class Pomoda {
 		SearchEngine2.TotalLen-=masklen;
 		
 	}
+	
+	public ArrayList<PWM>	 getSeedMotifs3(int max_num_Seeds) {
+		ArrayList<PWM>	SeedMotifs=new	ArrayList<PWM>(max_num_Seeds);
+		int maxkmerlen=(int) (Math.log(2*SearchEngine2.TotalLen)/Math.log(4));
+		if(maxkmerlen<seedlen)
+			return SeedMotifs;
+		HashMap<String,Double> PatternLib=new HashMap<String, Double>((int) Math.pow(maxkmerlen, 4));
+		Iterator<String> iter=SearchEngine2.ForwardStrand.iterator();
+		while(iter.hasNext())
+		{
+			String seq=iter.next();
+			for (int i = 0; i < seq.length()-maxkmerlen; i++) {
+				String patt=seq.substring(i, i+maxkmerlen).toUpperCase();
+				String revpatt=common.getReverseCompletementString(patt);
+				if(PatternLib.containsKey(patt))
+				{
+					PatternLib.put(patt, PatternLib.get(patt)+1);
+				}
+				else if(PatternLib.containsKey(revpatt))
+				{
+					patt=revpatt;
+					PatternLib.put(patt, PatternLib.get(patt)+1);
+				}
+				else
+				{
+					PatternLib.put(patt, 1.0);
+				}
+			}
+		}
+		
+		TreeMap<Double,String> sortPattLib=new TreeMap<Double, String>();
+		double minscore=0;
+		for(Entry<String,Double> pair:PatternLib.entrySet())
+		{
+			String pattern=pair.getKey();
+			double logprob_bg=Math.log(Math.exp(background.Get_LOGPROB(pattern))+Math.exp(background.Get_LOGPROB(common.getReverseCompletementString(pattern)) )) ;
+			double oddratio=PatternLib.get(pattern)/Math.exp(logprob_bg);
+//			if(Double.isNaN(oddratio)||oddratio==0)
+//				break;
+			sortPattLib.put(oddratio,pattern);
+			if(max_num_Seeds<sortPattLib.size())
+			{
+				minscore=sortPattLib.firstKey();
+			}
+		}
+
+			//just take top ones
+		    for (Map.Entry<Double,String> pair : sortPattLib.descendingMap().entrySet()) {
+		    	if(SeedMotifs.size()==max_num_Seeds)
+		    		break;
+			    String toppattern=pair.getValue();
+			    System.out.println(toppattern+"\t"+pair.getKey());
+			    StringBuffer sb=new StringBuffer(toppattern);
+			    for (int j = 0; j < (max_motiflen-this.min_motiflen)/2; j++) {
+			    	sb.insert(0, '-');
+			    	sb.append('-');					
+				}
+			    
+			    String[] seqs={sb.toString()};
+			    try {
+					PWM a=new PWM(seqs);
+					a.Score=pair.getKey();
+					SeedMotifs.add(a);
+					//System.out.println(a.Score);
+				} catch (IllegalAlphabetException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalSymbolException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+		    }
+		return SeedMotifs;
+	}
 	public ArrayList<PWM>	 getSeedMotifs2() {
 		int max_num_Seeds=num_motif*num_motif;
 		ArrayList<PWM>	SeedMotifs=new	ArrayList<PWM>(max_num_Seeds);
@@ -572,33 +646,43 @@ public class Pomoda {
 
 			HashSet<String> candPatt=MismatchSet(pattern,mismatch);
 			candPatt.addAll(MismatchSet(common.getReverseCompletementString(pattern),mismatch));
+			double prob_bg=0;
 			for(String candp:candPatt)
 			{
 				LinkedList<FastaLocation> templist=SearchEngine2.KmerHitList.get(candp);
 				if(templist!=null)
+				{
 					LocList.addAll(templist);
+					prob_bg+=Math.exp(background.Get_LOGPROB(candp));
+				}
 			}
 			
 			
-			double logprob_bg=Math.log(Math.exp(background.Get_LOGPROB(pattern))+Math.exp(background.Get_LOGPROB(common.getReverseCompletementString(pattern)) )) ;
-			
-			if((SearchEngine2.TotalLen*Math.exp(logprob_bg))>LocList.size())
+//			if(pattern.equalsIgnoreCase("GTAGT"))
+//				pattern="GTAGT";
+		
+			if((SearchEngine2.TotalLen*prob_bg)>LocList.size())
 				continue;
-			double pvalue=BinomialDist.cdf(SearchEngine2.TotalLen,  Math.exp(logprob_bg),LocList.size());
-			if(pvalue<1-FDR)
-				continue;
+//			double pvalue=BinomialDist.cdf(SearchEngine2.TotalLen, prob_bg,LocList.size());
+//			if(pvalue<1-FDR)
+//				continue;
 			
 			double score=0;
 			int lastpos=-1;
 			int facount_nonoverlap=0;
 			for(FastaLocation fal:LocList)
 			{
-				if(fal.getMin()-lastpos>seedlen)
+				if(fal.getMin()-lastpos>max_motiflen)
 					facount_nonoverlap++;
 				lastpos=fal.getMin();
 			}
+//			int overlapcount=LocList.size()-facount_nonoverlap;
+//			double avglen=(SearchEngine2.TotalLen-LocList.size()*seedlen)/LocList.size();
+//			double p=(double)max_motiflen/avglen;
+//			double pv_dimer=BinomialDist.cdf(facount_nonoverlap,p,overlapcount);
+
 			//if(pos_prior.size()==0&&!OOPS)
-				score=facount_nonoverlap/(SearchEngine2.TotalLen*Math.exp(logprob_bg)); //positionlist.size()*(-common.DoubleMinNormal*seedlen-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
+				score=facount_nonoverlap/(SearchEngine2.TotalLen*prob_bg); //positionlist.size()*(-common.DoubleMinNormal*seedlen-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
 			
 			if(score<=1)
 				continue;
@@ -1323,7 +1407,7 @@ public class Pomoda {
 						}
 						if(OOPS)
 							loglik-=common.DoubleMinNormal*Math.abs(currloc.getSeqLen()/2-currloc.getSeqPos()-motiflen/2); //add small bias to center
-						if(!OOPS)
+//						if(!OOPS)
 							bestscore+=llc*sampleWeight;//(loglik-Math.log(prob_theta))*sampleWeight/total_sampleweight;
 					
 						if(Double.isInfinite(bestscore))
@@ -1413,8 +1497,8 @@ public class Pomoda {
 								
 							}
 							
-							if(matchsitecount_seq>0)
-								bestscore+= max_seqloglik/matchsitecount_seq;
+//							if(matchsitecount_seq>0)
+//								bestscore+= max_seqloglik/matchsitecount_seq;
 
 							max_seqloglik=0;	
 							sitesperSeq=0;
@@ -1519,7 +1603,7 @@ public class Pomoda {
 							}
 						}
 
-							bestscore+= max_seqloglik/matchsitecount_seq;
+//							bestscore+= max_seqloglik/matchsitecount_seq;
 					}
 					
 					match_seqCount=0;
@@ -1892,21 +1976,31 @@ public class Pomoda {
 		PWM bestPWM=null;
 		int itercount=0;
 
+		double bgseed_ignore2=0;
+		if(bgmodel!=null)			
+		{
+					bgmodel.head=motif.head+shifthead;
+					bgmodel.tail=motif.tail+shifttail;
+					bgseed_ignore2=bgmodel.scoreWeightMatrix(seedstring)-seedscore;
+					
+		}
 		
 		do
 		{
 
 			itercount++;
+		int truecount=0;
+		int overlapcount=0;
 //			double [][] A=new double[motif.columns()][4];
 //			double [][] B=new double[motif.columns()][4];
 		String consensus_core=motif.Consensus(false).substring(motif.head,motif.head+motif.core_motiflen);
 		double bgseed_ignore=motifBG.Get_LOGPROB(seedstring)-seedscore;
-		double bgseed_ignore2=0;
+		
 		if(bgmodel!=null)
 		{
 			bgmodel.head=motif.head+shifthead;
 			bgmodel.tail=motif.tail+shifttail;
-			bgseed_ignore2=bgmodel.scoreWeightMatrix(seedstring)-seedscore;
+
 		}
 		
 		System.out.println(consensus_core+"\t"+String.valueOf(bestscore));
@@ -1994,6 +2088,8 @@ public class Pomoda {
 					if(site.charAt(site.length()/2)=='X')
 						continue;
 					
+					if(Character.isLowerCase(site.charAt(site.length()/2)))
+						truecount++;
 					if(site.length()!=motif.columns())
 						continue;
 //					if(site.equalsIgnoreCase(""))
@@ -2111,9 +2207,10 @@ public class Pomoda {
 					{
 						matchsitecount_seq++;
 						 double expLLR=Math.exp(loglik-Math.log(Prior_EZ/(1-Prior_EZ)));
-						if(Math.abs(currloc.getSeqPos()-overlap_pos)<2*motiflen)
+						if(Math.abs(currloc.getSeqPos()-overlap_pos)<maxmotiflen)
 						{// overlap last site
-							if(expLLR>overlap_expLLR)
+							overlapcount++;
+							if(expLLR>overlap_expLLR+common.DoubleMinNormal)
 							{//the current site better than last site, remove the effect of last site
 								for (int i = 0; i < site.length(); i++) {
 									int symid=common.acgt[site.charAt(i)];
@@ -2168,7 +2265,7 @@ public class Pomoda {
 								else
 								{
 									for (int j = 0; j < 4; j++) {
-										sumexpLLR[i][j]+=0.25*expLLR;
+										sumexpLLR[i][j]+=expLLR*Math.exp(single_logprob_bg_[i][j]);
 							
 									}
 								}
@@ -2448,11 +2545,12 @@ public class Pomoda {
 				for (int i = 0; i < temp_peakrank.length; i++) {
 					sumPrior+=temp_peakrank[i];
 				}
-					for (int j = 0; j < temp_peakrank.length; j++) {
-						double temp=temp_peakrank[j]-sumPrior/temp_peakrank.length;
-						chistat+=temp*temp*temp_peakrank.length/sumPrior;
+				double avgcount=(sumPrior-temp_peakrank[temp_peakrank.length-1])/(temp_peakrank.length-1);
+					for (int j = 0; j < temp_peakrank.length-1; j++) {
+						double temp=temp_peakrank[j]-avgcount;
+						chistat+=temp*temp/avgcount;
 					}
-					invFDR=ChiSquareDistQuick.inverseF(temp_peakrank.length-1, 1-FDR);
+					invFDR=ChiSquareDistQuick.inverseF(temp_peakrank.length-2, 1-FDR);
 					if(chistat>invFDR)
 					{
 						if(!motif.peakrank_en)
@@ -2483,7 +2581,7 @@ public class Pomoda {
 					chistat+=temp*temp/Ei;
 				}
 		
-			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR);
+			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR/num_col_cand);
 			int extralen=0;
 			if(bestCol<motif.head)
 				extralen=motif.head-bestCol;
@@ -2884,6 +2982,7 @@ public class Pomoda {
 		 System.currentTimeMillis();
 		//get seed motifs
 		ArrayList<PWM>  seedPWMs=motifFinder.getSeedMotifs();
+//		ArrayList<PWM>  seedPWMs2=motifFinder.getSeedMotifs3(10);
 		//LinkedList<PWM>  seedPWMs=new LinkedList<PWM>();
 		
 		double topseed_Score=0;
@@ -2895,7 +2994,7 @@ public class Pomoda {
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGGTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGGGAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNAAACANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNTCACANNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
@@ -2984,7 +3083,7 @@ public class Pomoda {
 //		motifFinder.SearchEngine2.EnableBackground(motifFinder.background);
 		
 		 ArrayList<AUCComputeThread> threadpool=new ArrayList<AUCComputeThread>(seedPWMs.size());
-			ExecutorService executor = Executors.newFixedThreadPool(Math.min(motifFinder.max_threadNum,seedPWMs.size()));
+//			ExecutorService executor = Executors.newFixedThreadPool(Math.min(motifFinder.max_threadNum,seedPWMs.size()));
 			
 			if(motifFinder.ctrlFasta!="")
 			{
