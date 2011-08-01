@@ -61,6 +61,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RectangleInsets;
 import org.pr.clustering.hierarchical.LinkageCriterion;
 
+import umontreal.iro.lecuyer.probdist.BinomialDist;
 import umontreal.iro.lecuyer.probdist.ChiSquareDistQuick;
 import umontreal.iro.lecuyer.probdist.NegativeBinomialDist;
 import umontreal.iro.lecuyer.probdist.NormalDist;
@@ -580,8 +581,13 @@ public class Pomoda {
 			
 			
 			double logprob_bg=Math.log(Math.exp(background.Get_LOGPROB(pattern))+Math.exp(background.Get_LOGPROB(common.getReverseCompletementString(pattern)) )) ;
+			
 			if((SearchEngine2.TotalLen*Math.exp(logprob_bg))>LocList.size())
 				continue;
+			double pvalue=BinomialDist.cdf(SearchEngine2.TotalLen,  Math.exp(logprob_bg),LocList.size());
+			if(pvalue<1-FDR)
+				continue;
+			
 			double score=0;
 			int lastpos=-1;
 			int facount_nonoverlap=0;
@@ -593,6 +599,7 @@ public class Pomoda {
 			}
 			//if(pos_prior.size()==0&&!OOPS)
 				score=facount_nonoverlap/(SearchEngine2.TotalLen*Math.exp(logprob_bg)); //positionlist.size()*(-common.DoubleMinNormal*seedlen-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
+			
 			if(score<=1)
 				continue;
 				//else
@@ -1892,7 +1899,7 @@ public class Pomoda {
 			itercount++;
 //			double [][] A=new double[motif.columns()][4];
 //			double [][] B=new double[motif.columns()][4];
-		String consensus_core=motif.Consensus(true);
+		String consensus_core=motif.Consensus(false).substring(motif.head,motif.head+motif.core_motiflen);
 		double bgseed_ignore=motifBG.Get_LOGPROB(seedstring)-seedscore;
 		double bgseed_ignore2=0;
 		if(bgmodel!=null)
@@ -2104,7 +2111,7 @@ public class Pomoda {
 					{
 						matchsitecount_seq++;
 						 double expLLR=Math.exp(loglik-Math.log(Prior_EZ/(1-Prior_EZ)));
-						if(Math.abs(currloc.getSeqPos()-overlap_pos)<motiflen)
+						if(Math.abs(currloc.getSeqPos()-overlap_pos)<2*motiflen)
 						{// overlap last site
 							if(expLLR>overlap_expLLR)
 							{//the current site better than last site, remove the effect of last site
@@ -2279,6 +2286,8 @@ public class Pomoda {
 			}
 		}
 		
+		
+//		common.print2DArray(count_matrix);
 			if(bestCol==-1)
 			{
 			for (int i = 0; i < motif.columns(); i++) {
@@ -2493,7 +2502,7 @@ public class Pomoda {
 			if(total<10||motif.core_motiflen<=minmotiflen||extralen==0)
 			{
 
-				if(extralen+motif.core_motiflen<(motif.columns()+seedstring.length())/2)
+				if(extralen+motif.core_motiflen<=(motif.columns()+seedstring.length())/2)
 				{
 					   motif.setWeights(bestCol, repColumnValue);
 					   extendedCols.add(bestCol);

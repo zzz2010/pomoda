@@ -210,6 +210,16 @@ public class PWM extends SimpleWeightMatrix {
 		Distribution di=this.getColumn(col);
 		SymbolList sla;
 		double weight=0;
+		if(head>col)
+		{
+			core_motiflen+=head-col;
+			head=col;
+		}
+		else if(tail>columns()-col-1)
+		{
+			core_motiflen+=tail-(columns()-col-1);
+			tail=columns()-col-1;
+		}
 		
 		try {
 			sla =DNATools.createDNA("ACGT");
@@ -906,13 +916,14 @@ public class PWM extends SimpleWeightMatrix {
 			{
 				 consensus=consensus.substring(0,core_motiflen);
 			}
+			if(start>-1)
+			{
+			head=start;
+			tail=columns()-end;
+			core_motiflen=end-start;
+			}
 		}
-		if(start>-1)
-		{
-		head=start;
-		tail=columns()-end;
-		core_motiflen=end-start;
-		}
+
 	
 		return consensus;
 	}
