@@ -491,12 +491,14 @@ public class PWM extends SimpleWeightMatrix {
 		//number sampling
 		int num_sampl=100000;
 		boolean samplflag=false;
+		
 		if((num_sampl)>num_path||bgmodel.conditionProb==null)//zzz
 		{
 
 			LinkedList<Map.Entry<Double,String>> inst=GenerateInstanceFromPWMPQ(sampleratio, FDRthresh, bgmodel);
 			if(inst.size()>0)
-			return inst.getFirst().getKey()+log025*N_num-common.DoubleMinNormal;
+				//strictly in FDR
+			return inst.getFirst().getKey()+log025*N_num+common.DoubleMinNormal;
 			else
 				samplflag=true;
 		}
@@ -523,9 +525,10 @@ public class PWM extends SimpleWeightMatrix {
 				
 			}
 			Collections.sort(scorelist);
-			double thresh=scorelist.get((int)Math.floor(scorelist.size()*(1-FDRthresh)));
+			//strictly in FDR
+			double thresh=scorelist.get((int)Math.floor(scorelist.size()*(1-FDRthresh)))+common.DoubleMinNormal;
 			if(thresh==scorelist.get(scorelist.size()-1))
-				thresh-=common.DoubleMinNormal;
+				thresh+=common.DoubleMinNormal;
 			return thresh;
 			
 			
