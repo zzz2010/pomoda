@@ -449,6 +449,8 @@ public class PWMevaluator {
 		
 		HGscore=HypergeometricDist.cdf(falocs_bg.size()+1, BGSearch.ForwardStrand.size()+2, this.SearchEngine.ForwardStrand.size()+2, falocs.size()+1) ;
 		SearchThread.bestonly=false;
+		double p=(double)falocs_bg.size()/BGSearch.ForwardStrand.size();
+		HGscore=(falocs.size()-this.SearchEngine.ForwardStrand.size()*p)/Math.sqrt(this.SearchEngine.ForwardStrand.size()*p*(1-p));
 		return HGscore;
 	}
 	

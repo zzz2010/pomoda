@@ -92,7 +92,7 @@ public class Pomoda {
 	public int seedlen=5;
 	public boolean debug=false;
 	public boolean OOPS=false;
-	public int resolution=10;
+	public int resolution=20;
 	public int min_motiflen=7;
 	public int ending_windowsize=600;
 	public double FDR=0.01;
@@ -658,8 +658,7 @@ public class Pomoda {
 			}
 			
 			
-//			if(pattern.equalsIgnoreCase("GTAGT"))
-//				pattern="GTAGT";
+
 		
 			if((SearchEngine2.TotalLen*prob_bg)>LocList.size())
 				continue;
@@ -672,7 +671,7 @@ public class Pomoda {
 			int facount_nonoverlap=0;
 			for(FastaLocation fal:LocList)
 			{
-				if(fal.getMin()-lastpos>max_motiflen)
+				if(fal.getMin()-lastpos>seedlen)
 					facount_nonoverlap++;
 				lastpos=fal.getMin();
 			}
@@ -683,11 +682,13 @@ public class Pomoda {
 
 			//if(pos_prior.size()==0&&!OOPS)
 				score=facount_nonoverlap/(SearchEngine2.TotalLen*prob_bg); //positionlist.size()*(-common.DoubleMinNormal*seedlen-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
-			
+//			if(pattern.equalsIgnoreCase("TTCCC"))
+//				pattern="GGGAA";
 			if(score<=1)
 				continue;
 				//else
 //				score=sumLLR(LocList,-common.DoubleMinNormal*seedlen,logprob_bg);
+			score=BinomialDist.cdf(SearchEngine2.TotalLen,prob_bg,facount_nonoverlap);
 			seedScores.put(pattern, score);
 		}
 		//sort by score
@@ -1984,6 +1985,7 @@ public class Pomoda {
 					bgseed_ignore2=bgmodel.scoreWeightMatrix(seedstring)-seedscore;
 					
 		}
+		double bgseed_ignore3=this.background.Get_LOGPROB(seedstring)-seedscore;
 		
 		do
 		{
@@ -1991,6 +1993,9 @@ public class Pomoda {
 			itercount++;
 		int truecount=0;
 		int overlapcount=0;
+		motif.pos_en=true;
+		motif.peakrank_en=true;
+		motif.strand_en=true;
 //			double [][] A=new double[motif.columns()][4];
 //			double [][] B=new double[motif.columns()][4];
 		String consensus_core=motif.Consensus(false).substring(motif.head,motif.head+motif.core_motiflen);
@@ -2119,7 +2124,10 @@ public class Pomoda {
 					double logprob_BG=0;
 					if(background.EnablePWMBG&&background.kmerlen==seedstring.length()&&bgmodel!=null)
 					{
+//						if(itercount<6)
 						logprob_BG=bgmodel.scoreWeightMatrix(motifsite)-bgseed_ignore2;
+//						else
+//							logprob_BG=this.background.Get_LOGPROB(motifsite)-bgseed_ignore3;
 					}
 					else
 						logprob_BG=motifBG.Get_LOGPROB(motifsite)-bgseed_ignore;
@@ -2993,7 +3001,7 @@ public class Pomoda {
 //			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGGTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGGGAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNAAACANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNTCACANNNNNNNNNNNNNNNN"}));
