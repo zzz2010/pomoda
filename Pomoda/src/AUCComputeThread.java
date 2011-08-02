@@ -14,6 +14,7 @@ public class AUCComputeThread extends Thread {
 	PWM motif;
 	LinearEngine sequences;
 	double AUCresult=0;
+	boolean ZscoreFlag=false;
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
@@ -21,7 +22,7 @@ public class AUCComputeThread extends Thread {
 		if(motif==null)
 			return;
 		int avglen=Evaluator.SearchEngine.TotalLen/Evaluator.SearchEngine.getSeqNum();
-		if(avglen<500)
+		if(avglen<500&&!ZscoreFlag)
 		AUCresult=Evaluator.calcAUC(motif,sequences);
 		else
 		AUCresult=Evaluator.HyperGeometricScore(motif, sequences);

@@ -688,7 +688,7 @@ public class Pomoda {
 				continue;
 				//else
 //				score=sumLLR(LocList,-common.DoubleMinNormal*seedlen,logprob_bg);
-			score=BinomialDist.cdf(SearchEngine2.TotalLen,prob_bg,facount_nonoverlap);
+//			score=BinomialDist.cdf(SearchEngine2.TotalLen,prob_bg,facount_nonoverlap);
 			seedScores.put(pattern, score);
 		}
 		//sort by score
@@ -3103,6 +3103,8 @@ public class Pomoda {
 		for (int i = 0; i < seedPWMs.size(); i++) {
 			AUCComputeThread t1=new AUCComputeThread(evaluator, seedPWMs.get(i).trim(), motifFinder.BGSearch);
 //			if( motifFinder.BGSearch!=null)
+			if(motifFinder.maskflag)
+				t1.ZscoreFlag=true;
 				t1.run();
 //			else
 //				executor.execute(t1);
