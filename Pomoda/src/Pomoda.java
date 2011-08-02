@@ -1003,7 +1003,7 @@ public class Pomoda {
 	public PWM Relax_Seed_3(PWM motif)
 	{
 		double log025=Math.log(0.25);
-		double switchvalue=1;//*SearchEngine2.TotalLen*Math.pow(0.25, motif.core_motiflen);
+		double switchvalue=2;//*SearchEngine2.TotalLen*Math.pow(0.25, motif.core_motiflen);
 		//relax the conserved column 
 		String consensus=motif.Consensus(false);
 		double main_prop=0.504166667;//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
@@ -1995,7 +1995,7 @@ public class Pomoda {
 		int overlapcount=0;
 		motif.pos_en=true;
 		motif.peakrank_en=true;
-		motif.strand_en=true;
+//		motif.strand_en=true;
 //			double [][] A=new double[motif.columns()][4];
 //			double [][] B=new double[motif.columns()][4];
 		String consensus_core=motif.Consensus(false).substring(motif.head,motif.head+motif.core_motiflen);
@@ -2347,8 +2347,8 @@ public class Pomoda {
 				double[] p1=common.Normalize(count_matrix[k]);
 				for (int u = 0; u < 4; u++) {
 					if(p1[u]>0)
-					{//Math.max(KL_Div[k], (p1[u]/Math.exp(single_logprob_bg_[k][u])));//
-						KL_Div[k]+=Math.pow((p1[u]-Math.exp(single_logprob_bg_[k][u])),2);//p1[u]*(Math.log(p1[u])-single_logprob_bg_[k][u]);//
+					{//KL_Div[k]+=Math.max(KL_Div[k], (p1[u]/Math.exp(single_logprob_bg_[k][u])));//
+						KL_Div[k]+=p1[u]*(Math.log(p1[u])-single_logprob_bg_[k][u]);//Math.pow((p1[u]-Math.exp(single_logprob_bg_[k][u])),2);//
 					}
 					optimalcols[k][u]=p1[u]/Math.exp(single_logprob_bg_[k][u]);
 				}
@@ -2589,7 +2589,7 @@ public class Pomoda {
 					chistat+=temp*temp/Ei;
 				}
 		
-			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR/num_col_cand);
+			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR/(motif.columns()-seedstring.length()));
 			int extralen=0;
 			if(bestCol<motif.head)
 				extralen=motif.head-bestCol;
@@ -2998,12 +2998,12 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-//			seedPWMs.clear();
+			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGGGAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNAAACANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCGAAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCGCGCNNNNNNNNNNNNNNNNNNNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNTCGCGNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNTCACANNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGTTAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
@@ -3053,7 +3053,7 @@ public class Pomoda {
 			seedPWMs.get(i).Name="Motif"+String.valueOf(i+1);
 			// to make different length comparable ,need to consider the instance coverage
 //			seedPWMs.get(i).Score=seedPWMs.get(i).Score/seedPWMs.get(i).inst_coverage;//corrected score
-			if(motifFinder.maskflag&&(seedPWMs.get(i).Prior_EZ*motifFinder.SearchEngine2.TotalLen)>(motifFinder.SearchEngine2.getSeqNum()))
+			if(motifFinder.maskflag&&seedPWMs.get(i).peakrank_en&&seedPWMs.get(i).pos_en)// (seedPWMs.get(i).Prior_EZ*motifFinder.SearchEngine2.TotalLen)>(motifFinder.SearchEngine2.getSeqNum()))
 			{
 				//do something to mark the locations in SearchEngine
 				
@@ -3184,12 +3184,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-//		} catch (IllegalAlphabetException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} catch (IllegalSymbolException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 			
 			
 		} 

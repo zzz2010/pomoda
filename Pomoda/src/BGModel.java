@@ -325,7 +325,18 @@ public class BGModel implements Serializable{
 			{
 				java.util.Map.Entry<String, PWM> curr=iter.next();
 				String kmer=curr.getKey();
+				
 				PWM temp=curr.getValue();
+				if(kmerPWMBG.containsKey(common.getReverseCompletementString(kmer)))
+				{
+					PWM temp2=kmerPWMBG.get(common.getReverseCompletementString(kmer));
+					for (int i = 0; i < temp.columns(); i++)
+					{
+						for (int j = 0; j < 4; j++) {
+							temp.m_matrix[i][j]+=temp2.m_matrix[temp.columns()-i-1][3-j];
+						}
+					}
+				}
 				for (int i = 0; i < temp.columns(); i++) {
 					temp.setWeights(i, common.Normalize(temp.m_matrix[i]));
 				}
