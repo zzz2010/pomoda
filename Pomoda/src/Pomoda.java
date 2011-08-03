@@ -1003,7 +1003,7 @@ public class Pomoda {
 	public PWM Relax_Seed_3(PWM motif)
 	{
 		double log025=Math.log(0.25);
-		double switchvalue=2;//*SearchEngine2.TotalLen*Math.pow(0.25, motif.core_motiflen);
+		double switchvalue=1;//*SearchEngine2.TotalLen*Math.pow(0.25, motif.core_motiflen);
 		//relax the conserved column 
 		String consensus=motif.Consensus(false);
 		double main_prop=0.504166667;//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
@@ -1347,7 +1347,7 @@ public class Pomoda {
 					{
 						FastaLocation currloc=iter2.next();
 						String site=iter_site.next();
-
+						String revsite=common.getReverseCompletementString(site);
 						
 						//double logprob_theta=currloc.Score;//include the bg log_prob in the score
 						double logpwm=motif.scoreWeightMatrix(site);//-Math.log(2.0);
@@ -1993,9 +1993,12 @@ public class Pomoda {
 			itercount++;
 		int truecount=0;
 		int overlapcount=0;
+		
+		
 		motif.pos_en=true;
 		motif.peakrank_en=true;
-//		motif.strand_en=true;
+		motif.strand_en=true;
+		
 //			double [][] A=new double[motif.columns()][4];
 //			double [][] B=new double[motif.columns()][4];
 		String consensus_core=motif.Consensus(false).substring(motif.head,motif.head+motif.core_motiflen);
@@ -2589,7 +2592,7 @@ public class Pomoda {
 					chistat+=temp*temp/Ei;
 				}
 		
-			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR/(motif.columns()-seedstring.length()));
+			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR);//(motif.columns()-seedstring.length())
 			int extralen=0;
 			if(bestCol<motif.head)
 				extralen=motif.head-bestCol;
@@ -2998,12 +3001,12 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-			seedPWMs.clear();
+//			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCGAAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCGCGCNNNNNNNNNNNNNNNNNNNNNNNNN"}));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNTCGCGNNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCGAAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCGCGCNNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNTCGCGNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNTCACANNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGTTAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
@@ -3184,12 +3187,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-		} catch (IllegalAlphabetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalSymbolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+//		} catch (IllegalAlphabetException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IllegalSymbolException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
 			
 			
 		} 
