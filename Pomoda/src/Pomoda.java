@@ -446,10 +446,12 @@ public class Pomoda {
 	
 	public ArrayList<PWM>	 getSeedMotifs3(int max_num_Seeds) {
 		ArrayList<PWM>	SeedMotifs=new	ArrayList<PWM>(max_num_Seeds);
-		int maxkmerlen=(int) (Math.log(2*SearchEngine2.TotalLen)/Math.log(4));
+		int maxkmerlen=8;//(int) (Math.log(2*SearchEngine2.TotalLen)/Math.log(4));
 		if(maxkmerlen<seedlen)
 			return SeedMotifs;
-		HashMap<String,Double> PatternLib=new HashMap<String, Double>((int) Math.pow(maxkmerlen, 4));
+		double[] PatternCount=new double[(int) Math.pow( 4,maxkmerlen)];
+		double[] PatternBGCount=new double[(int) Math.pow( 4,maxkmerlen)];
+		HashMap<String,Double> PatternLib=new HashMap<String, Double>((int) Math.pow( 4,maxkmerlen));
 		Iterator<String> iter=SearchEngine2.ForwardStrand.iterator();
 		while(iter.hasNext())
 		{
@@ -461,33 +463,96 @@ public class Pomoda {
 				{
 					PatternLib.put(patt, PatternLib.get(patt)+1);
 				}
-				else if(PatternLib.containsKey(revpatt))
-				{
-					patt=revpatt;
-					PatternLib.put(patt, PatternLib.get(patt)+1);
-				}
+//				else if(PatternLib.containsKey(revpatt))
+//				{
+//					patt=revpatt;
+//					PatternLib.put(patt, PatternLib.get(patt)+1);
+//				}
 				else
 				{
 					PatternLib.put(patt, 1.0);
 				}
 			}
 		}
-		
-		TreeMap<Double,String> sortPattLib=new TreeMap<Double, String>();
-		double minscore=0;
 		for(Entry<String,Double> pair:PatternLib.entrySet())
 		{
 			String pattern=pair.getKey();
-			double logprob_bg=Math.log(Math.exp(background.Get_LOGPROB(pattern))+Math.exp(background.Get_LOGPROB(common.getReverseCompletementString(pattern)) )) ;
-			double oddratio=PatternLib.get(pattern)/Math.exp(logprob_bg);
-//			if(Double.isNaN(oddratio)||oddratio==0)
-//				break;
-			sortPattLib.put(oddratio,pattern);
-			if(max_num_Seeds<sortPattLib.size())
-			{
-				minscore=sortPattLib.firstKey();
+			double prob_bg=Math.exp(background.Get_LOGPROB(pattern));
+			int code=common.getHashing(pattern,0, pattern.length());
+			int id=0;
+			for (int i = 0; i < maxkmerlen-2; i++) {
+				int first=0;
+				
+				for (int j = 0; j < i; j++)
+				{
+					first+=((code>>(2*j))&3)<<(2*j);
+				}
+				for (int j = i+1; j < maxkmerlen-1; j++) {
+					int second=0;
+					for (int k = i+1; k < j; k++)
+					{
+						second+=((code>>(2*k))&3)<<(2*(k-1));
+					}
+					
+					for (int k = j+1; k < maxkmerlen; k++) {
+						int third=0;
+						
+						for (int l = j+1; l < k; l++) {
+							third+=((code>>(2*l))&3)<<(2*(l-2));
+						}
+						int maskcode=first+second+third+((code>>(2*(k+1)))<<(2*((k+1)-3)))+(id<<(2*(maxkmerlen-3)));
+						PatternCount[maskcode]+=pair.getValue();
+						PatternBGCount[maskcode]+=prob_bg;
+						id++;
+					}
+					
+				}
 			}
 		}
+		
+		TreeMap<Double,String> sortPattLib=new TreeMap<Double, String>();
+		int maskint=(int)Math.pow(4, maxkmerlen-3)-1;
+		int id=0;
+		int[] g1,g2,g3;
+		g1=new int[maxkmerlen*maxkmerlen];
+		g2=new int[maxkmerlen*maxkmerlen];
+		g3=new int[maxkmerlen*maxkmerlen];
+		for (int i = 0; i < maxkmerlen-2; i++)
+			for (int j = i+1; j < maxkmerlen-1; j++)
+				for (int k = j+1; k < maxkmerlen; k++)
+				{
+					g1[id]=i;
+					g2[id]=j;
+					g3[id]=k;
+					id++;
+				}
+		for (int i = 0; i < PatternCount.length; i++) {
+			if(PatternCount[i]==0.0)
+				continue;
+			StringBuilder sb=new StringBuilder(common.Hash2ACGT(i&maskint, maxkmerlen-3));
+			int gapid=i>>(2*(maxkmerlen-3));
+			sb.insert(maxkmerlen-g3[gapid]-1, "N");
+			sb.insert(maxkmerlen-g2[gapid]-1, "N");
+			sb.insert(maxkmerlen-g1[gapid]-1, "N");
+			
+			
+			sortPattLib.put(PatternCount[i]/PatternBGCount[i]/SearchEngine2.TotalLen,sb.toString());
+		}
+		
+		double minscore=0;
+//		for(Entry<String,Double> pair:PatternLib.entrySet())
+//		{
+//			String pattern=pair.getKey();
+//			double logprob_bg=Math.log(Math.exp(background.Get_LOGPROB(pattern))+Math.exp(background.Get_LOGPROB(common.getReverseCompletementString(pattern)) )) ;
+//			double oddratio=PatternLib.get(pattern)/Math.exp(logprob_bg);
+////			if(Double.isNaN(oddratio)||oddratio==0)
+////				break;
+//			sortPattLib.put(oddratio,pattern);
+//			if(max_num_Seeds<sortPattLib.size())
+//			{
+//				minscore=sortPattLib.firstKey();
+//			}
+//		}
 
 			//just take top ones
 		    for (Map.Entry<Double,String> pair : sortPattLib.descendingMap().entrySet()) {
@@ -2993,7 +3058,7 @@ public class Pomoda {
 		 System.currentTimeMillis();
 		//get seed motifs
 		ArrayList<PWM>  seedPWMs=motifFinder.getSeedMotifs();
-//		ArrayList<PWM>  seedPWMs2=motifFinder.getSeedMotifs3(10);
+//		ArrayList<PWM>  seedPWMs2=motifFinder.getSeedMotifs3(100);
 		//LinkedList<PWM>  seedPWMs=new LinkedList<PWM>();
 		
 		double topseed_Score=0;
