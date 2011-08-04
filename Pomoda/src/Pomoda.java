@@ -436,12 +436,143 @@ public class Pomoda {
 			
 			String rep=SearchEngine2.ForwardStrand.get(currloc.getSeqId()).replace(Site1, X_Str);
 			SearchEngine2.ForwardStrand.set(currloc.getSeqId(), rep);
-
-			
 		}
 
 		SearchEngine2.TotalLen-=masklen;
 		
+	}
+	
+	public ArrayList<PWM>  getSeedMotifs4(int max_num_Seeds) {
+		ArrayList<PWM>	SeedMotifs=new	ArrayList<PWM>(max_num_Seeds);
+		int maxkmerlen=6;//(int) (Math.log(2*SearchEngine2.TotalLen)/Math.log(4));
+		if(maxkmerlen<seedlen)
+			return SeedMotifs;
+		double[] PatternCount=new double[(int) Math.pow( 4,maxkmerlen)];
+		double[] PatternBGCount=new double[(int) Math.pow( 4,maxkmerlen)];
+		HashMap<String,Double> PatternLib=new HashMap<String, Double>((int) Math.pow( 4,maxkmerlen));
+		Iterator<String> iter=SearchEngine2.ForwardStrand.iterator();
+		while(iter.hasNext())
+		{
+			String seq=iter.next();
+			for (int i = 0; i < seq.length()-maxkmerlen; i++) {
+				String patt=seq.substring(i, i+maxkmerlen).toUpperCase();
+				String revpatt=common.getReverseCompletementString(patt);
+				if(PatternLib.containsKey(patt))
+				{
+					PatternLib.put(patt, PatternLib.get(patt)+1);
+				}
+//				else if(PatternLib.containsKey(revpatt))
+//				{
+//					patt=revpatt;
+//					PatternLib.put(patt, PatternLib.get(patt)+1);
+//				}
+				else
+				{
+					PatternLib.put(patt, 1.0);
+				}
+			}
+		}
+		for(Entry<String,Double> pair:PatternLib.entrySet())
+		{
+			String pattern=pair.getKey();
+			double prob_bg=Math.exp(background.Get_LOGPROB(pattern));
+			int code=common.getHashing(pattern,0, pattern.length());
+			int id=0;
+			for (int i = 0; i < maxkmerlen-2; i++) {
+				int first=0;
+				
+				for (int j = 0; j < i; j++)
+				{
+					first+=((code>>(2*j))&3)<<(2*j);
+				}
+				int second=((code>>(2*(i+1)))<<(2*(i+1)));
+				for (int j = 0; j < 4; j++) {
+					
+					int maskcode=first+second+(j<<(2*i));
+					PatternCount[maskcode]+=pair.getValue();
+					PatternBGCount[maskcode]+=prob_bg;
+				}
+
+				id++;
+				}	
+		}
+		
+		TreeMap<Double,String> sortPattLib=new TreeMap<Double, String>();
+		int maskint=(int)Math.pow(4, maxkmerlen-3)-1;
+	
+		for (int i = 0; i < PatternCount.length; i++) {
+			if(PatternCount[i]==0.0)
+				continue;
+
+			String patt=common.Hash2ACGT(i, maxkmerlen);
+			
+			sortPattLib.put(PatternCount[i]/PatternBGCount[i]/SearchEngine2.TotalLen,patt);
+		}
+		
+		double minscore=0;
+
+			//just take top ones
+		    for (Map.Entry<Double,String> pair : sortPattLib.descendingMap().entrySet()) {
+		    	if(SeedMotifs.size()==max_num_Seeds)
+		    		break;
+			    String toppattern=pair.getValue();
+			    //simple filter the duplicate
+			    int mindist=100;
+			    for(PWM topseed:SeedMotifs)
+			    {
+			    	int dist_=common.HammingDistance(toppattern, topseed.Name);
+			    	if(mindist>dist_)
+			    		mindist=dist_;
+			    	dist_=common.HammingDistance(common.getReverseCompletementString(toppattern) , topseed.Name);
+			    	if(mindist>dist_)
+			    		mindist=dist_;
+			    	if(mindist<2)
+			    		break;
+			    }
+			    if(mindist<2)
+			    	continue;
+			    
+			    System.out.println(toppattern+"\t"+pair.getKey());
+			    StringBuffer sb=new StringBuffer(toppattern);
+			    for (int j = 0; j < (max_motiflen-toppattern.length())/2; j++) {
+			    	sb.insert(0, '-');
+			    	sb.append('-');					
+				}
+			    
+			    String[] seqs={sb.toString()};
+			    try {
+					PWM a=new PWM(seqs);
+					a.head=(max_motiflen-toppattern.length())/2;
+					a.tail=a.head;
+					a.core_motiflen=toppattern.length();
+					char[] ACGT=new char[]{'A','C','G','T'};
+					for (int i = a.head; i < a.head+toppattern.length(); i++) {
+						StringBuilder sb2=new StringBuilder(toppattern);
+						double[] FC=new double[4]; 
+						for (int j = 0; j < ACGT.length; j++) {
+							sb2.setCharAt(i-a.head, ACGT[j]);
+							double prob_bg=Math.exp(background.Get_LOGPROB(sb2.toString()));
+							double NC=SearchEngine2.TotalLen*prob_bg;
+							FC[j]=PatternLib.get(sb2.toString())-NC;
+							if(FC[j]<0)
+								FC[j]=0;
+						}
+						a.setWeights(i, common.Normalize(FC));
+						
+					}
+					a.Score=pair.getKey();
+					a.Name=toppattern;
+					SeedMotifs.add(a);
+					//System.out.println(a.Score);
+				} catch (IllegalAlphabetException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalSymbolException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+		    }
+		return SeedMotifs;
 	}
 	
 	public ArrayList<PWM>	 getSeedMotifs3(int max_num_Seeds) {
@@ -540,19 +671,6 @@ public class Pomoda {
 		}
 		
 		double minscore=0;
-//		for(Entry<String,Double> pair:PatternLib.entrySet())
-//		{
-//			String pattern=pair.getKey();
-//			double logprob_bg=Math.log(Math.exp(background.Get_LOGPROB(pattern))+Math.exp(background.Get_LOGPROB(common.getReverseCompletementString(pattern)) )) ;
-//			double oddratio=PatternLib.get(pattern)/Math.exp(logprob_bg);
-////			if(Double.isNaN(oddratio)||oddratio==0)
-////				break;
-//			sortPattLib.put(oddratio,pattern);
-//			if(max_num_Seeds<sortPattLib.size())
-//			{
-//				minscore=sortPattLib.firstKey();
-//			}
-//		}
 
 			//just take top ones
 		    for (Map.Entry<Double,String> pair : sortPattLib.descendingMap().entrySet()) {
@@ -2532,6 +2650,8 @@ public class Pomoda {
 			for (int ecol = motif.head; ecol < motif.columns()-motif.tail; ecol++) 
 			{
 				//int ecol=iter1.next();
+				if(ecol>=seedst&&ecol<=seedend)
+					continue;
 				motif.setWeights(ecol,common.Normalize(count_matrix[ecol]));
 				
 			}
@@ -3071,7 +3191,8 @@ public class Pomoda {
 		ArrayList<PWM>  seedPWMs=null;
 		if(SeedPWMfile.isEmpty())
 		{
-			seedPWMs=motifFinder.getSeedMotifs();
+//			seedPWMs=motifFinder.getSeedMotifs();
+			seedPWMs=motifFinder.getSeedMotifs4(10);
 		}
 		else
 		{
@@ -3089,7 +3210,7 @@ public class Pomoda {
 				maxseednum--;
 			}
 		}
-//		ArrayList<PWM>  seedPWMs2=motifFinder.getSeedMotifs3(100);
+		
 		//LinkedList<PWM>  seedPWMs=new LinkedList<PWM>();
 		
 		double topseed_Score=0;
