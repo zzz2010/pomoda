@@ -119,6 +119,8 @@ public class BGModel implements Serializable{
 	
 	
 
+	
+
 	public void BuildModel(String[] Seqs, int order)
 	{
 		this.order=order;

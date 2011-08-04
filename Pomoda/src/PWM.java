@@ -350,6 +350,8 @@ public class PWM extends SimpleWeightMatrix {
 		
 	}
 	
+
+	
 	public PWM subPWM(int start, int end)
 	{
 		
