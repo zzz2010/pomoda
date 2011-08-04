@@ -447,7 +447,7 @@ public class PWMevaluator {
 				}
 		LinkedList<FastaLocation> falocs_bg= BGSearch.searchPattern(motif, thresh);
 		
-		HGscore=HypergeometricDist.cdf(falocs_bg.size()+1, BGSearch.ForwardStrand.size()+2, this.SearchEngine.ForwardStrand.size()+2, falocs.size()+1) ;
+//		HGscore=HypergeometricDist.cdf(falocs_bg.size()+1, BGSearch.ForwardStrand.size()+2, this.SearchEngine.ForwardStrand.size()+2, falocs.size()+1) ;
 		SearchThread.bestonly=false;
 		double p=(double)falocs_bg.size()/BGSearch.ForwardStrand.size();
 		HGscore=(falocs.size()-this.SearchEngine.ForwardStrand.size()*p)/Math.sqrt(this.SearchEngine.ForwardStrand.size()*p*(1-p));
@@ -784,10 +784,10 @@ public class PWMevaluator {
 		{
 			PWM p1=iter.next();
 			double auc=0;
-//			if(evaluator.BGSearchEngine==null)
+			if(evaluator.SearchEngine.TotalLen/evaluator.SearchEngine.getSeqNum()<500)
 				auc=evaluator.calcAUC(p1, evaluator.BGSearchEngine);
-//			else
-//				auc=evaluator.HyperGeometricScore(p1, evaluator.BGSearchEngine);
+			else
+				auc=evaluator.HyperGeometricScore(p1, evaluator.BGSearchEngine);
 			p1.Score=auc;
 			writer.write(p1.Name+"\t"+auc+"\n");
 			sortedPWMs.put(auc, p1);

@@ -28,6 +28,17 @@ public class BGModel implements Serializable{
 	public int order;
 	
 	//return probability
+	public static BGModel CreateUniform()
+	{
+		BGModel bgmodel=new BGModel();
+		bgmodel.order=1;
+		bgmodel.conditionProb=new HashMap<String, Double>();
+		bgmodel.conditionProb.put("A", 0.25);
+		bgmodel.conditionProb.put("C", 0.25);
+		bgmodel.conditionProb.put("G", 0.25);
+		bgmodel.conditionProb.put("T", 0.25);
+		return bgmodel;
+	}
 	public KeyValuePair<Double, String> generateRandomSequence(int len)
 	{
 		double score=1;
