@@ -1881,7 +1881,9 @@ public class Pomoda {
 		LinkedList<FastaLocation> origFalocs=new LinkedList<FastaLocation>();//SearchEngine.searchPattern(motif, thresh);
 		LinkedList<FastaLocation> tempfalocs=(SearchEngine2.KmerHitList.get(seedstring));
 		if(seedstring.length()!=SearchEngine2.KmerHitList.keySet().iterator().next().length())
-			tempfalocs=SearchEngine2.searchPattern(seedstring, 0);
+		{
+			tempfalocs=SearchEngine2.searchPattern(motif, Math.log(1.0/seedstring.length()));
+		}
 		////////////////////////////////////Insert the reverse complement///////////////////////////////////////////
 		if(!seedstring.equalsIgnoreCase(common.getReverseCompletementString(seedstring)))
 		{
@@ -2051,7 +2053,8 @@ public class Pomoda {
 					
 		}
 		double bgseed_ignore3=this.background.Get_LOGPROB(seedstring)-seedscore;
-		
+		int seedst=motif.head;
+		int seedend=motif.columns()-motif.tail-1;
 		do
 		{
 
@@ -2170,14 +2173,16 @@ public class Pomoda {
 					//assume only one N for line break
 					StringBuffer sb=new StringBuffer(site);
 					for (int i = 0; i < site.length(); i++) {
-						if(site.charAt(i)=='N'&& i<=site.length()/2)
+						if(i>=seedst&&i<=seedend)
+							sb.setCharAt(i, 'N');
+						if(site.charAt(i)=='N'&& i<seedst)
 						{
 							for (int j = 0; j < i; j++) {
 								sb.setCharAt(j, 'N');
 							}
 							continue;
 						}
-						else if(site.charAt(i)=='N')
+						else if(site.charAt(i)=='N'&&i>seedend)
 						{
 							for (int j = i+1; j < site.length(); j++) {
 								sb.setCharAt(j, 'N');
@@ -2193,12 +2198,12 @@ public class Pomoda {
 					if(background.EnablePWMBG&&background.kmerlen==seedstring.length()&&bgmodel!=null)
 					{
 //						if(itercount<6)
-						logprob_BG=bgmodel.scoreWeightMatrix(motifsite)-bgseed_ignore2;
+						logprob_BG=bgmodel.scoreWeightMatrix(motifsite);
 //						else
 //							logprob_BG=this.background.Get_LOGPROB(motifsite)-bgseed_ignore3;
 					}
 					else
-						logprob_BG=motifBG.Get_LOGPROB(motifsite)-bgseed_ignore;
+						logprob_BG=motifBG.Get_LOGPROB(motifsite);
 
 					int posbin=(int)(num_priorbin*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
 					int rankbin=num_priorbin*currloc.getSeqId()/SearchEngine2.getSeqNum();
@@ -2938,6 +2943,7 @@ public class Pomoda {
 		Options options = new Options();
 		options.addOption("i", true, "input fasta file");
 		options.addOption("c", true, "control fasta file");
+		options.addOption("seedfile", true, "seed PWM file");
 		options.addOption("bgmodel", true, "background model file");
 		options.addOption("dnase", true, "dnase data file");
 		options.addOption("prefix", true, "output directory");
@@ -2956,6 +2962,7 @@ public class Pomoda {
 		
 		CommandLineParser parser = new GnuParser();
 		Pomoda motifFinder=new Pomoda();
+		String SeedPWMfile="";
 		try {
 			CommandLine cmd = parser.parse( options, args);
 			if(cmd.hasOption("i"))
@@ -2969,6 +2976,10 @@ public class Pomoda {
 			if(cmd.hasOption("c"))
 			{
 				motifFinder.ctrlFasta=cmd.getOptionValue("c");
+			}
+			if(cmd.hasOption("seedfile"))
+			{
+				SeedPWMfile=cmd.getOptionValue("seedfile");
 			}
 			if(cmd.hasOption("bgmodel"))
 			{
@@ -3057,7 +3068,27 @@ public class Pomoda {
 
 		 System.currentTimeMillis();
 		//get seed motifs
-		ArrayList<PWM>  seedPWMs=motifFinder.getSeedMotifs();
+		ArrayList<PWM>  seedPWMs=null;
+		if(SeedPWMfile.isEmpty())
+		{
+			seedPWMs=motifFinder.getSeedMotifs();
+		}
+		else
+		{
+			int maxseednum=motifFinder.num_motif*motifFinder.num_motif;
+			seedPWMs=new ArrayList<PWM>(maxseednum);
+			LinkedList<PWM>  knownseeds=common.LoadPWMFromFile(SeedPWMfile);
+		
+			for(PWM seed :knownseeds)
+			{
+				if(maxseednum>0)
+				{
+					System.out.println(seed.Consensus(false));
+					seedPWMs.add(seed);
+				}
+				maxseednum--;
+			}
+		}
 //		ArrayList<PWM>  seedPWMs2=motifFinder.getSeedMotifs3(100);
 		//LinkedList<PWM>  seedPWMs=new LinkedList<PWM>();
 		
@@ -3105,7 +3136,8 @@ public class Pomoda {
 //			}
 			
 			System.out.println("Extending...");
-			seedPWMs.set(i,motifFinder.Column_Replacement_2(motif));
+			if(SeedPWMfile=="")
+				seedPWMs.set(i,motifFinder.Column_Replacement_2(motif));
 			if(seedPWMs.get(i)==null||seedPWMs.get(i).core_motiflen<motifFinder.min_motiflen)
 			{
 				seedPWMs.remove(i);
@@ -3190,7 +3222,11 @@ public class Pomoda {
 				System.out.println(seedPWMs.get(i).Consensus(true)+" AUC:"+ llrscore);
 				seedPWMs.get(i).Score=llrscore+seedPWMs.get(i).Prior_EZ/10;
 				if(llrscore>0.5)
+				{
+					if(seedPWMs.get(i).pos_en||seedPWMs.get(i).peakrank_en||seedPWMs.get(i).strand_en)
+						llrscore+=10000;
 				sortedPWMs.put(llrscore+seedPWMs.get(i).Prior_EZ/10, seedPWMs.get(i));
+				}
 		  }
 ///////////////////////////////////////evaluate different motif in parallel///////////////////////////////////////////			
 		seedPWMs.clear();

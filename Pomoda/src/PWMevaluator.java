@@ -409,7 +409,6 @@ public class PWMevaluator {
 			
 		 SearEngine=this.SearchEngine;
 		double thresh=motif.getThresh(1, 0.0001, background);
-		SearchThread.bestonly=true;
 		double lamda=(double)SearchEngine.getSeqNum()/SearEngine.TotalLen/2;
 		 SearchThread.recordSiteThreshold=Math.log((1-lamda)/lamda)+motif.core_motiflen*Math.log(0.25);
 	        motif.matchsite.clear();
@@ -448,9 +447,8 @@ public class PWMevaluator {
 		LinkedList<FastaLocation> falocs_bg= BGSearch.searchPattern(motif, thresh);
 		
 //		HGscore=HypergeometricDist.cdf(falocs_bg.size()+1, BGSearch.ForwardStrand.size()+2, this.SearchEngine.ForwardStrand.size()+2, falocs.size()+1) ;
-		SearchThread.bestonly=false;
-		double p=(double)falocs_bg.size()/BGSearch.ForwardStrand.size();
-		HGscore=(falocs.size()-this.SearchEngine.ForwardStrand.size()*p)/Math.sqrt(this.SearchEngine.ForwardStrand.size()*p*(1-p));
+		double p=(double)falocs_bg.size()/BGSearch.TotalLen;
+		HGscore=(falocs.size()-this.SearchEngine.TotalLen*p)/Math.sqrt(this.SearchEngine.TotalLen*p*(1-p));
 		return HGscore;
 	}
 	
