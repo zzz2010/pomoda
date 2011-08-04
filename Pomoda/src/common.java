@@ -35,7 +35,17 @@ import org.jfree.ui.RectangleInsets;
 public class common {
 	
 
-
+	public static int HammingDistance(String p1, String p2)
+	{
+		int len=Math.min(p1.length(), p2.length());
+		int dist=0;
+		for (int i = 0; i < len; i++) {
+			if(p1.charAt(i)!=p2.charAt(i))
+				dist++;
+		}
+		return dist;
+		
+	}
 	public static double SeqComplexity(int order, String seq)
 	{
 		double complexity=0;
