@@ -447,7 +447,7 @@ public class PWMevaluator {
 		LinkedList<FastaLocation> falocs_bg= BGSearch.searchPattern(motif, thresh);
 		
 //		HGscore=HypergeometricDist.cdf(falocs_bg.size()+1, BGSearch.ForwardStrand.size()+2, this.SearchEngine.ForwardStrand.size()+2, falocs.size()+1) ;
-		double p=(double)falocs_bg.size()/BGSearch.TotalLen;
+		double p=(double)(falocs_bg.size()+1)/BGSearch.TotalLen;
 		HGscore=(falocs.size()-this.SearchEngine.TotalLen*p)/Math.sqrt(this.SearchEngine.TotalLen*p*(1-p));
 		return HGscore;
 	}
