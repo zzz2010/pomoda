@@ -319,6 +319,27 @@ public class PWM extends SimpleWeightMatrix {
          rc.Name = this.Name+"_RC";
          return rc;
      }
+	
+	public String MaximumConsensus()
+	{
+		StringBuilder sb=new StringBuilder();
+		char[] ACGT=new char[]{'A','C','G','T'};
+		for (int i = 0; i < core_motiflen; i++) {
+			double maxv=0;
+			int maxI=0;
+			for (int j = 0; j < 4; j++) {
+				if(m_matrix[i+head][j]>maxv)
+				{
+					maxv=m_matrix[i+head][j];
+					maxI=j;
+				}
+			}
+			sb.append(ACGT[maxI]);
+			
+		}
+		
+		return sb.toString();
+	}
 	 
 	  
 	

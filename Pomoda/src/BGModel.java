@@ -82,7 +82,10 @@ public class BGModel implements Serializable{
 		while(start<seq.length())
 		{
 			while(start<seq.length()&&seq.charAt(start)=='N')
+			{
+				logprob+=Math.log(0.25);
 				start++;
+			}
 			for (i = 0; i < order&&i<(seq.length()-start); i++) {
 				if(common.acgt[ seq.charAt(start+i)]>3)
 				{
