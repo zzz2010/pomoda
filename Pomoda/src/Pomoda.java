@@ -409,7 +409,7 @@ public class Pomoda {
 	public void Masking(PWM motif)
 	{
 		int masklen=0;
-		double log_thresh=motif.getThresh(1.0, 0.0001, background);
+		double log_thresh=motif.getThresh(1.0, 0.01, background);
 		String consensus_core=motif.Consensus(true);
 		
 		
@@ -425,17 +425,45 @@ public class Pomoda {
 		int lastseq=-1;
 	
 		String X_Str="";
-		for (int i = 0; i < motiflen; i++) {
+		for (int i = 0; i < motiflen/4; i++) {
 			X_Str+="N";
 		}
+		
+		int num_priorbin=SearchEngine2.getTotalLength()/SearchEngine2.getSeqNum()/this.resolution;
+		if(motif.core_motiflen/2>this.resolution)
+			num_priorbin=SearchEngine2.getTotalLength()/SearchEngine2.getSeqNum()/(motif.core_motiflen/2);
+		
+		
+		double lognullprior=Math.log(1.0/num_priorbin);
 		while(iter2.hasNext())
 		{
 			//masklen+=seedlen;
 			FastaLocation currloc=iter2.next();
 			String Site1=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos(), motiflen);
-			
+			if(currloc.ReverseStrand)
+				Site1=common.getReverseCompletementString(Site1);
+			double log_prob=motif.scoreWeightMatrix(Site1)-background.Get_LOGPROB(Site1);
+			double logprior=Math.exp(motif.Prior_EZ/(1-motif.Prior_EZ));
+			int prior_bin=(int)(num_priorbin*((currloc.getSeqPos()+motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
+			int rankbin=num_priorbin*currloc.getSeqId()/SearchEngine2.getSeqNum();
+			if(motif.pos_prior.size()!=0&&motif.pos_en)
+				logprior=Math.log(motif.pos_prior.get(prior_bin)+Double.MIN_NORMAL)-lognullprior;
+			if(motif.strand_en)
+			{
+				if(currloc.ReverseStrand)
+					logprior+=Math.log((1-motif.strand_plus_prior)*2);
+				else
+					logprior+=Math.log(motif.strand_plus_prior*2);
+			}
+			if(motif.peakrank_prior.size()!=0&&motif.peakrank_en)
+				logprior+=Math.log(motif.peakrank_prior.get(rankbin)+Double.MIN_NORMAL)-lognullprior;
+			double loglik=logprior+log_prob;
+			double prob_theta=Math.exp(loglik)/(Math.exp(loglik)+1);
+			if(prob_theta>0.99)
+			{
 			String rep=SearchEngine2.ForwardStrand.get(currloc.getSeqId()).replace(Site1, X_Str);
 			SearchEngine2.ForwardStrand.set(currloc.getSeqId(), rep);
+			}
 		}
 
 		SearchEngine2.TotalLen-=masklen;
@@ -1197,6 +1225,7 @@ public class Pomoda {
 	public PWM Relax_Seed_3(PWM motif)
 	{
 		double log025=Math.log(0.25);
+		char[] ACGT=new char[]{'A','C','G','T'};
 		double switchvalue=Double.POSITIVE_INFINITY;//*SearchEngine2.TotalLen*Math.pow(0.25, motif.core_motiflen);
 		//relax the conserved column 
 		String consensus=motif.Consensus(false);
@@ -1548,7 +1577,9 @@ public class Pomoda {
 						//double logprob_theta=currloc.Score;//include the bg log_prob in the score
 						double logpwm=motif.scoreWeightMatrix(site);//-Math.log(2.0);
 						double logbg=motifBG.Get_LOGPROB(site);//PWMBG.scoreWeightMatrix(site);//motifBG.Get_LOGPROB(site);//;//
-						logbg=Math.max(logbg, background.Get_LOGPROB(site))+Math.log(2.0);
+						logbg=Math.max(logbg, background.Get_LOGPROB(site));
+						if(!OOPS)
+						logbg+=Math.log(2.0);
 						double llc=Math.log(Math.exp(logpwm)*Prior_EZ+(1-Prior_EZ)*Math.exp(logbg))/10000;
 						double logprob_theta=logpwm-logbg;//  //
 					//	double logprob_theta=motif.scoreWeightMatrix(site)-SearchEngine2.BGscoreMap.get(motif.core_motiflen).get(currloc.getSeqId()).get(currloc.getSeqPos());
@@ -1632,7 +1663,6 @@ public class Pomoda {
 										{
 											continue;
 										}
-										
 										m_matrix[i][symid]-=lastpwmweight*0.8;
 									}
 								}
@@ -1716,6 +1746,7 @@ public class Pomoda {
 							sumexpLLRallsymid=0;
 						}
 						
+						
 						if(OOPS)
 						{
 							double overlapfactor=1;
@@ -1729,8 +1760,10 @@ public class Pomoda {
 										int symid=common.acgt[lastsite.charAt(i)];									
 										if(symid>3)
 										{
+											
 											for (int j = 0; j < 4; j++) {
-												sumexpLLR[i][j]-=0.25*overlap_expLLR*overlapfactor; //re-weighting
+												
+												sumexpLLR[i][j]-=motifBG.conditionProb.get(String.valueOf(ACGT[j]))*overlap_expLLR*overlapfactor; //re-weighting
 											}
 											continue;
 										}
@@ -1758,8 +1791,8 @@ public class Pomoda {
 									if(symid>3)
 									{
 										for (int j = 0; j < 4; j++) {
-											sumexpLLR[i][j]+=0.25*expLLR*sampleWeight*overlapfactor; //re-weighting
-											bgprob[i][j]+=0.25*(1-prob_theta)*sampleWeight;
+											sumexpLLR[i][j]+=motifBG.conditionProb.get(String.valueOf(ACGT[j]))*expLLR*sampleWeight*overlapfactor; //re-weighting
+											bgprob[i][j]+=motifBG.conditionProb.get(String.valueOf(ACGT[j]))*(1-prob_theta)*sampleWeight;
 										}
 										continue;
 									}
@@ -2524,7 +2557,7 @@ public class Pomoda {
 						if(symid>3)
 						{
 							for (int j = 0; j < 4; j++) {
-								count_matrix[i][j]+=prob_theta*0.25;
+								count_matrix[i][j]+=prob_theta*Math.exp(single_logprob_bg_[i][j]);
 							}
 							
 							continue; //meet new line separator
@@ -3258,9 +3291,9 @@ public class Pomoda {
 //			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCGGAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCGCGCNNNNNNNNNNNNNNNNNNNNNNNNN"}));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNTCGCGNNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGGTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGTTTANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNTCACANNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGTTAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
@@ -3377,13 +3410,16 @@ public class Pomoda {
 		
 		  for (int i = 0; i < threadpool.size(); i++) {
 				double llrscore=threadpool.get(i).getResult();
-				System.out.println(seedPWMs.get(i).Consensus(true)+" AUC:"+ llrscore);
-				seedPWMs.get(i).Score=llrscore+seedPWMs.get(i).Prior_EZ/10;
+				if(threadpool.get(i).ZscoreFlag)
+					System.out.println(seedPWMs.get(i).Consensus(true)+" Zscore:"+ llrscore);
+				else
+					System.out.println(seedPWMs.get(i).Consensus(true)+" AUC:"+ llrscore);
+				seedPWMs.get(i).Score=llrscore;
 				if(llrscore>0.5)
 				{
-					if(seedPWMs.get(i).pos_en||seedPWMs.get(i).peakrank_en||seedPWMs.get(i).strand_en)
-						llrscore+=10000;
-				sortedPWMs.put(llrscore+seedPWMs.get(i).Prior_EZ/10, seedPWMs.get(i));
+//					if(seedPWMs.get(i).pos_en||seedPWMs.get(i).peakrank_en||seedPWMs.get(i).strand_en)
+//						llrscore+=10000;
+				sortedPWMs.put(llrscore, seedPWMs.get(i));
 				}
 		  }
 ///////////////////////////////////////evaluate different motif in parallel///////////////////////////////////////////			
