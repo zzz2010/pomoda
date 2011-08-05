@@ -866,6 +866,8 @@ public class common {
 		double[] Arr2=new double[Arr.length];
 		double sum=0;
 		for (int i = 0; i < Arr.length; i++) {
+			if(Arr[i]<0)
+				Arr[i]=0;
 			sum+=Arr[i];
 		}
 		if(sum==0)
