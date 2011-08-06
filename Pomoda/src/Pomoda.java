@@ -409,7 +409,7 @@ public class Pomoda {
 	public void Masking(PWM motif)
 	{
 		int masklen=0;
-		double log_thresh=motif.getThresh(1.0, 0.01, background);
+		double log_thresh=motif.getThresh(1.0, 0.0001, background);
 		String consensus_core=motif.Consensus(true);
 		
 		
@@ -2349,7 +2349,7 @@ public class Pomoda {
 					}
 					else
 						site=SearchEngine2.getSite(currloc.getSeqId(),currloc.getSeqPos()-(motif.columns()-seedstring.length())/2, motif.columns());
-					if(site.charAt(site.length()/2)=='X')
+					if(site.length()<seedlen||site.charAt(site.length()/2)=='X')
 						continue;
 					
 					if(Character.isLowerCase(site.charAt(site.length()/2)))
@@ -2557,7 +2557,7 @@ public class Pomoda {
 						if(symid>3)
 						{
 							for (int j = 0; j < 4; j++) {
-								count_matrix[i][j]+=prob_theta*Math.exp(single_logprob_bg_[i][j]);
+								count_matrix[i][j]+=prob_theta*0.25;
 							}
 							
 							continue; //meet new line separator
@@ -3417,8 +3417,8 @@ public class Pomoda {
 				seedPWMs.get(i).Score=llrscore;
 				if(llrscore>0.5)
 				{
-//					if(seedPWMs.get(i).pos_en||seedPWMs.get(i).peakrank_en||seedPWMs.get(i).strand_en)
-//						llrscore+=10000;
+					if(motifFinder.maskflag&&(seedPWMs.get(i).pos_en||seedPWMs.get(i).peakrank_en))
+						llrscore+=10000;
 				sortedPWMs.put(llrscore, seedPWMs.get(i));
 				}
 		  }
