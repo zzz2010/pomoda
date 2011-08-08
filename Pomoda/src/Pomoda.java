@@ -1662,20 +1662,23 @@ public class Pomoda {
 								maxsamplweight=pwmweight;
 						
 
-								if((currloc.getMin()-lastpos)<site.length()&&prob_theta>(lastprob_theta+common.DoubleMinNormal) )
+								if((currloc.getMin()-lastpos)<site.length()&&prob_theta>(lastprob_theta+common.DoubleMinNormal))
 								{
 									for (int i = 0; i < lastsite.length(); i++) {
 										int symid=common.acgt[lastsite.charAt(i)];
 										if(symid>3)
 										{
+											for (int j = 0; j < 4; j++) {
+												m_matrix[i][j]-=0.25*lastpwmweight*0.8;//prob_theta;//		
+											}
 											continue;
 										}
-										m_matrix[i][symid]-=lastpwmweight;
+										m_matrix[i][symid]-=lastpwmweight*0.8;
 									}
 								}
 								
 								
-							if((currloc.getMin()-lastpos)>=site.length()||prob_theta>(lastprob_theta+common.DoubleMinNormal) )
+							if((currloc.getMin()-lastpos)>=site.length()||prob_theta>(lastprob_theta+common.DoubleMinNormal))
 							{
 								if(sampleWeight<expOcc)
 									matchcount+=prob_theta*sampleWeight;
@@ -2918,7 +2921,7 @@ public class Pomoda {
 			}
 
 			//when sample size is small, then ostrich policy let it extend
-			if(total<0||motif.core_motiflen<=minmotiflen||extralen==0)
+			if(total<10||motif.core_motiflen<=minmotiflen||extralen==0)
 			{
 
 				if(extralen+motif.core_motiflen<=(motif.columns()+seedstring.length())/2)
@@ -3338,13 +3341,13 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-			seedPWMs.clear();
+//			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
 			
 			
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNTTCCCNNNNNNN"}));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNGGAAANNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNTTCCCNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNGGAAANNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGGTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGTGACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNAGGTCNNNNNNNNNNNNNNNNNNNNNNNNN"}));
@@ -3539,12 +3542,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-		} catch (IllegalAlphabetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalSymbolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+//		} catch (IllegalAlphabetException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IllegalSymbolException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
 			
 			
 		} 
