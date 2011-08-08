@@ -1362,10 +1362,7 @@ public class Pomoda {
 //			int prior_bin=(int)(num_priorbin*((currloc.getSeqPos()+motif.core_motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
 //			peakrank_renorm[rankbin]+=1;//probtheta;
 //			pos_renorm[prior_bin]+=1;//probtheta;
-			if(currloc.ReverseStrand)
-				strand_renorm[1]+=1;
-			else
-				strand_renorm[0]+=1;
+
 			//assume only one N for line break
 			StringBuffer sb=new StringBuffer(site);
 			for (int i = 0; i < site.length(); i++) {
@@ -1386,6 +1383,7 @@ public class Pomoda {
 				
 			}
 			site=sb.toString();
+
 			if(currloc.ReverseStrand)
 			{
 				//reverse site
@@ -1407,6 +1405,14 @@ public class Pomoda {
 			filtered_Falocs.add(currloc);
 			
 			double sampleweight=1.0/probtheta;
+			
+//			if(sampleweight<(1+2*SearchEngine2.TotalLen*Math.exp(background.Get_LOGPROB(site))))
+//			{
+//				if(currloc.ReverseStrand)
+//					strand_renorm[1]+=1;
+//				else
+//					strand_renorm[0]+=1;
+//			}
 
 			boolean truesite=false;
 			boolean overlapflag=Math.abs(currloc.getMin()-lastpos)<motif.core_motiflen;
@@ -1677,6 +1683,13 @@ public class Pomoda {
 										int symid=common.acgt[site.charAt(i)];
 										if(symid>3)
 										{
+											if(sampleWeight<expOcc)
+											{		
+												for (int j = 0; j < 4; j++) {
+													m_matrix[i][j]+=0.25*prob_theta*sampleWeight;//prob_theta;//		
+												}
+																						
+											}
 											continue;
 										}	
 										if(sampleWeight<expOcc)
@@ -1763,7 +1776,7 @@ public class Pomoda {
 											
 											for (int j = 0; j < 4; j++) {
 												
-												sumexpLLR[i][j]-=motifBG.conditionProb.get(String.valueOf(ACGT[j]))*overlap_expLLR*overlapfactor; //re-weighting
+												sumexpLLR[i][j]-=0.25*overlap_expLLR*overlapfactor; //re-weighting
 											}
 											continue;
 										}
@@ -1791,8 +1804,8 @@ public class Pomoda {
 									if(symid>3)
 									{
 										for (int j = 0; j < 4; j++) {
-											sumexpLLR[i][j]+=motifBG.conditionProb.get(String.valueOf(ACGT[j]))*expLLR*sampleWeight*overlapfactor; //re-weighting
-											bgprob[i][j]+=motifBG.conditionProb.get(String.valueOf(ACGT[j]))*(1-prob_theta)*sampleWeight;
+											sumexpLLR[i][j]+=0.25*expLLR*sampleWeight*overlapfactor; //re-weighting
+											bgprob[i][j]+=0.25*(1-prob_theta)*sampleWeight;
 										}
 										continue;
 									}
@@ -1995,7 +2008,7 @@ public class Pomoda {
 								System.out.println("strand bias off...");
 								motif.strand_en=false;
 							}
-						
+							motif.strand_en=false;
 							//determine whether peakrank_prior is significant needed, and ignore the final one
 							chistat=0;
 							sumPrior=0;
@@ -2253,7 +2266,7 @@ public class Pomoda {
 		
 		motif.pos_en=true;
 		motif.peakrank_en=true;
-		motif.strand_en=true;
+		motif.strand_en=false;
 		
 //			double [][] A=new double[motif.columns()][4];
 //			double [][] B=new double[motif.columns()][4];
@@ -2457,7 +2470,7 @@ public class Pomoda {
 									 double temp=sumexpLLR[i][symid]*Prior_EZ/((1-prior_gamma)+sumexpLLRallsymid*Prior_EZ);
 						
 									count_matrix[i][symid]+=temp;
-									bgprob[i][symid]+=matchsitecount_seq-temp;
+									
 	                        	 }
 							}
 
@@ -2529,13 +2542,13 @@ public class Pomoda {
 								if(symid<4)
 								{
 									sumexpLLR[i][symid]+=expLLR;
-
+									bgprob[i][symid]+=1-prob_theta;
 								}
 								else
 								{
 									for (int j = 0; j < 4; j++) {
 										sumexpLLR[i][j]+=expLLR*Math.exp(single_logprob_bg_[i][j]);
-							
+										bgprob[i][j]+=0.25;
 									}
 								}
 							}
@@ -2839,6 +2852,7 @@ public class Pomoda {
 			motif.Prior_EZ=Prior_EZ;
 			
 			motif.inst_coverage=Prior_EZ*Falocs.size();
+//			bgprob[bestCol]=common.Normalize(bgprob[bestCol]);
 			//update motif column value, if significant
 			chistat=0;
 			double total=0;
@@ -2847,12 +2861,15 @@ public class Pomoda {
 			}
 			double rescale=1.5;
 			for (int j = 0; j < 4; j++) {
-					double Ei=total*Math.exp(single_logprob_bg_[bestCol][j])*rescale;
-					double temp=count_matrix[bestCol][j]*rescale-Ei;
+//				double bgratio=bgprob[bestCol][j];
+//				if(motif.core_motiflen==seedlen)
+				double	bgratio=Math.exp(single_logprob_bg_[bestCol][j]);
+				double Ei=total*bgratio*rescale;
+				double temp=count_matrix[bestCol][j]*rescale-Ei;
 					chistat+=temp*temp/Ei;
 				}
 		
-			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR);//(motif.columns()-seedstring.length())
+			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR/num_col_cand);///
 			int extralen=0;
 			if(bestCol<motif.head)
 				extralen=motif.head-bestCol;
@@ -2868,7 +2885,7 @@ public class Pomoda {
 			}
 
 			//when sample size is small, then ostrich policy let it extend
-			if(total<10||motif.core_motiflen<=minmotiflen||extralen==0)
+			if(total<0||motif.core_motiflen<=minmotiflen||extralen==0)
 			{
 
 				if(extralen+motif.core_motiflen<=(motif.columns()+seedstring.length())/2)
@@ -3288,12 +3305,19 @@ public class Pomoda {
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
-//			seedPWMs.clear();
+			seedPWMs.clear();
 //		//	seedPWMs.addAll(common.LoadPWMFromFile("D:\\eclipse\\data\\test.pwm").subList(0, 1));
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
+			
+			
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNAATTTNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNATTTCNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGGTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGTGACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNAGGTCNNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCGCGGNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGTTTANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGCAAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNTCACANNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNACTACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGTTAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
@@ -3482,12 +3506,12 @@ public class Pomoda {
 			e.printStackTrace();
 			
 			
-//		} catch (IllegalAlphabetException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} catch (IllegalSymbolException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalSymbolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 			
 			
 		} 
