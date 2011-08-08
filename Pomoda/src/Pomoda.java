@@ -902,7 +902,7 @@ public class Pomoda {
 			//if(pos_prior.size()==0&&!OOPS)
 				score=facount_nonoverlap/(SearchEngine2.TotalLen*prob_bg); //positionlist.size()*(-common.DoubleMinNormal*seedlen-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
 //			if(pattern.equalsIgnoreCase("TTCCC"))
-//				pattern="GGGAA";
+//				pattern="TTCCC";
 			if(score<=1.09)
 				continue;
 				//else
@@ -1567,6 +1567,7 @@ public class Pomoda {
 					lastpos=-1;
 					double lastpwmweight=0;
 					double lastprob_theta=0;
+					boolean laststrand=filtered_Falocs.get(0).ReverseStrand;
 					String lastsite="";
 					double max_seqloglik=0;
                     double matchsitecount_seq=0;
@@ -1661,7 +1662,7 @@ public class Pomoda {
 								maxsamplweight=pwmweight;
 						
 
-								if((currloc.getMin()-lastpos)<site.length()&&prob_theta>(lastprob_theta+common.DoubleMinNormal))
+								if((currloc.getMin()-lastpos)<site.length()&&prob_theta>(lastprob_theta+common.DoubleMinNormal) )
 								{
 									for (int i = 0; i < lastsite.length(); i++) {
 										int symid=common.acgt[lastsite.charAt(i)];
@@ -1669,12 +1670,12 @@ public class Pomoda {
 										{
 											continue;
 										}
-										m_matrix[i][symid]-=lastpwmweight*0.8;
+										m_matrix[i][symid]-=lastpwmweight;
 									}
 								}
 								
 								
-							if((currloc.getMin()-lastpos)>=site.length()||prob_theta>(lastprob_theta+common.DoubleMinNormal))
+							if((currloc.getMin()-lastpos)>=site.length()||prob_theta>(lastprob_theta+common.DoubleMinNormal) )
 							{
 								if(sampleWeight<expOcc)
 									matchcount+=prob_theta*sampleWeight;
@@ -1704,6 +1705,7 @@ public class Pomoda {
 									if(sampleWeight<expOcc)
 									{
 										lastpos=currloc.getMin();
+										laststrand=currloc.ReverseStrand;
 										lastsite=site;
 										lastprob_theta=prob_theta;
 										lastpwmweight=pwmweight;
@@ -2327,6 +2329,7 @@ public class Pomoda {
 		double overlap_prob=0;
 		double overlap_expLLR=0;
 		String lastsite="";
+		boolean laststrand=Falocs.getFirst().ReverseStrand;
 		int matchsitecount_seq=0;
 		int overlap_pos=-motiflen;
 		String ACGT="ACGT";
@@ -2565,23 +2568,53 @@ public class Pomoda {
 					}
 
 					//////////////////////////////TCM/////////////////////////////
-					for (int i = 0; i < site.length(); i++) {
-						int symid=common.acgt[site.charAt(i)];
-						if(symid>3)
-						{
-							for (int j = 0; j < 4; j++) {
-								count_matrix[i][j]+=prob_theta*0.25;
+					if(Math.abs(currloc.getSeqPos()-overlap_pos)>maxmotiflen||overlap_prob<prob_theta||currloc.ReverseStrand!=laststrand)
+					{
+						for (int i = 0; i < site.length(); i++) {
+							int symid=common.acgt[site.charAt(i)];
+							if(symid>3)
+							{
+								for (int j = 0; j < 4; j++) {
+									count_matrix[i][j]+=prob_theta*0.25;
+								}
+								
+								continue; //meet new line separator
 							}
-							
-							continue; //meet new line separator
+							count_matrix[i][symid]+=prob_theta;
+	
+							if(consensus.charAt(i)!='N')
+								continue;
+							sumLogBG_matrix[i][symid]+=single_logprob_bg_[i][symid];//single_logprob_bg[symid];
+							bgprob[i][symid]+=1-prob_theta;
 						}
-						count_matrix[i][symid]+=prob_theta;
-
-						if(consensus.charAt(i)!='N')
-							continue;
-						sumLogBG_matrix[i][symid]+=single_logprob_bg_[i][symid];//single_logprob_bg[symid];
-						bgprob[i][symid]+=1-prob_theta;
+						if(Math.abs(currloc.getSeqPos()-overlap_pos)<maxmotiflen&&overlap_prob<prob_theta&&currloc.ReverseStrand==laststrand)
+						{
+							for (int i = 0; i < lastsite.length(); i++) {
+								int symid=common.acgt[lastsite.charAt(i)];
+								if(symid>3)
+								{
+									for (int j = 0; j < 4; j++) {
+										count_matrix[i][j]-=overlap_prob*0.25;
+									}
+									continue; //meet new line separator
+								}
+								count_matrix[i][symid]-=overlap_prob;
+		
+								if(consensus.charAt(i)!='N')
+									continue;
+								sumLogBG_matrix[i][symid]-=single_logprob_bg_[i][symid];//single_logprob_bg[symid];
+								bgprob[i][symid]-=1-overlap_prob;
+							}
+						}
+						
+						overlap_prob=prob_theta;
+						overlap_logBG=logprob_BG;
+						lastsite=site;
+						laststrand=currloc.ReverseStrand;
+						overlap_pos=currloc.getSeqPos();
 					}
+					
+
 					//////////////////////////////TCM/////////////////////////////
 			}
 	
@@ -3310,8 +3343,8 @@ public class Pomoda {
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
 			
 			
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNAATTTNNNNNNN"}));
-			seedPWMs.add(new PWM(new String[]{"NNNNNNNATTTCNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNTTCCCNNNNNNN"}));
+			seedPWMs.add(new PWM(new String[]{"NNNNNNNGGAAANNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGGTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGTGACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNAGGTCNNNNNNNNNNNNNNNNNNNNNNNNN"}));
