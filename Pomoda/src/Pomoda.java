@@ -2571,7 +2571,7 @@ public class Pomoda {
 					}
 
 					//////////////////////////////TCM/////////////////////////////
-					if(Math.abs(currloc.getSeqPos()-overlap_pos)>maxmotiflen||overlap_prob<prob_theta||currloc.ReverseStrand!=laststrand)
+					if(Math.abs(currloc.getSeqPos()-overlap_pos)>maxmotiflen||overlap_prob<(prob_theta+common.DoubleMinNormal)||currloc.ReverseStrand!=laststrand)
 					{
 						for (int i = 0; i < site.length(); i++) {
 							int symid=common.acgt[site.charAt(i)];
@@ -2590,7 +2590,7 @@ public class Pomoda {
 							sumLogBG_matrix[i][symid]+=single_logprob_bg_[i][symid];//single_logprob_bg[symid];
 							bgprob[i][symid]+=1-prob_theta;
 						}
-						if(Math.abs(currloc.getSeqPos()-overlap_pos)<maxmotiflen&&overlap_prob<prob_theta&&currloc.ReverseStrand==laststrand)
+						if(Math.abs(currloc.getSeqPos()-overlap_pos)<maxmotiflen&&(overlap_prob+common.DoubleMinNormal)<prob_theta&&currloc.ReverseStrand==laststrand)
 						{
 							for (int i = 0; i < lastsite.length(); i++) {
 								int symid=common.acgt[lastsite.charAt(i)];
