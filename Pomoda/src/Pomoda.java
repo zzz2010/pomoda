@@ -2014,7 +2014,7 @@ public class Pomoda {
 								System.out.println("strand bias off...");
 								motif.strand_en=false;
 							}
-							motif.strand_en=false;
+//							motif.strand_en=false;
 							//determine whether peakrank_prior is significant needed, and ignore the final one
 							chistat=0;
 							sumPrior=0;
