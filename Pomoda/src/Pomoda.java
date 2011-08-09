@@ -84,6 +84,7 @@ public class Pomoda {
 	public String outputPrefix="./";
 	public String inputFasta;
 	public int max_iterNum=50;
+	public int mincount=10;
 	public int MIN_SAMPLENUM=1000;
 	public int MAX_P=2;
 	public String ctrlFasta="";
@@ -96,7 +97,7 @@ public class Pomoda {
 	public int min_motiflen=7;
 	public int ending_windowsize=600;
 	public double FDR=0.01;
-	public int max_motiflen=55;
+	public int max_motiflen=25;
 	public int max_threadNum=6;
 	public int num_motif=5;
 	public double sampling_ratio=0.01;
@@ -2921,7 +2922,7 @@ public class Pomoda {
 			}
 
 			//when sample size is small, then ostrich policy let it extend
-			if(total<10||motif.core_motiflen<=minmotiflen||extralen==0)
+			if(total<mincount||motif.core_motiflen<=minmotiflen||extralen==0)
 			{
 
 				if(extralen+motif.core_motiflen<=(motif.columns()+seedstring.length())/2)
@@ -3189,13 +3190,14 @@ public class Pomoda {
 		options.addOption("seedfile", true, "seed PWM file");
 		options.addOption("bgmodel", true, "background model file");
 		options.addOption("dnase", true, "dnase data file");
+		options.addOption("mincount", true, "min count for extention");
 		options.addOption("prefix", true, "output directory");
 		options.addOption("seedlen", true, "kmer seed motif length (default 5)");
 		options.addOption("ratio",true, "sampling ratio (default 0.8)");
 		options.addOption("n",true, "number of motifs in final report (default 5)");
 		options.addOption("rs",true, "counting resolution (default 40 bp)");
 		options.addOption("supp",true, "minimum support ratio, the percentage of peaks contains motif (default 0.05)");
-		options.addOption("maxlen",true,"maxmimum length of the motif (default 30)");
+		options.addOption("maxlen",true,"maxmimum length of the motif (default 15)");
 		options.addOption("minlen",true,"minimum length of the motif (default 7)");
 		options.addOption("maxw",true, "maximum size of motif binding region (default 600bp)");
 		options.addOption("mask",false,"whether marking the top motif location in order to find co-motif");
@@ -3246,6 +3248,10 @@ public class Pomoda {
 			if(cmd.hasOption("ratio"))
 			{
 				motifFinder.sampling_ratio=Double.parseDouble( cmd.getOptionValue("ratio"));
+			}
+			if(cmd.hasOption("mincount"))
+			{
+				motifFinder.mincount=Integer.parseInt( cmd.getOptionValue("mincount"));
 			}
 			if(cmd.hasOption("n"))
 			{
