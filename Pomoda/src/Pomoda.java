@@ -2905,7 +2905,7 @@ public class Pomoda {
 					chistat+=temp*temp/Ei;
 				}
 		
-			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR/num_col_cand);///
+			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR);///
 			int extralen=0;
 			if(bestCol<motif.head)
 				extralen=motif.head-bestCol;
@@ -3346,7 +3346,7 @@ public class Pomoda {
 //		//	double llrscore2=motifFinder.sumLLR(seedPWMs.get(0));
 			
 			
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNTTCCCNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNTTTCANNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNGGAAANNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGGTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGTGACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
