@@ -55,6 +55,7 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.plot.dial.StandardDialScale;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
@@ -949,31 +950,33 @@ public class Pomoda {
 		return	SeedMotifs;
 	}
 	
-
-	public void DrawDistribution(ArrayList<Double> dist,String pngfile)
+	public void drawRankDistribution(ArrayList<Double> dist,String pngfile)
 	{
 		if(dist==null)
 			return;
 		  XYSeriesCollection dataset = new XYSeriesCollection();
 		  XYSeries series1 = new XYSeries("");
+		  int binsize=SearchEngine2.getSeqNum()/dist.size();
 		  for (int i = 0; i <dist.size(); i++) {
-			double x=this.resolution*i-dist.size()*this.resolution/2;
+			double x=binsize*i+binsize/2;//-dist.size()*this.resolution/2
 			series1.add(x, dist.get(i));
 		}
 			 dataset.addSeries(series1);
 		
 		 JFreeChart chart = ChartFactory.createXYLineChart(
-	                "Distribution curve", // chart title
-	                "Position", // x axis label
+	                "Motif Sequence Rank Distribution", // chart title
+	                "Sequence Rank", // x axis label
 	                "Probability", // y axis label
 	                dataset, // data
 	                PlotOrientation.VERTICAL,
-	                true, // include legend
+	                false, // include legend
 	                true, // tooltips
 	                false // urls
 	                );
 	// NOW DO SOME OPTIONAL CUSTOMISATION OF THE CHART...
 	        chart.setBackgroundPaint(Color.white);
+	        chart.getTitle().setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 24));
+	       
 	// get a reference to the plot for further customisation...
 	        XYPlot plot = (XYPlot) chart.getPlot();
 	        plot.setBackgroundPaint(Color.white);
@@ -984,9 +987,65 @@ public class Pomoda {
 	        renderer.setShapesVisible(true);
 	        renderer.setShapesFilled(true);
 	// change the auto tick unit selection to integer units only...
+	        plot.getDomainAxis().setTickLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 14));
+	        plot.getDomainAxis().setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 18));
 	        NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
 	        rangeAxis.setStandardTickUnits(NumberAxis.createStandardTickUnits());
-	        
+	        rangeAxis.setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 18));
+	        ChartPanel chartPanel = new ChartPanel(chart);
+	        chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
+	      //  setContentPane(chartPanel);
+	        try {
+	        	if(pngfile!=null)
+				ChartUtilities.saveChartAsPNG(new File(pngfile), chart, 800, 600);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+	}
+	public void drawPositionDistribution(ArrayList<Double> dist,String pngfile)
+	{
+		if(dist==null)
+			return;
+		  XYSeriesCollection dataset = new XYSeriesCollection();
+		  XYSeries series1 = new XYSeries("");
+		  int binsize=SearchEngine2.TotalLen/SearchEngine2.getSeqNum()/dist.size();
+		  for (int i = 0; i <dist.size(); i++) {
+			double x=binsize*i+binsize/2;//-dist.size()*this.resolution/2
+			series1.add(x, dist.get(i));
+		}
+			 dataset.addSeries(series1);
+		
+		 JFreeChart chart = ChartFactory.createXYLineChart(
+	                "Motif Position Distribution", // chart title
+	                "Position", // x axis label
+	                "Probability", // y axis label
+	                dataset, // data
+	                PlotOrientation.VERTICAL,
+	                false, // include legend
+	                true, // tooltips
+	                false // urls
+	                );
+	// NOW DO SOME OPTIONAL CUSTOMISATION OF THE CHART...
+	        chart.setBackgroundPaint(Color.white);
+	        chart.getTitle().setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 24));
+	       
+	// get a reference to the plot for further customisation...
+	        XYPlot plot = (XYPlot) chart.getPlot();
+	        plot.setBackgroundPaint(Color.white);
+	        plot.setAxisOffset(new RectangleInsets(5.0, 5.0, 5.0, 5.0));
+	        plot.setDomainGridlinePaint(Color.white);
+	        plot.setRangeGridlinePaint(Color.white);
+	        XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
+	        renderer.setShapesVisible(true);
+	        renderer.setShapesFilled(true);
+	// change the auto tick unit selection to integer units only...
+	        plot.getDomainAxis().setTickLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 14));
+	        plot.getDomainAxis().setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 18));
+	        NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
+	        rangeAxis.setStandardTickUnits(NumberAxis.createStandardTickUnits());
+	        rangeAxis.setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 18));
 	        ChartPanel chartPanel = new ChartPanel(chart);
 	        chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
 	      //  setContentPane(chartPanel);
@@ -1409,10 +1468,10 @@ public class Pomoda {
 			
 //			if(sampleweight<(1+2*SearchEngine2.TotalLen*Math.exp(background.Get_LOGPROB(site))))
 //			{
-//				if(currloc.ReverseStrand)
-//					strand_renorm[1]+=1;
-//				else
-//					strand_renorm[0]+=1;
+				if(currloc.ReverseStrand)
+					strand_renorm[1]+=1;
+				else
+					strand_renorm[0]+=1;
 //			}
 
 			boolean truesite=false;
@@ -2014,7 +2073,7 @@ public class Pomoda {
 								System.out.println("strand bias off...");
 								motif.strand_en=false;
 							}
-//							motif.strand_en=false;
+							motif.strand_en=false;
 							//determine whether peakrank_prior is significant needed, and ignore the final one
 							chistat=0;
 							sumPrior=0;
@@ -2058,7 +2117,7 @@ public class Pomoda {
 			}while(iter_count<=max_iterNum);
 			
 		if(DnaseLib!=null)
-			DrawDistribution(motif.Dnase_prob,"Dnase_plot.png");
+			drawPositionDistribution(motif.Dnase_prob,"Dnase_plot.png");
 		
 		return bestPWM;
 	}
@@ -3524,9 +3583,9 @@ public class Pomoda {
 				System.out.println(sortedPWMs.get(key).Consensus(true)+'\t'+sortedPWMs.get(key).Score);
 				writer.write(sortedPWMs.get(key).toString());
 				//if(sortedPWMs.get(key).pos_en)
-				motifFinder.DrawDistribution(sortedPWMs.get(key).pos_prior,motifFinder.outputPrefix+"/"+sortedPWMs.get(key).Name+"_posdist.png");
+				motifFinder.drawPositionDistribution(sortedPWMs.get(key).pos_prior,motifFinder.outputPrefix+"/"+sortedPWMs.get(key).Name+"_posdist.png");
 				//if(sortedPWMs.get(key).peakrank_en)
-				motifFinder.DrawDistribution(sortedPWMs.get(key).peakrank_prior,motifFinder.outputPrefix+"/"+sortedPWMs.get(key).Name+"_rankdist.png");
+				motifFinder.drawRankDistribution(sortedPWMs.get(key).peakrank_prior,motifFinder.outputPrefix+"/"+sortedPWMs.get(key).Name+"_rankdist.png");
 	
 				if(motifFinder.DnaseLib==null)
 					System.out.println("PWM AUC:"+ evaluator.calcAUC(sortedPWMs.get(key),null));
