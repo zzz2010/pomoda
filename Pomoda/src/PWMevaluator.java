@@ -66,7 +66,7 @@ public class PWMevaluator {
 	
 	public int resolution=10;
 	
-	public BGModel background;
+	public BGModel background=null;
 	
 	HashMap<String,XYSeries> ROCdata=new HashMap<String, XYSeries>();
 	
@@ -133,37 +133,39 @@ public class PWMevaluator {
 		common.initialize();
 		SearchEngine=new LinearEngine(4);
 		SearchEngine.build_index(this.inputFasta);
-	
-		background=new BGModel();
-		File file=null;
-		int bg_markov_order=0;
-		if(ctrlFasta.isEmpty())
+		if(background==null)
 		{
-			bg_markov_order=0;
-			file= new File(inputFasta+".bg");
-		}
-		else
-		{
-			BGSearchEngine=new LinearEngine(4);
-			BGSearchEngine.build_index(this.ctrlFasta);
-			removeBG=true;
-		}
-		
-		if(!bgmodelFile.isEmpty())
-		{
-			removeBG=true;
-			if(bgmodelFile.isEmpty())
-				background.LoadModel(file.getAbsolutePath());
-			else
-				background.LoadModel(bgmodelFile);
-		}
-		else
-		{
+			background=new BGModel();
+			File file=null;
+			int bg_markov_order=0;
 			if(ctrlFasta.isEmpty())
 			{
-		     background.BuildModel(inputFasta, bg_markov_order+1); //1-order bg
-		     background.SaveModel(inputFasta+".bg");
-			}			
+				bg_markov_order=0;
+				file= new File(inputFasta+".bg");
+			}
+			else
+			{
+				BGSearchEngine=new LinearEngine(4);
+				BGSearchEngine.build_index(this.ctrlFasta);
+				removeBG=true;
+			}
+			
+			if(!bgmodelFile.isEmpty())
+			{
+				removeBG=true;
+				if(bgmodelFile.isEmpty())
+					background.LoadModel(file.getAbsolutePath());
+				else
+					background.LoadModel(bgmodelFile);
+			}
+			else
+			{
+				if(ctrlFasta.isEmpty())
+				{
+			     background.BuildModel(inputFasta, bg_markov_order+1); //1-order bg
+			     background.SaveModel(inputFasta+".bg");
+				}			
+			}
 		}
 		
 	}
@@ -685,6 +687,7 @@ public class PWMevaluator {
 		options.addOption("multiscore", false, "compute SN,PPV,PC,ASP,CC for the given pwm file");
 		options.addOption("match", true, "find similar motifs in known PWM library (path to the library, e.g., jaspar.pwm)");
 		options.addOption("bgmodel", true, "background model file");
+		options.addOption("markov", true, "use markov model of the control sequences rather than directly control sequences");
 		options.addOption("prefix", true, "output directory");
 		options.addOption("ratio",true, "sampling ratio (default 1)");
 		options.addOption("thresh",true, "minimum entropy threshold for considering a position as a gap(default 0.5)");
@@ -715,6 +718,14 @@ public class PWMevaluator {
 			if(cmd.hasOption("c"))
 			{
 				evaluator.ctrlFasta=cmd.getOptionValue("c");
+				if(cmd.hasOption("markov"))
+				{
+					common.initialize();
+					int bgorder=Integer.parseInt(cmd.getOptionValue("markov"))+1;
+					evaluator.removeBG=true;
+					evaluator.background=new BGModel();
+					evaluator.background.BuildModel(evaluator.ctrlFasta, bgorder);
+				}
 			}
 			if(cmd.hasOption("N"))
 			{
