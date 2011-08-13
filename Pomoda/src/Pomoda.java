@@ -293,7 +293,65 @@ public class Pomoda {
 	}
 	
 	
+	public void SamplingTest()
+	{
+		ArrayList<PWM>  seedPWMs=null;
 	
+		{
+			seedPWMs=getSeedMotifs(1.09);
+			if(seedPWMs.size()<num_motif)
+				seedPWMs=getSeedMotifs(1.05);
+//			seedPWMs=motifFinder.getSeedMotifs4(10);
+		}
+	
+		double[] truecounts=new double[1];
+		double topseed_Score=0;
+		
+		File file = new File(outputPrefix+"SEME_sampl.txt"); 
+		try {
+			
+//			seedPWMs.c
+			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
+		//extend and refine motifs
+		for (int i = 0; i < seedPWMs.size(); i++) {
+			PWM motif=seedPWMs.get(i);
+			motif.Score=1;
+
+					int num_priorbin=SearchEngine2.getTotalLength()/SearchEngine2.getSeqNum()/resolution;
+					
+					if(motif.pos_prior.size()==0)
+					{
+						for (int i1 = 0; i1 <num_priorbin ; i1++) {
+							motif.pos_prior.add(1.0/num_priorbin);
+							motif.peakrank_prior.add(1.0/num_priorbin);
+						}
+					}
+					
+
+			
+			System.out.println("Extending...");
+
+				seedPWMs.set(i,Column_Replacement_2(motif));
+
+			System.out.println("Testing...");
+			double[] tempcounts=TestSampleEfficiency(seedPWMs.get(i));
+			if(tempcounts[tempcounts.length/2]>truecounts[truecounts.length/2])
+				truecounts=tempcounts.clone();
+			
+		}
+		for (int j = 0; j < truecounts.length-1; j++) {
+			writer.write(String.valueOf(truecounts[j]));
+			writer.write("\t");
+		}
+		writer.write(String.valueOf(truecounts[truecounts.length-1])+"\n");
+		writer.close();
+		}
+		catch (IOException e)
+		{
+			
+		}
+	}
 	
 	
 
@@ -1415,39 +1473,13 @@ public class Pomoda {
 				site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos()-(origtail-newtail),motif.core_motiflen);
 			else
 				site=SearchEngine2.getSite(currloc.getSeqId(), currloc.getSeqPos()-(orighead-newhead),motif.core_motiflen);
-//			check masking
-//			if(site.indexOf('X')>-1)
-//				continue;
-			
-			
-//			if(site.equalsIgnoreCase(""))
-//				continue;
+
 
 			double probtheta=Math.exp(currloc.Score);
-//			int rankbin=num_priorbin*currloc.getSeqId()/SearchEngine2.getSeqNum();
-//			int prior_bin=(int)(num_priorbin*((currloc.getSeqPos()+motif.core_motiflen/2)%currloc.getSeqLen()/(double)currloc.getSeqLen()));
-//			peakrank_renorm[rankbin]+=1;//probtheta;
-//			pos_renorm[prior_bin]+=1;//probtheta;
 
 			//assume only one N for line break
 			StringBuffer sb=new StringBuffer(site);
-			for (int i = 0; i < site.length(); i++) {
-				if(site.charAt(i)=='N'&& i<=site.length()/2)
-				{
-					for (int j = 0; j < i; j++) {
-						sb.setCharAt(j, 'N');
-					}
-					continue;
-				}
-				else if(site.charAt(i)=='N')
-				{
-					for (int j = i+1; j < site.length(); j++) {
-						sb.setCharAt(j, 'N');
-					}
-					break;
-				}
-				
-			}
+
 			site=sb.toString();
 
 			if(currloc.ReverseStrand)
@@ -1482,7 +1514,7 @@ public class Pomoda {
 
 			boolean truesite=false;
 			boolean overlapflag=Math.abs(currloc.getMin()-lastpos)<motif.core_motiflen;
-			if((Character.isLowerCase( site.charAt(0))&&Character.isLowerCase( site.charAt(site.length()-1))))//
+			if((Character.isLowerCase( site.charAt(0))&&Character.isLowerCase( site.charAt(site.length()-1)))&&currloc.getMin()-lastpos>max_motiflen)//
 			{
 				
 				truecount++;
@@ -1496,10 +1528,12 @@ public class Pomoda {
 				}
 				else
 					prob_fsum+=1.0/sampleweight;
+				
+				lastpos=currloc.getMin();
 			
 			}
 
-			lastpos=currloc.getMin();
+			
 			for (int i = 0; i < site.length(); i++) {
 				int symid=common.acgt[site.charAt(i)];
 				if(symid<4)
@@ -1522,7 +1556,7 @@ public class Pomoda {
 			
 		}
 		
-		SampleEfficiency[it]=(double)truecount/500;
+		SampleEfficiency[it]=(double)truecount;
 	}
 		return SampleEfficiency;
 	}
@@ -3620,6 +3654,10 @@ public class Pomoda {
 		System.out.println("Initialization time was "+(end-start)/1000+" seconds.");
 
 		 System.currentTimeMillis();
+		 
+//		 motifFinder.SamplingTest();
+//		 System.exit(1);
+		 
 		//get seed motifs
 		ArrayList<PWM>  seedPWMs=null;
 		if(SeedPWMfile.isEmpty())
