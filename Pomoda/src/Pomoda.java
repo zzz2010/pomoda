@@ -97,7 +97,8 @@ public class Pomoda {
 	public int resolution=20;
 	public int min_motiflen=7;
 	public int ending_windowsize=600;
-	public double FDR=0.01;
+	public double FDR=0.05;
+	public double exFDR=0.01;
 	public int max_motiflen=25;
 	public int max_threadNum=6;
 	public int num_motif=5;
@@ -307,7 +308,7 @@ public class Pomoda {
 		double[] truecounts=new double[1];
 		double topseed_Score=0;
 		
-		File file = new File(outputPrefix+"SEME_sampl.txt"); 
+		File file = new File(outputPrefix+"jpomoda_sampl.txt"); 
 		try {
 			
 //			seedPWMs.c
@@ -3244,7 +3245,7 @@ public class Pomoda {
 					chistat+=temp*temp/Ei;
 				}
 		
-			invFDR=ChiSquareDistQuick.inverseF(3, 1-FDR);///
+			invFDR=ChiSquareDistQuick.inverseF(3, 1-exFDR);///
 			int extralen=0;
 			if(bestCol<motif.head)
 				extralen=motif.head-bestCol;
@@ -3641,7 +3642,7 @@ public class Pomoda {
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp( "SEME", options );
+			formatter.printHelp( "jpomoda", options );
 			return;
 		}
 		
@@ -3688,7 +3689,7 @@ public class Pomoda {
 		
 		double topseed_Score=0;
 		
-		File file = new File(motifFinder.outputPrefix+"SEME_raw.pwm"); 
+		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
 //			seedPWMs.clear();
@@ -3843,7 +3844,7 @@ public class Pomoda {
 		
 		System.out.println("Evaluation time was "+(end-start)/1000+" seconds.");
 		evaluator.SearchEngine.DisableBackground();
-		file = new File(motifFinder.outputPrefix+"SEME_clust.pwm"); 
+		file = new File(motifFinder.outputPrefix+"jpomoda_clust.pwm"); 
 		writer = new BufferedWriter(new FileWriter(file));
 		//clustering motif, re-initialize
 		start = System.currentTimeMillis();
