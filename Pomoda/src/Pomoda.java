@@ -191,8 +191,10 @@ public class Pomoda {
 				background.EnablePWMBG=true;
 				background.kmerlen=seedlen;
 				background.flanklen=(this.max_motiflen-seedlen)/2;
+				
 				background.BuildModel(BGSearch.ForwardStrand.toArray(new String[1]), bg_markov_order+1);
 			    // background.BuildModel(ctrlFasta, bg_markov_order+1); //3-order bg
+				System.out.println(bg_markov_order+" order Markov Model Background");
 			     background.SaveModel(ctrlFasta+".bg");
 			}
 				
@@ -234,36 +236,11 @@ public class Pomoda {
 			}
 			
 			DnaseWindow/=resolution;
-//			double mean=0;
-//			double variance=0;
-//			double count=0;
-//			ArrayList<Integer> stat=new ArrayList<Integer>(SearchEngine2.TotalLen);
-//			for (int i = 0; i < DnaseLib.size(); i++) {
-//				  Double[] arr=DnaseLib.get(i);
-//				  for (int j = 0; j < arr.length-2*DnaseWindow; j++) {
-//					double sum=0;
-//					for (int k = 0; k < 2*DnaseWindow; k++) {
-//						sum+=arr[k+j];
-//					}
-//					
-//					mean+=sum;
-//					stat.add((int)sum);
-//					count++;
-//					variance+=sum*sum;
-//				}
-//			}
-//			mean/=count;
-//			variance/=count;
-//			variance-=mean*mean;
-//			
-//			double p,r;
-//			p=mean/variance;
-//			r=p*mean/(1-p);
-			//double[] paras=NegativeBinomialDist.getMLE(ArrayUtils.toPrimitive(stat.toArray(new Integer[1])),stat.size());
+
 			dnaseBG=new NegativeBinomialDist(1,0.5);//(r, p);
 		}
 		
-		PWM.bg_prob=new double[]{Math.exp(background.Get_LOGPROB("A")),Math.exp(background.Get_LOGPROB("C")),Math.exp(background.Get_LOGPROB("G")),Math.exp(background.Get_LOGPROB("T"))};
+//		PWM.bg_prob=new double[]{Math.exp(background.Get_LOGPROB("A")),Math.exp(background.Get_LOGPROB("C")),Math.exp(background.Get_LOGPROB("G")),Math.exp(background.Get_LOGPROB("T"))};
 		
 ////		
 //		if(GAP_Test())

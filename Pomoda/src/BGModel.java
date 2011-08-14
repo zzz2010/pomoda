@@ -127,12 +127,14 @@ public class BGModel implements Serializable{
 	public void BuildModel(String[] Seqs, int order)
 	{
 		this.order=order;
+		System.out.println("building BG...");
 		initializeConditionProb();
+		System.out.println("initializing BG...");
 		 for (int i = 0; i < Seqs.length; i++) {
 			addCount(Seqs[i]);
 			addCount(common.getReverseCompletementString(Seqs[i]));
 		}
-		 
+			System.out.println("normalizing BG...");
 		 normalizeConditionProb();
 	}
 	
