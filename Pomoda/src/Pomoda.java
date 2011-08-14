@@ -2,6 +2,7 @@
  * @author zhizhuo zhang
  * zzz2010@gmail.com
  */
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -1034,7 +1035,7 @@ public class Pomoda {
 	                );
 	// NOW DO SOME OPTIONAL CUSTOMISATION OF THE CHART...
 	        chart.setBackgroundPaint(Color.white);
-	        chart.getTitle().setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 24));
+	        chart.getTitle().setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 44));
 	       
 	// get a reference to the plot for further customisation...
 	        XYPlot plot = (XYPlot) chart.getPlot();
@@ -1043,14 +1044,17 @@ public class Pomoda {
 	        plot.setDomainGridlinePaint(Color.white);
 	        plot.setRangeGridlinePaint(Color.white);
 	        XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
+	        renderer.setSeriesStroke( 0, new BasicStroke(
+	                4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND
+	            ));
 	        renderer.setShapesVisible(true);
 	        renderer.setShapesFilled(true);
 	// change the auto tick unit selection to integer units only...
-	        plot.getDomainAxis().setTickLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 14));
-	        plot.getDomainAxis().setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 18));
+	        plot.getDomainAxis().setTickLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 24));
+	        plot.getDomainAxis().setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 38));
 	        NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
 	        rangeAxis.setStandardTickUnits(NumberAxis.createStandardTickUnits());
-	        rangeAxis.setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 18));
+	        rangeAxis.setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 38));
 	        ChartPanel chartPanel = new ChartPanel(chart);
 	        chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
 	      //  setContentPane(chartPanel);
@@ -1088,7 +1092,7 @@ public class Pomoda {
 	                );
 	// NOW DO SOME OPTIONAL CUSTOMISATION OF THE CHART...
 	        chart.setBackgroundPaint(Color.white);
-	        chart.getTitle().setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 24));
+	        chart.getTitle().setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 44));
 	       
 	// get a reference to the plot for further customisation...
 	        XYPlot plot = (XYPlot) chart.getPlot();
@@ -1099,12 +1103,15 @@ public class Pomoda {
 	        XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
 	        renderer.setShapesVisible(true);
 	        renderer.setShapesFilled(true);
+	        renderer.setSeriesStroke( 0, new BasicStroke(
+	                4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND
+	            ));
 	// change the auto tick unit selection to integer units only...
-	        plot.getDomainAxis().setTickLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 14));
-	        plot.getDomainAxis().setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 18));
+	        plot.getDomainAxis().setTickLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 24));
+	        plot.getDomainAxis().setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 38));
 	        NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
 	        rangeAxis.setStandardTickUnits(NumberAxis.createStandardTickUnits());
-	        rangeAxis.setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 18));
+	        rangeAxis.setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 38));
 	        ChartPanel chartPanel = new ChartPanel(chart);
 	        chartPanel.setPreferredSize(new java.awt.Dimension(800, 600));
 	      //  setContentPane(chartPanel);
