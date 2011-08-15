@@ -638,6 +638,8 @@ public class PWM extends SimpleWeightMatrix {
 			pwm.Name=pwmName;
 			pwm.Score=score;
 			pwm.Prior_EZ=prior_EZ;
+			
+			reader.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

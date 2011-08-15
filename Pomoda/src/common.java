@@ -96,7 +96,7 @@ public class common {
 				ret.add(arr);
 				}
 
-				
+				readbuffer.close();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -674,6 +674,8 @@ public class common {
 				    }
 				    content+=text+'\n';
 				}
+				
+				reader.close();
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -704,6 +706,8 @@ public class common {
 			    }
 			    content+=text+'\n';
 			}
+			
+			reader.close();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -746,6 +750,7 @@ public class common {
 			    if(recordFlag)
 			    	content+=text+'\n';
 			}
+			reader.close();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

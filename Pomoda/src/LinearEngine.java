@@ -106,7 +106,7 @@ public class LinearEngine {
    				accSeqLen.add(TotalLen);
    			      }
    	
-			     
+			     br.close();
 			
 		} catch (IllegalSymbolException e) {
 			// TODO Auto-generated catch block
@@ -191,19 +191,13 @@ public class LinearEngine {
 			    		 }
 			    	 }
 			     }
-
+			     br.close();
    		          System.out.println("Filter Sequences: "+filternum);
-   		    
+   		          
    	
 			     
 			
-		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
+		}catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -248,7 +242,7 @@ public class LinearEngine {
 			    	 }
 			     }
 
-   		          
+   		          br.close();
    		    
    	
 			     
