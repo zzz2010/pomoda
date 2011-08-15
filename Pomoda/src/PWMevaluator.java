@@ -115,6 +115,7 @@ public class PWMevaluator {
 			st2.run();
 			OverlappingThread ot=new OverlappingThread(st1.getResult(), st2.getResult(), windowsize);
 			ot.run();
+			readbuffer.close();
 			return ot.getResult().size();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block

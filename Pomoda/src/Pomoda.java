@@ -191,7 +191,7 @@ public class Pomoda {
 				background.EnablePWMBG=true;
 				background.kmerlen=seedlen;
 				background.flanklen=(this.max_motiflen-seedlen)/2;
-				
+				System.out.println(bg_markov_order+" order Markov Model Background");
 				background.BuildModel(BGSearch.ForwardStrand.toArray(new String[1]), bg_markov_order+1);
 			    // background.BuildModel(ctrlFasta, bg_markov_order+1); //3-order bg
 				System.out.println(bg_markov_order+" order Markov Model Background");
