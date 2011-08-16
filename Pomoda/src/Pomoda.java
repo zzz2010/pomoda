@@ -448,7 +448,7 @@ public class Pomoda {
 	public void Masking(PWM motif)
 	{
 		int masklen=0;
-		double log_thresh=motif.getThresh(1.0, 0.0001, background);
+		double log_thresh=motif.getThresh(1.0, 0.0001, background,true);
 		String consensus_core=motif.Consensus(true);
 		
 		
@@ -2411,7 +2411,7 @@ public class Pomoda {
 		LinkedList<FastaLocation> tempfalocs=(SearchEngine2.KmerHitList.get(seedstring));
 		if(seedstring.length()!=SearchEngine2.KmerHitList.keySet().iterator().next().length())
 		{
-			double thresh=motif.getThresh(1.0, 0.001, background);
+			double thresh=motif.getThresh(1.0, 0.001, background,false);
 			tempfalocs=SearchEngine2.searchPattern(motif, thresh);
 		}
 		////////////////////////////////////Insert the reverse complement///////////////////////////////////////////
@@ -3290,7 +3290,7 @@ public class Pomoda {
 		
 		double log_thresh=Double.NEGATIVE_INFINITY; //Math.log(1-Prior_EZ)-Math.log(Prior_EZ);
 		//SearchEngine2.EnableBackground(background);
-		log_thresh=motif.getThresh(0.99, SearchEngine2.getSeqNum()/SearchEngine2.TotalLen, background);
+		log_thresh=motif.getThresh(0.99, SearchEngine2.getSeqNum()/SearchEngine2.TotalLen, background,false);
 		SearchThread.bestonly=true;
 		LinkedList<FastaLocation> Falocs=SearchEngine2.searchPattern(motif, log_thresh);
 		SearchThread.bestonly=false;

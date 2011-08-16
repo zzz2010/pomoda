@@ -207,7 +207,7 @@ public class PWMevaluator {
 			return retscores;
 		BGModel uniform_bg=new  BGModel();
 		uniform_bg.BuildModel(new String[]{"ACGT"}, 1);
-		double thresh=motif.getThresh(0.9999, 0.0001, uniform_bg);
+		double thresh=motif.getThresh(0.9999, 0.0001, uniform_bg,false);
 		SearchThread.bestonly=true;
 		 LinearEngine SearEngine=null;
 		
@@ -411,7 +411,7 @@ public class PWMevaluator {
 		 LinearEngine SearEngine=null;
 			
 		 SearEngine=this.SearchEngine;
-		double thresh=motif.getThresh(1, 0.0001, background);
+		double thresh=motif.getThresh(1, 0.0001, background,false);
 		double lamda=(double)SearchEngine.getSeqNum()/SearEngine.TotalLen/2;
 		 SearchThread.recordSiteThreshold=Math.log((1-lamda)/lamda)+motif.core_motiflen*Math.log(0.25);
 	        motif.matchsite.clear();

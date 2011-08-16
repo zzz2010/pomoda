@@ -96,12 +96,12 @@ public class SearchThread extends Thread  {
 						
 						score-=bgscore;
 
-						if(score>recordSiteThreshold)
+						if(score>=recordSiteThreshold)
 						{
 							matchsite.add(pos+i);
 						}
 						
-						if(score>thresh)
+						if(score>=thresh)
 						{
 							int addpos=pos+i;
 							
