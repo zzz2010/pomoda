@@ -251,7 +251,7 @@ public class NegBinFunction implements GradientOptimizableFunction {
 	public static void main(String[] args) {
 		NegativeBinomialDist dist1=new NegativeBinomialDist(3000,0.9);	
 		NegativeBinomialDist dist0=new NegativeBinomialDist(10,0.4);	
-		Random r=new Random(0);
+		Random r=new Random(123456789);
 		double prior=0.7;
 		ArrayList<Integer> Rl=new ArrayList<Integer>();
 		for (int i = 0; i < 10000; i++) {

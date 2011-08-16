@@ -570,7 +570,7 @@ public class PWMevaluator {
      						temp_dnase2=new Double[motif.Dnase_prob.size()];
      						Arrays.fill(temp_dnase2, new Double(0));
      						Double[] dnaseseq=DnaseLib.get(max_loc.getSeqId());
-     						Random r=new Random(0);
+     						Random r=new Random(123456789);
      						for (int i = 0; i <motif.Dnase_prob.size(); i++) {
      							{
      								temp_dnase2[i]= dnaseseq[r.nextInt(dnaseseq.length)];//posbin+i
