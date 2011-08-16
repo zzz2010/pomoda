@@ -114,7 +114,7 @@ public class PWMcluster {
 			if(rawpwm.core_motiflen<min_motiflen)
 				continue;
 			System.out.println(rawpwm.Consensus(true)+'\t'+rawpwm.Score);
-			double thresh=rawpwm.getThresh(sampling_ratio, FDR, background);
+			double thresh=rawpwm.getThresh(sampling_ratio, FDR, background,false);
 
 			LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(rawpwm, thresh);
 			ArrayList<Integer> pos=new ArrayList<Integer>(falocs.size());
@@ -266,7 +266,7 @@ public class PWMcluster {
 		for (int i = 0; i <rawPwms.size(); i++) {
 			PWM rawpwm=rawPwms.get(i);
 			System.out.println(rawpwm.Consensus(true)+'\t'+rawpwm.Score);
-			double thresh=rawpwm.getThresh(sampling_ratio, FDR, background);
+			double thresh=rawpwm.getThresh(sampling_ratio, FDR, background,false);
 			LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(rawpwm, thresh);
 			ArrayList<Integer> pos=new ArrayList<Integer>(falocs.size());
 			Iterator<FastaLocation> iter=falocs.iterator();

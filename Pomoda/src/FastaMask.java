@@ -163,7 +163,7 @@ public class FastaMask {
 		
 		for (int i = 0; i < Math.min(topN, pwmlist.size()); i++) {
 			PWM motif=pwmlist.get(i);
-			double log_thresh=motif.getThresh(1,GImprover.FDR, GImprover.background);
+			double log_thresh=motif.getThresh(1,GImprover.FDR, GImprover.background,true);
 			String consensus_core=motif.Consensus(true);
 			
 			

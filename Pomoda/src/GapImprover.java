@@ -321,7 +321,7 @@ public class GapImprover {
 		LinkedList<String> sites=new LinkedList<String>();
 		if(!OOPS)
 		{
-			double pwmThresh=motif.getThresh(sampling_ratio, FDR, background);
+			double pwmThresh=motif.getThresh(sampling_ratio, FDR, background,false);
 			LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(motif, pwmThresh);
 			Iterator<FastaLocation> iter=falocs.iterator();
 			while(iter.hasNext())

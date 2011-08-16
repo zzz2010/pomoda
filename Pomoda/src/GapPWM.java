@@ -211,7 +211,7 @@ public class GapPWM extends PWM {
 	}
 	
 	
-	@Override
+	
 	public double getThresh(double sampleratio,double FDRthresh,BGModel bgmodel)
 	{
 		

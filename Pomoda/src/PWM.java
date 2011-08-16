@@ -476,7 +476,7 @@ public class PWM extends SimpleWeightMatrix {
 	
 		return (double)fpcount/num_sampl;
 	}
-	public double getThresh(double sampleratio,double FDRthresh,BGModel bgmodel)
+	public double getThresh(double sampleratio,double FDRthresh,BGModel bgmodel, boolean strict)
 	{
 		String Consensus=this.Consensus(true);
 		//compute the possible path
@@ -523,9 +523,15 @@ public class PWM extends SimpleWeightMatrix {
 				
 			}
 			LinkedList<Map.Entry<Double,String>> inst=GenerateInstanceFromPWMPQ(sampleratio, FDRthresh, bgmodel);
+			
 			if(inst.size()>0)
+			{
+				if(strict)
 				//strictly in FDR
-			return inst.getFirst().getKey()+log025*N_num+common.DoubleMinNormal;
+					return inst.getFirst().getKey()+log025*N_num+common.DoubleMinNormal;
+				else
+					return inst.getFirst().getKey()+log025*N_num;
+			}
 			else
 				samplflag=true;
 		}
@@ -553,8 +559,9 @@ public class PWM extends SimpleWeightMatrix {
 			}
 			Collections.sort(scorelist);
 			//strictly in FDR
-			double thresh=scorelist.get((int)Math.floor(scorelist.size()*(1-FDRthresh)))+common.DoubleMinNormal;
-			if(thresh==scorelist.get(scorelist.size()-1))
+			double thresh=scorelist.get((int)Math.floor(scorelist.size()*(1-FDRthresh)));
+
+			if(strict)
 				thresh+=common.DoubleMinNormal;
 			return thresh;
 			
