@@ -3704,7 +3704,10 @@ public class Pomoda {
 			try
 			{
 					int num_priorbin=motifFinder.SearchEngine2.getTotalLength()/motifFinder.SearchEngine2.getSeqNum()/motifFinder.resolution;
-					
+					if(motif.core_motiflen/2> motifFinder.resolution)
+						num_priorbin=motifFinder.SearchEngine2.getTotalLength()/motifFinder.SearchEngine2.getSeqNum()/(motif.core_motiflen/2);
+					if(num_priorbin<10)
+						num_priorbin=10;
 					if(motif.pos_prior.size()==0)
 					{
 						for (int i1 = 0; i1 <num_priorbin ; i1++) {
