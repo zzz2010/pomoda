@@ -1592,7 +1592,8 @@ public class Pomoda {
 		int num_priorbin=SearchEngine2.getTotalLength()/SearchEngine2.getSeqNum()/this.resolution;
 		if(motif.core_motiflen/2>this.resolution)
 			num_priorbin=SearchEngine2.getTotalLength()/SearchEngine2.getSeqNum()/(motif.core_motiflen/2);
-		
+		if(num_priorbin<10)
+			num_priorbin=10;
 		if(motif.pos_prior.size()==0)
 		{
 			for (int i = 0; i <num_priorbin ; i++) {
@@ -2402,6 +2403,8 @@ public class Pomoda {
 		HashSet<Integer> extendedCols=new HashSet<Integer>();
 		HashSet<Integer> stateCodes=new HashSet<Integer>();
 		int num_priorbin=SearchEngine2.getTotalLength()/SearchEngine2.getSeqNum()/this.resolution;
+		if(num_priorbin<10)
+			num_priorbin=10;
 		double Prior_EZ=0.5;
 		int inst_hash=-1;
 		String seedstring=motif.MaximumConsensus();
