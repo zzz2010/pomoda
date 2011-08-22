@@ -61,7 +61,7 @@ public class PWMevaluator {
 	LinearEngine SearchEngine;
 	LinearEngine BGSearchEngine;
 	public double sampling_ratio=1;
-	public double FDR=0.01;
+	public double FDR=0.001;
 	public double entropyThresh=1;
 	
 	public int resolution=10;
@@ -207,7 +207,7 @@ public class PWMevaluator {
 			return retscores;
 		BGModel uniform_bg=new  BGModel();
 		uniform_bg.BuildModel(new String[]{"ACGT"}, 1);
-		double thresh=motif.getThresh(0.9999, 0.0001, uniform_bg,false);
+		double thresh=motif.getThresh(0.9999, FDR, uniform_bg,true);
 		SearchThread.bestonly=true;
 		 LinearEngine SearEngine=null;
 		
