@@ -71,6 +71,7 @@ import umontreal.iro.lecuyer.probdistmulti.DirichletDist;
 import umontreal.iro.lecuyer.util.Num;
 
 import cern.jet.random.Binomial;
+import cern.jet.random.engine.MersenneTwister;
 import cern.jet.random.engine.RandomEngine;
 import edu.stanford.rsl.jpop.AdditiveFunctionAssembler;
 import edu.stanford.rsl.jpop.FunctionOptimizer;
@@ -1831,7 +1832,7 @@ public class Pomoda {
    
     //Prior_EZ=Prior_EZ*SearchEngine2.TotalLen*seqcount/SearchEngine2.getSeqNum()/filtered_Falocs.size();
     
-    RandomEngine rand=RandomEngine.makeDefault();
+    RandomEngine rand=new MersenneTwister(123456789);
     double max_Prior_EZ=(double)SearchEngine2.getSeqNum()*MAX_P/SearchEngine2.TotalLen;
         if(Prior_EZ<0)
 			Prior_EZ=FDR;
@@ -2958,7 +2959,8 @@ public class Pomoda {
 		int bestCol=-1;
 		ArrayList<Integer> bestSym=new ArrayList<Integer>(4);
 		//use binomial p-value to decide stop extention
-		RandomEngine rand=RandomEngine.makeDefault();
+		RandomEngine rand=new MersenneTwister(123456789);
+		
          // Binomial binomial=new new Binomial(R)
 		
 		
