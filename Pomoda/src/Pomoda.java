@@ -88,6 +88,7 @@ public class Pomoda {
 	public String inputFasta;
 	public int max_iterNum=50;
 	public int mincount=10;
+	public boolean singleStrand=false;
 	public int MIN_SAMPLENUM=1000;
 	public int MAX_P=2;
 	public String ctrlFasta="";
@@ -135,7 +136,7 @@ public class Pomoda {
 			SearchEngine2.num_thread=SearchEngine2.TotalLen/400000+1;
 		SearchEngine2.build_KmerHitList(seedlen);
 		
-
+		SearchEngine2.singleStrand=this.singleStrand;
 		
 //		if(SearchEngine_Test())
 //			System.out.println("SearchEngine_Test : pass");
@@ -2419,7 +2420,7 @@ public class Pomoda {
 			tempfalocs=SearchEngine2.searchPattern(motif, thresh);
 		}
 		////////////////////////////////////Insert the reverse complement///////////////////////////////////////////
-		if(!seedstring.equalsIgnoreCase(common.getReverseCompletementString(seedstring)))
+		if(!seedstring.equalsIgnoreCase(common.getReverseCompletementString(seedstring))&&!singleStrand)
 		{
 			LinkedList<FastaLocation> tempfalocs2=SearchEngine2.KmerHitList.get(common.getReverseCompletementString(seedstring));
 			if(tempfalocs==null)
@@ -3518,6 +3519,7 @@ public class Pomoda {
 		options.addOption("seedfile", true, "seed PWM file");
 		options.addOption("bgmodel", true, "background model file");
 		options.addOption("dnase", true, "dnase data file");
+		options.addOption("strand", false, "only scan on one strand");
 		options.addOption("mincount", true, "min count for extention");
 		options.addOption("prefix", true, "output directory");
 		options.addOption("seedlen", true, "kmer seed motif length (default 5)");
@@ -3564,6 +3566,10 @@ public class Pomoda {
 				motifFinder.DnaseLib=common.ReadDelimitedFile("\t", dnasefile);
 				//the window size is determined by the sequence length and dnase array length
 				
+			}
+			if(cmd.hasOption("strand"))
+			{
+				motifFinder.singleStrand=true;
 			}
 			if(cmd.hasOption("prefix"))
 			{
@@ -3642,7 +3648,7 @@ public class Pomoda {
 		motifFinder.initialize();
 		long end = System.currentTimeMillis();
 		System.out.println("Initialization time was "+(end-start)/1000+" seconds.");
-
+		
 		 System.currentTimeMillis();
 		 
 //		 motifFinder.SamplingTest();

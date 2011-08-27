@@ -16,6 +16,7 @@ public class SearchThread extends Thread  {
 	PWM motif;
 	double thresh;
 	String pattern;
+	boolean singleStrand=false;
 	int startSeqId;
 	int mismatch;
 	int dbsize;
@@ -88,7 +89,7 @@ public class SearchThread extends Thread  {
 						boolean reverse=false;
 						double score2=motif.scoreWeightMatrix(common.getReverseCompletementString(temp));
 						
-						if(score2>score)
+						if(score2>score&&!singleStrand)
 						{
 							score=score2;
 							reverse=true;
@@ -172,6 +173,7 @@ public class SearchThread extends Thread  {
 				//reverse strand
 				String rcseq=common.getReverseCompletementString(seq.substring(i,i+pattern.length()));
 				int num_mismatch2=0;
+				
 				for (int j = 0; j < pattern.length(); j++) {
 					if(pattern.charAt(j)=='N'|| pattern.charAt(j)==rcseq.charAt(j))
 					{
@@ -184,7 +186,7 @@ public class SearchThread extends Thread  {
 							break;
 					}
 				}
-				if(num_mismatch2<num_mismatch)
+				if(num_mismatch2<num_mismatch&&!singleStrand)
 				{
 					reverse=true;
 					num_mismatch=num_mismatch2;

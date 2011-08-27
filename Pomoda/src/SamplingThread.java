@@ -17,6 +17,7 @@ import org.biojava.utils.ChangeVetoException;
 		int samplenum;
 		String pattern;
 		Random rand=new Random(123456789);
+		boolean singleStrand=false;
 		int startSeqId;
 		int mismatch;
 		int dbsize;
@@ -78,7 +79,7 @@ import org.biojava.utils.ChangeVetoException;
 							double score2=motif.scoreWeightMatrix(common.getReverseCompletementString(temp));
 							
 							
-							if(score2>score||(score2==score&&rand.nextBoolean()))
+							if(!singleStrand&&(score2>score||(score2==score&&rand.nextBoolean())))
 							{
 								score=score2;
 								reverse=true;
@@ -166,7 +167,7 @@ import org.biojava.utils.ChangeVetoException;
 								break;
 						}
 					}
-					if(num_mismatch2<num_mismatch)
+					if(num_mismatch2<num_mismatch&&!singleStrand)
 					{
 						reverse=true;
 						num_mismatch=num_mismatch2;
