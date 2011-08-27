@@ -27,6 +27,7 @@ public class LinearEngine {
 
 	LinkedList<String> ForwardStrand;
 	//LinkedList<String> ReverseStrand;
+	boolean singleStrand=false;
 	int num_thread;
 	BGModel background=null;
 	public HashMap<String,LinkedList<FastaLocation>> KmerHitList=null;
@@ -272,7 +273,8 @@ public class LinearEngine {
 	    //Forward search
 	    for (int i = 0; i < num_thread; i++) {
 	    	SearchThread t1 = new SearchThread(pattern, mismatch, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize )),i*workSize,accSeqLen);
-			if(background!=null)
+			t1.singleStrand=this.singleStrand;
+	    	if(background!=null)
 			{
 				t1.bgmodel=background;
 				t1.BGscoreMap=this.BGscoreMap;
@@ -345,7 +347,7 @@ public class LinearEngine {
 	    //Forward search
 	    for (int i = 0; i < num_thread; i++) {
 	    	SamplingThread t1 = new SamplingThread(pattern, Num_sample/num_thread, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize )),i*workSize,accSeqLen);
-
+	    	t1.singleStrand=this.singleStrand;
 	    	t1.start();
 			threadpool.add(t1);
 		}
@@ -400,6 +402,7 @@ public class LinearEngine {
 	    //Forward search
 	    for (int i = 0; i < num_thread; i++) {
 	    	SearchThread t1 = new SearchThread(pattern, thresh, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize )),i*workSize,accSeqLen);
+	    	t1.singleStrand=this.singleStrand;
 	    	if(background!=null)
 	    	{
 				t1.bgmodel=background;
