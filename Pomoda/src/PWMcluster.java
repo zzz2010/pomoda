@@ -248,9 +248,10 @@ public class PWMcluster {
 				break;
 		}
 		
-		if(clusterMoitfs.size()<num_cluster/2&&overlapThresh<100)
+		if(clusterMoitfs.size()<num_cluster&&overlapThresh<100)
 		{
 			overlapThresh*=2;
+			System.out.println("adjust overlap ratio:"+overlapThresh);
 			return Clustering_Fast(sortedPWMs,num_cluster);
 		}
 		
