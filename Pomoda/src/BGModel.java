@@ -24,7 +24,7 @@ public class BGModel implements Serializable{
 	boolean EnablePWMBG=false;
 	int kmerlen=5;
 	int flanklen=25;
-	 Random r=new Random(123456789);
+	 Random r=new Random(common.randomseed);
 	public int order;
 	
 	//return probability

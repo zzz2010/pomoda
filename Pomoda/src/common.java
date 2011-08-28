@@ -71,6 +71,7 @@ public class common {
 	}
 	
 	static double DoubleMinNormal=0.00000000000001;
+	static int randomseed=12345678;
 	public static double lnEntropy(double[] arr)
 	{
 		double entropy=0;
