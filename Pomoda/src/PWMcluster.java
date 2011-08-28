@@ -231,7 +231,7 @@ public class PWMcluster {
 					//double temp2=dist.cdf(x);
 					if(temp>overlapThresh)//temp2>0.5||temp>overlapThresh
 					{
-						System.out.println("-"+motif.Consensus(true)+"\t"+clusterMoitfsId.get(i));
+						System.out.println("-"+motif.Consensus(true)+"\t"+clusterMoitfs.get(i).Consensus(true));
 						newclass=false;
 						break;
 					}
@@ -248,9 +248,9 @@ public class PWMcluster {
 				break;
 		}
 		
-		if(clusterMoitfs.size()<num_cluster&&overlapThresh<100)
+		if(clusterMoitfs.size()<num_cluster&&overlapThresh<1)
 		{
-			overlapThresh*=2;
+			overlapThresh*=1.2;
 			System.out.println("adjust overlap ratio:"+overlapThresh);
 			return Clustering_Fast(sortedPWMs,num_cluster);
 		}
