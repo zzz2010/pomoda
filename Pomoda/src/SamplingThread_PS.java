@@ -16,7 +16,7 @@ public class SamplingThread_PS extends Thread {
 	PWM motif;
 	int samplenum;
 	String pattern;
-	Random rand=new Random(123456789);
+	Random rand=new Random(common.randomseed);
 	int startSeqId;
 	int mismatch;
 	int dbsize;

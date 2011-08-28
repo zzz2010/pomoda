@@ -1833,7 +1833,7 @@ public class Pomoda {
    
     //Prior_EZ=Prior_EZ*SearchEngine2.TotalLen*seqcount/SearchEngine2.getSeqNum()/filtered_Falocs.size();
     
-    RandomEngine rand=new MersenneTwister(123456789);
+    RandomEngine rand=new MersenneTwister(common.randomseed);
     double max_Prior_EZ=(double)SearchEngine2.getSeqNum()*MAX_P/SearchEngine2.TotalLen;
         if(Prior_EZ<0)
 			Prior_EZ=FDR;
@@ -2960,7 +2960,7 @@ public class Pomoda {
 		int bestCol=-1;
 		ArrayList<Integer> bestSym=new ArrayList<Integer>(4);
 		//use binomial p-value to decide stop extention
-		RandomEngine rand=new MersenneTwister(123456789);
+		RandomEngine rand=new MersenneTwister(common.randomseed);
 		
          // Binomial binomial=new new Binomial(R)
 		
@@ -3522,6 +3522,7 @@ public class Pomoda {
 		options.addOption("strand", false, "only scan on one strand");
 		options.addOption("mincount", true, "min count for extention");
 		options.addOption("prefix", true, "output directory");
+		options.addOption("randseed", true, "set a random seed for random number generation");
 		options.addOption("seedlen", true, "kmer seed motif length (default 5)");
 		options.addOption("ratio",true, "sampling ratio (default 0.8)");
 		options.addOption("n",true, "number of motifs in final report (default 5)");
@@ -3566,6 +3567,10 @@ public class Pomoda {
 				motifFinder.DnaseLib=common.ReadDelimitedFile("\t", dnasefile);
 				//the window size is determined by the sequence length and dnase array length
 				
+			}
+			if(cmd.hasOption("randseed"))
+			{
+				common.randomseed=Integer.parseInt(cmd.getOptionValue("randseed"));
 			}
 			if(cmd.hasOption("strand"))
 			{
@@ -3824,6 +3829,9 @@ public class Pomoda {
 				else
 					System.out.println(seedPWMs.get(i).Consensus(true)+" AUC:"+ llrscore);
 				seedPWMs.get(i).Score=llrscore;
+				if(threadpool.get(i).ZscoreFlag&&llrscore<1)
+					continue;
+
 				if(llrscore>0.5)
 				{
 					if(motifFinder.maskflag&&(seedPWMs.get(i).pos_en||seedPWMs.get(i).peakrank_en))
@@ -3854,6 +3862,7 @@ public class Pomoda {
 	
 			for(PWM pwm:clusterPWMs)
 			{
+
 				sortedPWMs.put(pwm.Score, pwm); //desc order
 			}
 			System.out.println("Clustered Motifs:");
