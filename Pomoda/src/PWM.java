@@ -559,7 +559,7 @@ public class PWM extends SimpleWeightMatrix {
 			}
 			Collections.sort(scorelist);
 			//strictly in FDR
-			double thresh=scorelist.get((int)Math.floor(scorelist.size()*(1-FDRthresh)));
+			double thresh=scorelist.get((int)Math.floor(num_sampl*(1-FDRthresh)));
 
 			if(strict)
 				thresh+=common.DoubleMinNormal;

@@ -416,6 +416,7 @@ public class PWMevaluator {
 		 SearchThread.recordSiteThreshold=thresh;//Math.log((1-lamda)/lamda)+motif.core_motiflen*Math.log(0.25);
 	        motif.matchsite.clear();
 		LinkedList<FastaLocation> falocs= this.SearchEngine.searchPattern(motif, thresh);
+		motif.Score=thresh;
 	      SearchThread.recordSiteThreshold=Double.POSITIVE_INFINITY;
 	      
 			 LinearEngine BGSearch=null;

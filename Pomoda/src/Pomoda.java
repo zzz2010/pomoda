@@ -3824,6 +3824,7 @@ public class Pomoda {
 		
 		  for (int i = 0; i < threadpool.size(); i++) {
 				double llrscore=threadpool.get(i).getResult();
+				System.out.println(seedPWMs.get(i).Score);
 				if(threadpool.get(i).ZscoreFlag)
 					System.out.println(seedPWMs.get(i).Consensus(true)+"("+seedPWMs.get(i).matchsite.size()+") Zscore:"+ llrscore);
 				else
@@ -3836,7 +3837,6 @@ public class Pomoda {
 				{
 					if(motifFinder.maskflag&&(seedPWMs.get(i).pos_en||seedPWMs.get(i).peakrank_en))
 						llrscore+=10000;
-					seedPWMs.get(i).Score=llrscore;
 					writer.write(seedPWMs.get(i).toString());
 				sortedPWMs.put(llrscore, seedPWMs.get(i));
 				}
