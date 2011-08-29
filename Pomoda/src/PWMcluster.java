@@ -173,7 +173,7 @@ public class PWMcluster {
 						double temp2=dist.cdf(x);
 						if(temp>overlapThresh)//temp2>0.5||temp>overlapThresh
 						{
-							System.out.println("-"+motif.Consensus(true)+"\t"+clusterMoitfs.get(i).Consensus(true));
+							System.out.println("-"+motif.Consensus(true)+"\t"+clusterMoitfs.get(i).Consensus(true)+"\t"+temp);
 							newclass=false;
 							break;
 						}
