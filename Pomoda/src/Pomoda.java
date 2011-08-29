@@ -3774,7 +3774,7 @@ public class Pomoda {
 				topseed_Score=seedPWMs.get(i).Score;
 				//motifFinder.SearchEngine2.EnableBackground(motifFinder.background);
 			}		
-			writer.write(seedPWMs.get(i).toString());
+		
 			}
 			catch (Exception ex)
 			{
@@ -3786,7 +3786,7 @@ public class Pomoda {
 		end = System.currentTimeMillis();
 		System.out.println("Find "+seedPWMs.size()+" motifs time was "+(end-start)/1000+" seconds.");
 		
-		writer.close();
+		
 		start = System.currentTimeMillis();
 		//restore the unmask fasta
 		if(motifFinder.maskflag)
@@ -3836,9 +3836,12 @@ public class Pomoda {
 				{
 					if(motifFinder.maskflag&&(seedPWMs.get(i).pos_en||seedPWMs.get(i).peakrank_en))
 						llrscore+=10000;
+					seedPWMs.get(i).Score=llrscore;
+					writer.write(seedPWMs.get(i).toString());
 				sortedPWMs.put(llrscore, seedPWMs.get(i));
 				}
 		  }
+		  writer.close();
 ///////////////////////////////////////evaluate different motif in parallel///////////////////////////////////////////			
 		seedPWMs.clear();
 		for (Double key : sortedPWMs.descendingKeySet()) {
