@@ -3825,7 +3825,7 @@ public class Pomoda {
 		  for (int i = 0; i < threadpool.size(); i++) {
 				double llrscore=threadpool.get(i).getResult();
 				if(threadpool.get(i).ZscoreFlag)
-					System.out.println(seedPWMs.get(i).Consensus(true)+" Zscore:"+ llrscore);
+					System.out.println(seedPWMs.get(i).Consensus(true)+"("+seedPWMs.get(i).matchsite.size()+") Zscore:"+ llrscore);
 				else
 					System.out.println(seedPWMs.get(i).Consensus(true)+" AUC:"+ llrscore);
 				seedPWMs.get(i).Score=llrscore;
