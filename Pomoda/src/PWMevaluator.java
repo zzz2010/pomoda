@@ -413,7 +413,7 @@ public class PWMevaluator {
 		 SearEngine=this.SearchEngine;
 		double thresh=motif.getThresh(1, 0.0001, background,false);
 		double lamda=(double)SearchEngine.getSeqNum()/SearEngine.TotalLen/2;
-		 SearchThread.recordSiteThreshold=Math.log((1-lamda)/lamda)+motif.core_motiflen*Math.log(0.25);
+		 SearchThread.recordSiteThreshold=thresh;//Math.log((1-lamda)/lamda)+motif.core_motiflen*Math.log(0.25);
 	        motif.matchsite.clear();
 		LinkedList<FastaLocation> falocs= this.SearchEngine.searchPattern(motif, thresh);
 	      SearchThread.recordSiteThreshold=Double.POSITIVE_INFINITY;
