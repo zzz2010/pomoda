@@ -149,10 +149,12 @@ public class PWMcluster {
 			ArrayList<Integer> clusterMoitfsId=new ArrayList<Integer>(num_cluster);
 			for(Double key:sortedPWMs.descendingKeySet())
 			{
+			PWM	motif=sortedPWMs.get(key);
+			
 				if(clusterMoitfsId.size()==0)
 				{
 					clusterMoitfsId.add(id);	
-					clusterMoitfs.add(sortedPWMs.get(key));
+					clusterMoitfs.add(motif);
 				}
 				else
 				{
@@ -171,7 +173,7 @@ public class PWMcluster {
 						double temp2=dist.cdf(x);
 						if(temp>overlapThresh)//temp2>0.5||temp>overlapThresh
 						{
-							System.out.println("-"+sortedPWMs.get(key).Consensus(true)+"\t"+clusterMoitfsId.get(i));
+							System.out.println("-"+motif.Consensus(true)+"\t"+clusterMoitfs.get(i).Consensus(true));
 							newclass=false;
 							break;
 						}
@@ -179,7 +181,7 @@ public class PWMcluster {
 					if(newclass)
 					{
 						clusterMoitfsId.add(id);	
-						clusterMoitfs.add(sortedPWMs.get(key));
+						clusterMoitfs.add(motif);
 					}
 				}
 				
@@ -187,13 +189,17 @@ public class PWMcluster {
 				if(clusterMoitfs.size()==num_cluster)
 					break;
 			}
-		}
-		catch (InterruptedException e) {
+		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		return clusterMoitfs;
+			if(clusterMoitfs.size()<num_cluster&&overlapThresh<1)
+			{
+				overlapThresh*=1.2;
+				System.out.println("adjust overlap ratio:"+overlapThresh);
+				return Clustering_(rawPwms,num_cluster);
+			}
+			return clusterMoitfs;
 	}
 	
 	public ArrayList<PWM> Clustering_Fast(List<PWM> sortedPWMs,int num_cluster)
