@@ -31,6 +31,7 @@ public class PWMcluster {
 	public LinkageCriterion linkage=LinkageCriterion.WPGMA;
 	public BGModel background;
 	private String bgmodelFile="";
+	public boolean featureFirst=false;
 	public double overlapThresh=0.1;
 	public String outputPrefix="./";
 	public String inputFasta;
@@ -101,8 +102,12 @@ public class PWMcluster {
 		ArrayList<PWM> clusterMoitfs=new ArrayList<PWM>(num_cluster);
 		TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		for (int i = 0; i <rawPwms.size(); i++) {
-			sortedPWMs.put(rawPwms.get(i).Score, rawPwms.get(i));
+			double key=rawPwms.get(i).Score;
+			if(rawPwms.get(i).pos_en||rawPwms.get(i).peakrank_en)
+				key+=10000;
+			sortedPWMs.put(key, rawPwms.get(i));
 		}
+		ArrayList<PWM> sortedlist=new ArrayList<PWM>(rawPwms.size());
 		ArrayList<LinkedList<Integer>> PosSet=new ArrayList<LinkedList<Integer>>(rawPwms.size());
 		//sort the positions
 		ExecutorService executor = Executors.newFixedThreadPool(6);
@@ -112,6 +117,7 @@ public class PWMcluster {
 		{
 			
 			PWM rawpwm=sortedPWMs.get(key);
+			sortedlist.add(rawpwm);
 			if(rawpwm.core_motiflen<min_motiflen)
 				continue;
 			System.out.println(rawpwm.Consensus(true)+'\t'+rawpwm.Score);
@@ -204,7 +210,7 @@ public class PWMcluster {
 			{
 				overlapThresh*=1.2;
 				System.out.println("adjust overlap ratio:"+overlapThresh);
-				return Clustering_Fast(rawPwms,num_cluster);
+				return Clustering_Fast(sortedlist,num_cluster);
 			}
 			return clusterMoitfs;
 	}
