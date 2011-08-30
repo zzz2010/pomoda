@@ -582,6 +582,8 @@ public class PWM extends SimpleWeightMatrix {
 		String pwmName="";
 		double score=0;
 		double prior_EZ=0;
+		boolean rankbias=false;
+		boolean posbias=false;
 		try {
 			while ((str = reader.readLine()) != null) {
 				if(str.startsWith("DE"))
@@ -593,6 +595,10 @@ public class PWM extends SimpleWeightMatrix {
 					{
 						try
 						{
+							if(str.indexOf("pos|")>0)
+								posbias=true;
+							if(str.indexOf("rank|")>0)
+								rankbias=true;
 							prior_EZ=Double.valueOf(elms[elms.length-1]);
 							if(prior_EZ<0||prior_EZ>1)
 								prior_EZ=0;
@@ -645,7 +651,8 @@ public class PWM extends SimpleWeightMatrix {
 			pwm.Name=pwmName;
 			pwm.Score=score;
 			pwm.Prior_EZ=prior_EZ;
-			
+			pwm.pos_en=posbias;
+			pwm.peakrank_en=rankbias;
 			reader.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
