@@ -88,6 +88,7 @@ public class Pomoda {
 	public String inputFasta;
 	public int max_iterNum=50;
 	public int mincount=10;
+	public double overlapthresh=0.1;
 	public boolean singleStrand=false;
 	public int MIN_SAMPLENUM=1000;
 	public int MAX_P=2;
@@ -3534,7 +3535,7 @@ public class Pomoda {
 		options.addOption("mask",false,"whether marking the top motif location in order to find co-motif");
 		options.addOption("oops",false,"whether assuming only one occurrence per sequence");
 		options.addOption("FDR",true,"fasle positive rate (default 0.01)");
-		options.addOption("clust",true,"linkage type of hierachical clustering:"+Arrays.toString(LinkageCriterion.values()) );
+		options.addOption("clustthresh",true,"overlap threshold for clustering (default 0.1)" );
 		
 		CommandLineParser parser = new GnuParser();
 		Pomoda motifFinder=new Pomoda();
@@ -3633,9 +3634,9 @@ public class Pomoda {
 			{
 				motifFinder.FDR=Double.parseDouble(cmd.getOptionValue("FDR"));
 			}
-			if(cmd.hasOption("clust"))
+			if(cmd.hasOption("clustthresh"))
 			{
-				motifFinder.linkage=(cmd.getOptionValue("clust"));
+				motifFinder.overlapthresh=Double.parseDouble(cmd.getOptionValue("clustthresh"));
 			}
 	
 			System.out.println(Arrays.toString(args) );
