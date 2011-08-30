@@ -31,7 +31,7 @@ public class PWMcluster {
 	public LinkageCriterion linkage=LinkageCriterion.WPGMA;
 	public BGModel background;
 	private String bgmodelFile="";
-	public double overlapThresh=0.2;
+	public double overlapThresh=0.1;
 	public String outputPrefix="./";
 	public String inputFasta;
 	public String ctrlFasta="";
@@ -48,6 +48,7 @@ public class PWMcluster {
 		//sampling_ratio=motiffinder.sampling_ratio;
 		//FDR=motiffinder.FDR;
 		background=motiffinder.background;
+		overlapThresh=motiffinder.overlapthresh;
 		min_motiflen=motiffinder.min_motiflen;
 		linkage=LinkageCriterion.valueOf(motiffinder.linkage);
 		System.out.println("LinkageCriterion: "+motiffinder.linkage);
@@ -164,10 +165,12 @@ public class PWMcluster {
 				{
 					boolean newclass=true;
 					for (int i = 0; i < clusterMoitfsId.size(); i++) {
-						OverlappingThread t2=new OverlappingThread(PosSet.get(clusterMoitfsId.get(i)), PosSet.get(id), 5);
-						t2.run();
 						int row=clusterMoitfsId.get(i);
 						int col=id;	
+						int overlaplen=Math.max(rawPwms.get(row).core_motiflen, rawPwms.get(col).core_motiflen)/2;
+						OverlappingThread t2=new OverlappingThread(PosSet.get(clusterMoitfsId.get(i)), PosSet.get(id), overlaplen);
+						t2.run();
+
 						double temp=t2.getResult().size()/(double)Math.min(PosSet.get(row).size()+1, PosSet.get(col).size()+1);
 						int l=Math.max(SearchEngine.TotalLen/(rawPwms.get(row).core_motiflen),SearchEngine.TotalLen/rawPwms.get(col).core_motiflen);
 						int m=PosSet.get(row).size();
@@ -229,8 +232,8 @@ public class PWMcluster {
 
 					int row=clusterMoitfsId.get(i);
 					int col=id;	
-					int overlaplen=Math.min(sortedPWMs.get(row).core_motiflen, sortedPWMs.get(col).core_motiflen);
-					OverlappingThread t2=new OverlappingThread(sortedPWMs.get(row).matchsite ,sortedPWMs.get(col).matchsite,5 );
+					int overlaplen=Math.max(sortedPWMs.get(row).core_motiflen, sortedPWMs.get(col).core_motiflen)/2;
+					OverlappingThread t2=new OverlappingThread(sortedPWMs.get(row).matchsite ,sortedPWMs.get(col).matchsite,overlaplen);
 					t2.run();
 					double temp=t2.getResult().size()/(double)Math.min(sortedPWMs.get(row).matchsite.size()+1, sortedPWMs.get(col).matchsite.size()+1);
 					int l=Math.max(SearchEngine.TotalLen/(sortedPWMs.get(row).core_motiflen),SearchEngine.TotalLen/sortedPWMs.get(col).core_motiflen);
