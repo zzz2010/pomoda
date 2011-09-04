@@ -126,7 +126,7 @@ public class WMPanel extends JPanel {
 				g2.drawLine ( x, height, x, height+gid*gheight );
 				if(i==poslist.size()/3)
 				{
-					JLabel label=new JLabel(groupBits.get(pair.getKey()).toString());
+					JLabel label=new JLabel(groupBits.get(pair.getKey()).toString().substring(0, Math.min(5,groupBits.get(pair.getKey()).toString().length())));
 					label.setBounds(x, height+gid*gheight, width, height/10);
 					add(label);
 				}
