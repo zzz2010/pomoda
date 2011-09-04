@@ -1016,7 +1016,8 @@ public class common {
 		case 'n': return 14;
 		case 'X': return 15;
 			//RYKMSWBDHVN
-		default: return -1;
+		default: 
+			return -1;
 		}
 
 	}
