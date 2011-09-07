@@ -17,6 +17,7 @@ import org.biojava.bio.dist.Distribution;
 import org.biojava.bio.dist.DistributionFactory;
 import org.biojava.bio.dist.DistributionTools;
 import org.biojava.bio.dist.IndexedCount;
+import org.biojava.bio.dist.SimpleDistribution;
 import org.biojava.bio.dp.DP;
 import org.biojava.bio.dp.ScoreType;
 import org.biojava.bio.dp.SimpleWeightMatrix;
@@ -403,7 +404,23 @@ public class PWM extends SimpleWeightMatrix {
 		int end=this.columns()-this.tail;
 		Distribution[] dists=new Distribution[end-start];
 		for (int i = start; i < end; i++) {
-			dists[i-start]=getColumn(i);
+			FiniteAlphabet alpb=(FiniteAlphabet) getColumn(i).getAlphabet();
+			dists[i-start]=new SimpleDistribution(alpb)  ;
+			Iterator<Symbol> iter= alpb.iterator();
+			while(iter.hasNext())
+			{
+				Symbol sym=iter.next();
+				try {
+					dists[i-start].setWeight(sym, getColumn(i).getWeight(sym));
+				} catch (IllegalSymbolException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (ChangeVetoException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
 		}
 		PWM sub=null;
 		try {
