@@ -198,7 +198,7 @@ public class gapTextLogoPainter implements LogoPainter {
     	  g2.setPaint(Color.black);
       }
       g2.fill(outline);
-       g2.draw(outline);
+   //    g2.draw(outline);
      }
       
       base -= rv.getValue();

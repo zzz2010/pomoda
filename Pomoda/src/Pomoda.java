@@ -119,6 +119,8 @@ public class Pomoda {
 	public NegativeBinomialDist dnaseBG=null;
 	public ArrayList<Double[]> DnaseLib=null;
 	public int DnaseWindow=1;
+	boolean DemoFlag=true;
+	DemoWin demo=null;
 	
 	public void initialize()
 	{
@@ -1851,8 +1853,17 @@ public class Pomoda {
 		int motiflen=motif.core_motiflen+flankingLen*2; 
 //		Prior_EZ=(double)truepos/Falocs.size();
 
+		if(this.DemoFlag)
+			demo.addEEMmotif(motif);
 		do
 		{
+			
+			if(this.DemoFlag)
+			{
+				demo.addPosDist(motif.pos_prior);
+				demo.addRankDist(motif.peakrank_prior);
+				demo.addREMmotif(motif);
+			}
 			
 			iter_count++;
 			
@@ -2594,6 +2605,13 @@ public class Pomoda {
 		do
 		{
 
+			if(this.DemoFlag)
+			{
+				demo.addPosDist(motif.pos_prior);
+				demo.addRankDist(motif.peakrank_prior);
+				demo.addEEMmotif(motif);
+			}
+			
 			itercount++;
 		int truecount=0;
 		int overlapcount=0;
@@ -3105,6 +3123,9 @@ public class Pomoda {
 				motif.setWeights(ecol,common.Normalize(count_matrix[ecol]));
 				
 			}
+			if(DemoFlag)
+				demo.addEEMmotif(motif);
+			
 			double max_sumCount=0;
 			for (int j = 0; j < 4; j++) {
 				max_sumCount+=count_matrix[count_matrix.length/2][j];
@@ -3690,6 +3711,13 @@ public class Pomoda {
 		
 		double topseed_Score=0;
 		
+		if(motifFinder.DemoFlag)
+		{
+			motifFinder.demo=new DemoWin();
+			motifFinder.demo.showSEEDs(seedPWMs);
+		}
+		
+		
 		File file = new File(motifFinder.outputPrefix+"jpomoda_raw.pwm"); 
 		try {
 			
@@ -3728,6 +3756,13 @@ public class Pomoda {
 							motif.pos_prior.add(1.0/num_priorbin);
 							motif.peakrank_prior.add(1.0/num_priorbin);
 						}
+						
+						if(motifFinder.DemoFlag)
+						{
+							motifFinder.demo.addPosDist(motif.pos_prior);
+							motifFinder.demo.addRankDist(motif.peakrank_prior);
+						}
+						
 					}
 					
 		
@@ -3749,6 +3784,9 @@ public class Pomoda {
 				seedPWMs.remove(i);
 				continue;
 			}
+			
+				
+			
 			System.out.println("Relaxing...");
 			seedPWMs.set(i, motifFinder.Relax_Seed_3(seedPWMs.get(i)));
 			if(seedPWMs.get(i)==null)
@@ -3757,6 +3795,14 @@ public class Pomoda {
 				continue;
 			}
 			seedPWMs.get(i).Name="Motif"+String.valueOf(i+1);
+			if(motifFinder.DemoFlag)
+			{
+
+				motifFinder.demo.showEEM();
+				motifFinder.demo.showREM();
+				motifFinder.demo.showPostionDist();
+				motifFinder.demo.showRankDist();
+			}
 			// to make different length comparable ,need to consider the instance coverage
 //			seedPWMs.get(i).Score=seedPWMs.get(i).Score/seedPWMs.get(i).inst_coverage;//corrected score
 			if(motifFinder.maskflag&&seedPWMs.get(i).peakrank_en&&seedPWMs.get(i).pos_en)// (seedPWMs.get(i).Prior_EZ*motifFinder.SearchEngine2.TotalLen)>(motifFinder.SearchEngine2.getSeqNum()))
