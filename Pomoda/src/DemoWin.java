@@ -8,6 +8,7 @@ import java.util.List;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.border.LineBorder;
 
 import org.biojava.bio.dist.Distribution;
 import org.biojava.bio.gui.DNAStyle;
@@ -48,7 +49,7 @@ public double maxdifference(ArrayList<Double> dist1,ArrayList<Double> dist2)
 	}
 	return maxdiff*minsize;
 }
-double changeCutoff=0.01;
+double changeCutoff=0.05;
 double changeCutoff2=0.1;
 
 public void addPosDist(ArrayList<Double> dist)
@@ -115,7 +116,7 @@ public void addRankDist(ArrayList<Double> dist)
 			 XYPlot plot =new XYPlot(dataset, new NumberAxis(""), null, renderer1);	 
 			 XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
 		        renderer.setSeriesStroke( 0, new BasicStroke(
-		                1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND
+		                4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND
 		            ));
 		        renderer.setSeriesPaint(0,Color.red);
 		        renderer.setShapesVisible(false);
@@ -123,7 +124,8 @@ public void addRankDist(ArrayList<Double> dist)
 		        plot.getDomainAxis().setVisible(false);
 		        plot.setRangeGridlinesVisible(false);
 		        plot.setDomainGridlinesVisible(false);
-		
+		        plot.setOutlinePaint(Color.black);
+		        plot.setOutlineVisible(true);
 	        return plot;
 	        
 	}
@@ -132,8 +134,8 @@ public void addRankDist(ArrayList<Double> dist)
 	
 	public JPanel PWM2Panel(PWM wm)
 	{
-	    int width=40;
-		 int height=120;
+	    int width=20;
+		 int height=60;
 		 JPanel wmv = new JPanel();
 		 wmv.setBackground(Color.white);
 		 RenderingHints hints = new  RenderingHints(RenderingHints.KEY_ANTIALIASING,  RenderingHints.VALUE_ANTIALIAS_ON);
@@ -164,9 +166,12 @@ public void addRankDist(ArrayList<Double> dist)
 	{
         JFrame frame = new JFrame("SeedFrame");
         
-        frame.setLayout(new GridLayout(seedPWMs.size(),1));
-        for (int i = 0; i < seedPWMs.size(); i++) {   	
-        	 frame.getContentPane().add(PWM2Panel(seedPWMs.get(i)));
+        frame.setLayout(new GridLayout(seedPWMs.size(),1,20,0));
+        
+        for (int i = 0; i < seedPWMs.size(); i++) {  
+        	JPanel pan=PWM2Panel(seedPWMs.get(i));
+        	pan.setBorder(new LineBorder(Color.white, 2));
+        	 frame.getContentPane().add(pan);
 		} 	        
         	         frame.pack();
         	         
@@ -177,10 +182,15 @@ public void addRankDist(ArrayList<Double> dist)
 	public void showEEM()
 	{
         JFrame frame = new JFrame("Extending EM Process");
+        GridLayout layout=new GridLayout(EEMPWMs.size(),1,10,20);
+
         
-        frame.setLayout(new GridLayout(EEMPWMs.size(),1));
+        frame.setLayout(layout);
+        
         for (int i = 0; i < EEMPWMs.size(); i++) {   	
-        	 frame.getContentPane().add(PWM2Panel(EEMPWMs.get(i)));
+        	JPanel pan=PWM2Panel(EEMPWMs.get(i));
+        	 pan.setBorder(new LineBorder(Color.white,4));
+        	 frame.getContentPane().add(pan);
 		} 	        
         	         frame.pack();
         	         
@@ -192,20 +202,25 @@ public void addRankDist(ArrayList<Double> dist)
 	
 	public void showPostionDist()
 	{
-		 int shownum=6;
+		 int shownum=5;
 	        int remind=PositionDistList.size()/shownum;
 	        if(remind<1)
 	        	remind=1;
 		CombinedRangeXYPlot plot = new CombinedRangeXYPlot(new NumberAxis("Probability"));
+		plot.setBackgroundPaint(Color.white);
 		for (int i = 0; i < PositionDistList.size(); i++) {
 			if(i%remind==0)
 			plot.add(Array2XYPlot(PositionDistList.get(i)), 1);
 		}
-		
-		JFreeChart chart=new JFreeChart(	"Motif Position Distribution",	JFreeChart.DEFAULT_TITLE_FONT, plot, false );
+		plot.setGap(50);
+		NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
+        rangeAxis.setStandardTickUnits(NumberAxis.createStandardTickUnits());
+        rangeAxis.setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 28));
 	
+		JFreeChart chart=new JFreeChart(	"Motif Position Distribution",	JFreeChart.DEFAULT_TITLE_FONT, plot, false );
+		chart.setBorderPaint(Color.white);
 		ChartFrame frame = new ChartFrame("Position", chart);
-		frame.setPreferredSize(new Dimension(2400, 300));
+		frame.setPreferredSize(new Dimension(2400, 200));
 		frame.pack();
 		frame.setVisible(true);
 		PositionDistList.clear();
@@ -214,15 +229,27 @@ public void addRankDist(ArrayList<Double> dist)
 	
 	public void showRankDist()
 	{
-		
+		 int shownum=5;
+	        int remind=RankDistList.size()/shownum;
+	        if(remind<1)
+	        	remind=1;
 		CombinedRangeXYPlot plot = new CombinedRangeXYPlot(new NumberAxis("Probability"));
-		for (int i = 0; i < RankDistList.size(); i++) {
+		for (int i = 0; i < 5; i++) {
+			if(i%remind==0)
 			plot.add(Array2XYPlot(RankDistList.get(i)), 1);
 		}
-		
+		plot.setGap(50);
+		plot.setBackgroundImageAlpha((float) 1.0);
+		plot.setBackgroundPaint(Color.white);
+		NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
+	        rangeAxis.setStandardTickUnits(NumberAxis.createStandardTickUnits());
+	        rangeAxis.setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 28));
+	        
 		JFreeChart chart=new JFreeChart(	"Motif Sequence Rank Distribution",	JFreeChart.DEFAULT_TITLE_FONT, plot, false );
+		chart.setBorderPaint(Color.white);
 		ChartFrame frame = new ChartFrame("Sequence Rank", chart);
-		frame.setPreferredSize(new Dimension(2400, 300));
+		frame.setBackground(Color.white);
+		frame.setPreferredSize(new Dimension(2400, 200));
 		frame.pack();
 		frame.setVisible(true);
 		RankDistList.clear();
@@ -231,16 +258,26 @@ public void addRankDist(ArrayList<Double> dist)
 	public void showREM()
 	{
 		  int shownum=10;
+		  if(REMPWMs.size()<shownum)
+			  shownum=REMPWMs.size()-1;
+		  
         JFrame frame = new JFrame("Resampling EM Process");
+        GridLayout layout=new GridLayout(shownum+1,1,10,20);
         
-        frame.setLayout(new GridLayout(shownum+1,1));
+        
+        frame.setLayout(layout);
+       
       
         int remind=REMPWMs.size()/shownum;
         if(remind<1)
         	remind=1;
         for (int i = 0; i < REMPWMs.size(); i++) {   	
         	if(i%remind==0)
-        	 frame.getContentPane().add(PWM2Panel(REMPWMs.get(i)));
+        	{
+        		JPanel pan = PWM2Panel(REMPWMs.get(i));
+        		  pan.setBorder(new LineBorder(Color.white,4));
+        	 frame.getContentPane().add(pan);
+        	}
 		} 	        
         	         frame.pack();
         	         
