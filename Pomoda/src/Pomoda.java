@@ -3728,7 +3728,7 @@ public class Pomoda {
 			
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNTTTCANNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNGGAAANNNNNNN"}));
-//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGGTCANNNNNNNNNNNNNNNNNNNNNNNNN"}));
+//			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGAAAANNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNGTGACNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNAGGTCNNNNNNNNNNNNNNNNNNNNNNNNN"}));
 //			seedPWMs.add(new PWM(new String[]{"NNNNNNNNNNNNNNNNNNNNNNNNNCGCGGNNNNNNNNNNNNNNNNNNNNNNNNN"}));
@@ -3742,6 +3742,7 @@ public class Pomoda {
 		//extend and refine motifs
 		for (int i = 0; i < seedPWMs.size(); i++) {
 			PWM motif=seedPWMs.get(i);
+			motif.Name=motif.Consensus(true);
 			motif.Score=1;
 			try
 			{
@@ -3779,6 +3780,7 @@ public class Pomoda {
 			System.out.println("Extending...");
 			if(SeedPWMfile=="")
 				seedPWMs.set(i,motifFinder.Column_Replacement_2(motif));
+			
 			if(seedPWMs.get(i)==null||seedPWMs.get(i).core_motiflen<motifFinder.min_motiflen)
 			{
 				seedPWMs.remove(i);
