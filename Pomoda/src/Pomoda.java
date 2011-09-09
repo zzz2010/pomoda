@@ -1589,8 +1589,7 @@ public class Pomoda {
 				
 			}
 		}
-		if(motif.core_motiflen>1)
-		return motif;
+
 		//EM full site iteration
 		
 		double bestscore=motif.Score;
@@ -3825,8 +3824,7 @@ public class Pomoda {
 				
 				//motifFinder.SearchEngine2.EnableBackground(motifFinder.background);
 			}		
-			seedPWMs.get(i).infothresh=0.1;
-			writer.write(seedPWMs.get(i).toString());
+			
 			}
 			catch (Exception ex)
 			{
@@ -3838,9 +3836,7 @@ public class Pomoda {
 		end = System.currentTimeMillis();
 		System.out.println("Find "+seedPWMs.size()+" motifs time was "+(end-start)/1000+" seconds.");
 		
-		writer.close();
-		  System.out.println("special version for EEM PWMs");
-		  System.exit(1);
+	
 		
 		start = System.currentTimeMillis();
 		//restore the unmask fasta
