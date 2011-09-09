@@ -62,7 +62,7 @@ public class PWMevaluator {
 	LinearEngine BGSearchEngine;
 	public double sampling_ratio=1;
 	public double FDR=0.001;
-	public double entropyThresh=1;
+	public double DivergenceThresh=0.24;
 	
 	public int resolution=10;
 	
@@ -186,7 +186,7 @@ public class PWMevaluator {
 		for(Double key:sortedPWMs.keySet())
 		{
 			divergences[similarList.size()]=key;
-			if(key>0.24)
+			if(key>DivergenceThresh)
 				continue;
 			similarList.add(sortedPWMs.get(key));
 			
@@ -692,7 +692,7 @@ public class PWMevaluator {
 		options.addOption("markov", true, "use markov model of the control sequences rather than directly control sequences");
 		options.addOption("prefix", true, "output directory");
 		options.addOption("ratio",true, "sampling ratio (default 1)");
-		options.addOption("thresh",true, "minimum entropy threshold for considering a position as a gap(default 0.5)");
+		options.addOption("thresh",true, "minimum PWM divergence threshold for considering a match known motif(default 0.24)");
 		options.addOption("FDR",true,"fasle positive rate");
 		String inputPWM;
 		CommandLineParser parser = new GnuParser();
@@ -764,7 +764,7 @@ public class PWMevaluator {
 			}
 			if(cmd.hasOption("thresh"))
 			{
-				evaluator.entropyThresh=Double.parseDouble(cmd.getOptionValue("thresh"));
+				evaluator.DivergenceThresh=Double.parseDouble(cmd.getOptionValue("thresh"));
 			}
 			if(cmd.hasOption("FDR"))
 			{
@@ -869,7 +869,7 @@ public class PWMevaluator {
 			while(iter.hasNext())
 			{
 				PWM p1=iter.next();
-				int K=20;
+				int K=200;
 				double [] pwmdivergences=new double[K];
 			    ArrayList<PWM> similars=evaluator.similarPWMs(p1, PWMLibrary, K,pwmdivergences);
 			    writer.write(p1.Name);
