@@ -119,7 +119,7 @@ public class Pomoda {
 	public NegativeBinomialDist dnaseBG=null;
 	public ArrayList<Double[]> DnaseLib=null;
 	public int DnaseWindow=1;
-	boolean DemoFlag=true;
+	boolean DemoFlag=false;
 	DemoWin demo=null;
 	
 	public void initialize()
@@ -1589,7 +1589,8 @@ public class Pomoda {
 				
 			}
 		}
-
+		if(motif.core_motiflen>1)
+		return motif;
 		//EM full site iteration
 		
 		double bestscore=motif.Score;
@@ -3891,6 +3892,9 @@ public class Pomoda {
 				}
 		  }
 		  writer.close();
+		  System.out.println("special version for EEM PWMs");
+		  System.exit(1);
+		  
 ///////////////////////////////////////evaluate different motif in parallel///////////////////////////////////////////			
 		seedPWMs.clear();
 		for (Double key : sortedPWMs.descendingKeySet()) {
