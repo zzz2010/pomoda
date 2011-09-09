@@ -24,9 +24,16 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang.ArrayUtils;
+import org.biojava.bio.dist.Distribution;
 import org.biojava.bio.dist.DistributionTools;
+import org.biojava.bio.dist.SimpleDistribution;
 import org.biojava.bio.dist.UniformDistribution;
 import org.biojava.bio.seq.DNATools;
+import org.biojava.bio.symbol.FiniteAlphabet;
+import org.biojava.bio.symbol.IllegalAlphabetException;
+import org.biojava.bio.symbol.IllegalSymbolException;
+import org.biojava.bio.symbol.Symbol;
+import org.biojava.utils.ChangeVetoException;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.ChartUtilities;
@@ -40,6 +47,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RectangleInsets;
 import org.jfree.ui.RefineryUtilities;
+import org.jfree.util.ArrayUtilities;
 
 import umontreal.iro.lecuyer.probdist.HypergeometricDist;
 
@@ -86,6 +94,57 @@ public class PWMevaluator {
 	public PWMevaluator()
 	{//super("");
 		
+	}
+	
+	public static PWM shufflePWM(PWM motif)
+	{
+		int start=motif.head;
+		int end=motif.columns()-motif.tail;
+		Distribution[] dists=new Distribution[end-start];
+		for (int i = start; i < end; i++) {
+			FiniteAlphabet alpb=(FiniteAlphabet) motif.getColumn(i).getAlphabet();
+			dists[i-start]=new SimpleDistribution(alpb)  ;
+			Iterator<Symbol> iter= alpb.iterator();
+			while(iter.hasNext())
+			{
+				Symbol sym=iter.next();
+				try {
+					dists[i-start].setWeight(sym, motif.getColumn(i).getWeight(sym));
+				} catch (IllegalSymbolException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (ChangeVetoException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+		}
+		ArrayList<Distribution> randist=new ArrayList<Distribution>();
+		for (int i = 0; i < dists.length; i++) {
+			randist.add(dists[i]);
+		}
+		Collections.shuffle(randist);
+		PWM sub=null;
+		try {
+			sub = new PWM(randist.toArray(dists));
+			sub.core_motiflen=motif.core_motiflen-Math.max(0, start-motif.head)-Math.max(0, motif.columns()-end-motif.tail);
+			sub.head=Math.max(0, motif.head-start);
+			sub.tail=Math.max(0, motif.tail-(motif.columns()-end));
+			sub.Name=motif.Name+"_rand";
+			sub.Score=motif.Score;
+			sub.strand_en=motif.strand_en;
+			sub.pos_en=motif.pos_en;
+			sub.peakrank_en=motif.peakrank_en;
+			sub.pos_prior=(ArrayList<Double>)motif.pos_prior.clone();
+			sub.peakrank_prior=(ArrayList<Double>)motif.peakrank_prior.clone();
+			sub.strand_plus_prior=motif.strand_plus_prior;
+		} catch (IllegalAlphabetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return sub;
 	}
 	
 	public static int comparePositionList(List<FastaLocation> Falocs,String ansfile,int windowsize)
@@ -692,12 +751,14 @@ public class PWMevaluator {
 		options.addOption("markov", true, "use markov model of the control sequences rather than directly control sequences");
 		options.addOption("prefix", true, "output directory");
 		options.addOption("ratio",true, "sampling ratio (default 1)");
+		options.addOption("genrand",false, "shuffle the colums of input PWMs and evaluate");
 		options.addOption("thresh",true, "minimum PWM divergence threshold for considering a match known motif(default 0.24)");
 		options.addOption("FDR",true,"fasle positive rate");
 		String inputPWM;
 		CommandLineParser parser = new GnuParser();
 		PWMevaluator evaluator=new PWMevaluator();
 		boolean rocflag=false;
+		boolean genrand=false;
 		boolean multiscore_flag=false;
 		boolean convertflag=false;
 		
@@ -770,15 +831,38 @@ public class PWMevaluator {
 			{
 				evaluator.FDR=Double.parseDouble(cmd.getOptionValue("FDR"));
 			}
+			if(cmd.hasOption("genrand"))
+			{
+				genrand=true;
+			}
 
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			HelpFormatter formatter = new HelpFormatter();
 			formatter.printHelp( "PWMevaluator", options );
 			return;
-		}
-		File file = new File(inputPWM+"_eval.txt"); 
+		} 
+		
+		
+		 
 		try {
+			
+			if(genrand)
+			{
+				File randfile = new File(inputPWM+"_rand.pwm");
+				BufferedWriter randwriter = new BufferedWriter(new FileWriter(randfile));
+				List<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+				Iterator<PWM> iter=pwmlist.iterator();
+				while(iter.hasNext())
+				{
+					PWM p1=iter.next();
+					randwriter.write(shufflePWM(p1).toString()+"\n");
+					
+				}
+				randwriter.close();
+				inputPWM=inputPWM+"_rand.pwm";
+			}
+			File file = new File(inputPWM+"_eval.txt");
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 		
 		if(rocflag)
