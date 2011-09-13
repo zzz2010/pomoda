@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Random;
+
 import org.biojava.bio.dist.Distribution;
 import org.biojava.bio.dist.DistributionFactory;
 import org.biojava.bio.dist.UniformDistribution;
@@ -14,11 +16,14 @@ import org.biojava.bio.symbol.IllegalAlphabetException;
 import org.biojava.bio.symbol.IllegalSymbolException;
 import org.biojava.utils.ChangeVetoException;
 
+import com.sun.org.apache.bcel.internal.generic.NEW;
+
 
 public class GapPWM extends PWM {
 	HashMap<Integer,HashMap<String,Double>> Dgroup_DmerProb;
 	int[] GroupId;
 	int Num_Group;
+	Random RND=new Random(common.randomseed);
 	
 	public GapPWM(String[] alignments) throws IllegalAlphabetException,
 			IllegalSymbolException {
@@ -31,6 +36,48 @@ public class GapPWM extends PWM {
 	}
 	
 	
+	@Override
+	public String get_randomSite() {
+		// TODO Auto-generated method stub
+		String site= super.get_randomSite();
+		StringBuffer sb=new StringBuffer(site);
+		for (int i = 1; i < Num_Group+1; i++) {
+			HashMap<String,Double> depgroup=Dgroup_DmerProb.get(i);
+			String first=depgroup.keySet().iterator().next();
+			int numKmer=(int)Math.pow(4, first.length());
+			ArrayList<Double> probs=new ArrayList<Double>(numKmer);
+			for (int j = 0; j < numKmer; j++) {
+				String key=common.Hash2ACGT(j, first.length());
+				if(depgroup.containsKey(key))
+				{
+					if(j>0)
+						probs.add(depgroup.get(key)+probs.get(j-1));
+					else
+						probs.add(depgroup.get(key));
+				}
+				else
+				{
+					if(j>0)
+						probs.add(depgroup.get("N")+probs.get(j-1));
+					else
+						probs.add(depgroup.get("N"));
+				}
+			}
+			double pont=RND.nextDouble();
+			int kid=Math.abs(Collections.binarySearch(probs, pont))-1;
+			String selectKmer=common.Hash2ACGT(kid, first.length());
+			int k=0;
+			for (int j = 0; j < GroupId.length; j++) {
+				if(GroupId[j]==i)
+				{
+					sb.setCharAt(j, selectKmer.charAt(k));
+					k++;
+				}
+			}
+		}
+		
+		return sb.toString();
+	}
 	public String toString()
 	{
 		StringBuffer TransStr=new StringBuffer("");
