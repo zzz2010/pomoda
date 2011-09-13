@@ -108,7 +108,7 @@ public class LinearEngine {
    				    ForwardStrand.add(seqstr);
    				  //ReverseStrand.add(common.getReverseCompletementString( seqstr));
    				if(ForwardStrand.size()>maxSeq)
-   				    	 return;
+   				    	 break;
    				TotalLen+=seqstr.length();
    				accSeqLen.add(TotalLen);
    			      }
@@ -157,7 +157,7 @@ public class LinearEngine {
    				     ForwardStrand.add(seqstr);
    				  //ReverseStrand.add(common.getReverseCompletementString( seqstr));
    				if(ForwardStrand.size()>maxSeq)
-   				    	 return;
+   				    	 break;
    				TotalLen+=seqstr.length();
    				accSeqLen.add(TotalLen);
    			      }
