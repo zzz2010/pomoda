@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -24,6 +25,10 @@ import org.biojava.bio.symbol.IllegalAlphabetException;
 import org.biojava.bio.symbol.IllegalSymbolException;
 
 import cern.colt.Arrays;
+import EDU.oswego.cs.dl.util.concurrent.BoundedBuffer;
+import EDU.oswego.cs.dl.util.concurrent.Executor;
+import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
+import EDU.oswego.cs.dl.util.concurrent.PooledExecutor;
 import auc.AUCCalculator;
 import auc.Confusion;
 
@@ -39,12 +44,14 @@ public class GapImprover {
 	public boolean OOPS=false; //only one dependence per sequence
 	public boolean OOPG=false; //only one occurrence per sequence
 	public boolean removeBG=false; //false:uniform BG assume
+	public boolean PBMflag=false;
 	public String bgmodelFile="";
 	LinearEngine SearchEngine;
 	public double sampling_ratio=1;
 	public double FDR=0.01;
 	public double entropyThresh=1;
 	public int FlankLen=0;
+	public int threadNum=4;
 	public int max_gaplen=12;
 	
 	public BGModel background;
@@ -107,6 +114,10 @@ public class GapImprover {
 	{
 		common.initialize();
 		SearchEngine=new LinearEngine(4);
+		if(this.PBMflag)
+		{
+			SearchEngine.buildPBM_index(inputFasta, 4000);
+		}
 		SearchEngine.build_index(this.inputFasta);
 	
 		background=new BGModel();
@@ -115,15 +126,15 @@ public class GapImprover {
 		if(ctrlFasta.isEmpty())
 		{
 			bg_markov_order=0;
-			file= new File(inputFasta+".bgobj");
+			file= new File(inputFasta+".bg");
 		}
 		else
-			file= new File(ctrlFasta+".bgobj");
+			file= new File(ctrlFasta+".bg");
 		
 		if(!bgmodelFile.isEmpty())
 		{
 			if(bgmodelFile.isEmpty())
-			background.LoadModel(file.getAbsolutePath());
+				background.LoadModel(file.getAbsolutePath());
 			else
 				background.LoadModel(bgmodelFile);
 		}
@@ -145,7 +156,7 @@ public class GapImprover {
 		
 	}
 	
-	
+	//allow multi dep-group in the same region, need to try different combinations
 	public HashMap<HashSet<Integer>,HashMap<String,Double>> FindBest(List<GapBGModelingThread> list)
 	{
 
@@ -156,7 +167,7 @@ public class GapImprover {
 		double baseScore=0;
 		double bestScore=0;
 		GapBGModelingThread bestThread=null;
-		HashSet<Integer> bestDgroups=null;
+		HashSet<Integer> bestDgroups=new HashSet<Integer>();
 		try {
 
 		while(iter3.hasNext())
@@ -167,12 +178,14 @@ public class GapImprover {
 				{
 					System.out.println(t1.toString());
 					baseScore=t1.KL_Divergence;
-					
+					//PWM case
 					
 				}
 		}
+		
+		
 		iter3=list.iterator();	
-		//filter the negative threads
+		//filter the negative threads, only consider the dep-group better than independence case
 		ArrayList<GapBGModelingThread> positiveThread=new ArrayList<GapBGModelingThread>(list.size()/2);
 		
 		 LinkedList< HashSet<Integer> > queue=new LinkedList< HashSet<Integer> >();
@@ -180,17 +193,20 @@ public class GapImprover {
 		{
 			if(t2.KL_Divergence<baseScore)
 			{
+				//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
 				positiveThread.add(t2);
+				//higher the better now, KL_Divergence is score here
 				if(t2.KL_Divergence>bestScore)
 				{
-					bestDgroups=new HashSet<Integer>();
+					bestDgroups.clear();
 					bestDgroups.add(positiveThread.size()-1);
 					bestScore=t2.KL_Divergence;
 				}
 				
 			}
 		}
+		//here: bestDgroups is the best only-1 dep-group
 		
 		// build graph
 		
@@ -206,6 +222,7 @@ public class GapImprover {
 				if(intersect.size()>0)
 					overlap=true;
 				
+				//flexible combination
 				if(overlap==false)
 				{
 					if(adjgraph[i]==null)
@@ -221,22 +238,24 @@ public class GapImprover {
 				}
 			}
 		}
+		//to here: queue contain all "2 dep-groups" set
 		
-		//enumerate all possible number of group
+		//enumerate all possible number of dep-group combinations
 		 HashSet<Integer> topElm=null;
-		 
+		 //breath first search, each child node is the flexible dep-group for all the parents.
 		while((topElm=queue.poll())!=null)
 		{
 			double currscore=0;
 			Iterator<Integer> iter=topElm.iterator();
 			HashSet<Integer> commonThirdPoint=null;
-			
+			//all id (other dep-group) in commonThirdPoint can be use to form a combine with topElm(set of dep-group)
 			while(iter.hasNext())
 			{
 				int id=iter.next();
 				currscore+=positiveThread.get(id).KL_Divergence;
 				if(commonThirdPoint==null)
 				{
+					
 					commonThirdPoint=new HashSet<Integer>(adjgraph[id]);
 				}
 				else
@@ -261,7 +280,7 @@ public class GapImprover {
 			
 		}
 		
-		if(bestDgroups!=null)
+		if(bestDgroups.size()>0)
 		for(Integer id : bestDgroups)
 		{
 			System.out.println("best:"+positiveThread.get(id).toString());
@@ -281,7 +300,7 @@ public class GapImprover {
 		ArrayList<Integer> gapstart=new ArrayList<Integer>(motif.core_motiflen/2);
 		ArrayList<Integer> gapend=new ArrayList<Integer>(motif.core_motiflen/2);
 		
-		//detect gap range
+		//detect gap range, separate gap region with conserved bases
 		int start=-1;
 		for (int i = motif.head-FlankLen; i < motif.head+motif.core_motiflen+FlankLen; i++) {
 			double entropy=0;
@@ -317,7 +336,7 @@ public class GapImprover {
 		//debug
 	//	ArrayList<Double> snull = new ArrayList<Double>(),sbest =new ArrayList<Double>();
 		
-		//get a set of instance strings
+		//get a set of instance strings, assume they are all real binding site
 		LinkedList<String> sites=new LinkedList<String>();
 		if(!OOPS)
 		{
@@ -346,6 +365,7 @@ public class GapImprover {
         	 double seqcount=0;
         	 double maxseq_score=	Double.NEGATIVE_INFINITY;
         	 FastaLocation max_currloc=null;
+        	 //take the best occurrences
         	 while(iter.hasNext())
         	 {
         		 FastaLocation currloc=iter.next();
@@ -389,13 +409,17 @@ public class GapImprover {
 		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>,HashMap<String,Double>>();
 		if(sites.size()>0)
 		{
-		
+			
 		for (int i = 0; i <gapstart.size(); i++) {
 			int gstart=gapstart.get(i);
 			int gend=gapend.get(i);
 			if(gend-gstart<2)
 				continue;
 			int combinNum=1<<(gend-gstart);
+			PooledExecutor executor = new PooledExecutor(new LinkedQueue());
+			executor.setMinimumPoolSize(threadNum);
+			executor.setKeepAliveTime(-1);
+
 			for (int j = 0; j < combinNum; j++) {
 				HashSet<Integer> dpos=new HashSet<Integer>();
 				int bcode=j;
@@ -411,9 +435,16 @@ public class GapImprover {
 					t1=new GapBGModelingThread(gstart, gend, sites, dpos,background);//null mean not considering BG
 				else
 					t1=new GapBGModelingThread(gstart, gend, sites, dpos,null);//null mean not considering BG
-				t1.run();
+//				t1.run();
+			
+				executor.execute(t1);
+	
 				threadPool.add(t1);
 			}
+//			 Wait until all threads are finish
+			
+			executor.shutdownAfterProcessingCurrentlyQueuedTasks();
+			executor.awaitTerminationAfterShutdown();
 			if(!OOPG)
 			{
 			Dmap.putAll( FindBest(threadPool.subList(0, threadPool.size())));
@@ -433,10 +464,12 @@ public class GapImprover {
 		if(OOPG)
 		while(iter3.hasNext())
 		{
+			//find different flexible combinations in the same gap region(not allow two dependency group share the same position)
 			GapBGModelingThread t1=iter3.next();	
 				t1.join();
 				if(t1.depend_Pos.size()==0)
 				{
+					//print PWM case, no dependancy 
 					System.out.println(t1.toString());
 					//snull=t1.debuglist;
 				}
@@ -471,6 +504,7 @@ public class GapImprover {
 					int posId=iter4.next();
 					if(Pos_BestThread[posId]!=null)
 					{
+						//as only one dep-group in the region, only check whether the given one is the best 
 						if(Pos_BestThread[posId].KL_Divergence>t1.KL_Divergence)
 							Pos_BestThread[posId]=t1;
 					}
@@ -675,20 +709,22 @@ public class GapImprover {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		Options options = new Options();
-		options.addOption("i", true, "input fasta file");
+		options.addOption("i", true, "input file");
+		options.addOption("pbm", false, "input file is PBM format (default is fasta format)");
 		options.addOption("pwm", true, "input PWM file");
 		options.addOption("c", true, "control fasta file");
 		options.addOption("bgmodel", true, "background model file");
 		options.addOption("prefix", true, "output directory");
-		options.addOption("flank", true, "the numboer of flanking positions around PWM to include(default 0)");
+		options.addOption("flank", true, "the number of flanking positions around PWM to include(default 0)");
 		options.addOption("ratio",true, "sampling ratio (default 1)");
+		options.addOption("threadnum",true, "number of threads to use(default :4)");
 		options.addOption("thresh",true, "minimum entropy threshold for considering a position as a gap(default 1)");
 		options.addOption("oops",false,"whether assuming only one occurrence per sequence (default false)");
 		options.addOption("oopg",false,"whether assuming only one dependence per gap region (default false)");
 		options.addOption("rmbg",false,"whether considering the background probility in learning and evaluating the dependences (default false)");
 		options.addOption("maxlen",true,"maxmimum length of gap (default 12)");
 		options.addOption("FDR",true,"fasle positive rate");
-		String inputPWM;
+		String inputPWM="";
 		CommandLineParser parser = new GnuParser();
 		GapImprover GImprover=new GapImprover();
 		
@@ -709,6 +745,15 @@ public class GapImprover {
 			else
 			{
 				throw new ParseException("no input pwm file");
+			}
+			if(cmd.hasOption("pbm"))
+			{
+				GImprover.PBMflag=true;
+			}
+			
+			if(cmd.hasOption("threadnum"))
+			{
+				GImprover.threadNum=Integer.parseInt(cmd.getOptionValue("threadnum"));
 			}
 			if(cmd.hasOption("c"))
 			{
