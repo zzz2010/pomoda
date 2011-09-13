@@ -117,7 +117,7 @@ public class GapImprover {
 		SearchEngine=new LinearEngine(4);
 		if(this.PBMflag)
 		{
-			SearchEngine.buildPBM_index(inputFasta, 4000);
+			SearchEngine.buildPBM_index(inputFasta, 1000);
 		}
 		else
 			SearchEngine.build_index(this.inputFasta);
@@ -283,41 +283,7 @@ public class GapImprover {
 	{
 		GapPWM gapPWM=null;
 		String Consensus=motif.Consensus(true);
-		ArrayList<Integer> gapstart=new ArrayList<Integer>(motif.core_motiflen/2);
-		ArrayList<Integer> gapend=new ArrayList<Integer>(motif.core_motiflen/2);
-		
-		//detect gap range, separate gap region with conserved bases
-		int start=-1;
-		for (int i = motif.head-FlankLen; i < motif.head+motif.core_motiflen+FlankLen; i++) {
-			double entropy=0;
-			if(i<0||i>=motif.columns())
-				entropy=2;
-			else
-				entropy=DistributionTools.totalEntropy(motif.getColumn(i)) ;//
-			if(entropy>entropyThresh&&(max_gaplen>(i-motif.head+FlankLen-start)||start==-1))
-			{
-				if(start==-1)
-				{
-					start=i-motif.head+FlankLen;
-				}
-			}
-			else
-			{
-				if(start!=-1)
-				{
-				gapstart.add(start);
-				gapend.add(i-motif.head+FlankLen);
-				}
-				start=-1;
-//				if(i-motif.head+FlankLen>18)
-//				break;
-			}
-		}
-		if(start!=-1)
-		{
-			gapstart.add(start);
-			gapend.add(motif.core_motiflen+2*FlankLen);
-		}
+
 		
 		//debug
 	//	ArrayList<Double> snull = new ArrayList<Double>(),sbest =new ArrayList<Double>();
@@ -404,6 +370,54 @@ public class GapImprover {
 			//debug
 			//snull.add(max_currloc.Score+Math.log(0.25));
 		}
+		PWM dataPWM=null;
+		try {
+			dataPWM=new PWM(sites.toArray(new String[1]));
+		} catch (IllegalAlphabetException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IllegalSymbolException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		if(dataPWM==null)
+			dataPWM=motif;
+		ArrayList<Integer> gapstart=new ArrayList<Integer>(motif.core_motiflen/2);
+		ArrayList<Integer> gapend=new ArrayList<Integer>(motif.core_motiflen/2);
+		
+		//detect gap range, separate gap region with conserved bases
+		int start=-1;
+		for (int i = motif.head-FlankLen; i < motif.head+motif.core_motiflen+FlankLen; i++) {
+			double entropy=0;
+			if(i<0||i>=motif.columns())
+				entropy=2;
+			else
+				entropy=DistributionTools.totalEntropy(dataPWM.getColumn(i-motif.head+FlankLen)) ;//use dataPWM to determine conserved base
+			if(entropy>entropyThresh&&(max_gaplen>(i-motif.head+FlankLen-start)||start==-1))
+			{
+				if(start==-1)
+				{
+					start=i-motif.head+FlankLen;
+				}
+			}
+			else
+			{
+				if(start!=-1)
+				{
+				gapstart.add(start);
+				gapend.add(i-motif.head+FlankLen);
+				}
+				start=-1;
+//				if(i-motif.head+FlankLen>18)
+//				break;
+			}
+		}
+		if(start!=-1)
+		{
+			gapstart.add(start);
+			gapend.add(motif.core_motiflen+2*FlankLen);
+		}
+		
 		try {
 		//find the best dependency modeling in each gap region
 		LinkedList<GapBGModelingThread> threadPool=new LinkedList<GapBGModelingThread>();
@@ -644,7 +658,7 @@ public class GapImprover {
    			 if(lastseq!=-1)
    			 {
    				 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
-   				scores[seqid]=Math.exp(maxseq_score);
+   				scores[seqid]=Math.exp(maxseq_score);//Math.exp
    				seqid++;
    			 }
    				 lastseq=currloc.getSeqId();
@@ -657,7 +671,7 @@ public class GapImprover {
    		 }
    	 }
    	Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
-		scores[seqid]=Math.exp(maxseq_score);
+		scores[seqid]=Math.exp(maxseq_score); //Math.exp
 			
 		double corr=getPearsonCorrelation(scores,ArrayUtils.toPrimitive(SearchEngine.seqWeighting.toArray(new Double[1])));
    	
@@ -863,7 +877,7 @@ public class GapImprover {
 			{
 				GImprover.removeBG=true;
 			}
-
+			System.out.println(Arrays.toString(args) );
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			HelpFormatter formatter = new HelpFormatter();
@@ -874,9 +888,11 @@ public class GapImprover {
 		GImprover.initialize();
 		LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
 		Iterator<PWM> iter=pwmlist.iterator();
-		//LinkedList<GapPWM> improvedPWMs=new LinkedList<GapPWM>();
+		LinkedList<GapPWM> improvedPWMs=new LinkedList<GapPWM>();
 		 File directory=new File(inputPWM);
 		 String outdir=directory.getParent();
+		 if(GImprover.outputPrefix!="./")
+			 outdir=GImprover.outputPrefix;
 		File file = new File(outdir+"/GPimprover_sorted.dpwm"); 
 		TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		try {

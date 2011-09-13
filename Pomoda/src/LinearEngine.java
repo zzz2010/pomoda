@@ -105,7 +105,7 @@ public class LinearEngine {
    			    		  continue;
    			    	  String seqstr=comps[1].replace("N", "");
    			    	seqWeighting.add(Double.parseDouble(comps[0]));
-   				    ForwardStrand.add(seqstr);
+   				    ForwardStrand.add(seqstr.substring(0,35));
    				  //ReverseStrand.add(common.getReverseCompletementString( seqstr));
    				if(ForwardStrand.size()>maxSeq)
    				    	 break;
