@@ -118,38 +118,23 @@ public class GapImprover {
 		{
 			SearchEngine.buildPBM_index(inputFasta, 4000);
 		}
-		SearchEngine.build_index(this.inputFasta);
+		else
+			SearchEngine.build_index(this.inputFasta);
 	
 		background=new BGModel();
 		File file=null;
 		int bg_markov_order=3;
-		if(ctrlFasta.isEmpty())
-		{
-			bg_markov_order=0;
-			file= new File(inputFasta+".bg");
-		}
-		else
-			file= new File(ctrlFasta+".bg");
+
 		
 		if(!bgmodelFile.isEmpty())
 		{
-			if(bgmodelFile.isEmpty())
-				background.LoadModel(file.getAbsolutePath());
-			else
 				background.LoadModel(bgmodelFile);
 		}
-		else
+		else if(!ctrlFasta.isEmpty())
 		{
-			if(ctrlFasta.isEmpty())
-			{
-		     background.BuildModel(inputFasta, bg_markov_order+1); //3-order bg
-		     background.SaveModel(inputFasta+".bgobj");
-			}
-			else
-			{
+
 			     background.BuildModel(ctrlFasta, bg_markov_order+1); //3-order bg
-			     background.SaveModel(ctrlFasta+".bgobj");
-				}
+			     background.SaveModel(ctrlFasta+".bg");
 				
 		}
 
@@ -338,6 +323,7 @@ public class GapImprover {
 		
 		//get a set of instance strings, assume they are all real binding site
 		LinkedList<String> sites=new LinkedList<String>();
+		ArrayList<Double> siteWeight=new ArrayList<Double>(SearchEngine.ForwardStrand.size());
 		if(!OOPS)
 		{
 			double pwmThresh=motif.getThresh(sampling_ratio, FDR, background,false);
@@ -350,7 +336,11 @@ public class GapImprover {
 				if(currloc.ReverseStrand)
 					site=common.getReverseCompletementString(site);
 				if(site!=null)
-					sites.add(site);		
+				{
+					sites.add(site);	
+					if(SearchEngine.seqWeighting!=null)
+						siteWeight.add(SearchEngine.seqWeighting.get(currloc.getSeqId()));
+				}
 			}
 		}
 		else
@@ -379,7 +369,11 @@ public class GapImprover {
     				if(max_currloc.ReverseStrand)
     					site=common.getReverseCompletementString(site);
     				if(site!=null)
+    				{
     					sites.add(site);
+    					if(SearchEngine.seqWeighting!=null)
+    						siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
+    				}
     				
     				//debug
     				//snull.add(max_currloc.Score+Math.log(0.25));
@@ -606,7 +600,7 @@ public class GapImprover {
       
 		
          LinearEngine BGSearch=new LinearEngine(6);
-         
+         BGSearch.accSeqLen.add(0);
          Iterator<String> iter2=SearchEngine.ForwardStrand.iterator();
          background.r.setSeed(0);
          while(iter2.hasNext())
@@ -625,6 +619,7 @@ public class GapImprover {
         	 }
         	 BGSearch.ForwardStrand.add(bgstr);	 
         	 BGSearch.TotalLen+=bgstr.length();
+        	 BGSearch.accSeqLen.add(BGSearch.TotalLen);
          }
 
      	TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
