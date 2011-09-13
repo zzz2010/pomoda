@@ -5,13 +5,15 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 
 import org.biojava.bio.symbol.IllegalAlphabetException;
 import org.biojava.bio.symbol.IllegalSymbolException;
 
 
 public class GapBGModelingThread extends Thread {
-
+	
 	List<String> Sites;
 	public int gapStart;
 	public int gapEnd;
@@ -287,6 +289,6 @@ public class GapBGModelingThread extends Thread {
 		} catch (IllegalSymbolException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		} 
 	}
 }

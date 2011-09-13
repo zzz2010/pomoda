@@ -3,6 +3,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,6 +27,7 @@ import org.biojavax.bio.seq.RichSequence;
 public class LinearEngine {
 
 	LinkedList<String> ForwardStrand;
+	public ArrayList<Double> seqWeighting=null;
 	//LinkedList<String> ReverseStrand;
 	boolean singleStrand=false;
 	int num_thread;
@@ -82,6 +84,59 @@ public class LinearEngine {
 			pos+=seq.length();
 		}
 	}
+	
+	public void buildPBM_index(String inputfile,int maxSeq) {
+		accSeqLen.clear();
+		// TODO Auto-generated method stub
+		 try {
+			 seqWeighting=new ArrayList<Double>(maxSeq);
+			 ForwardStrand.clear();
+			 
+			// ReverseStrand.clear();
+			 //Database to hold the training set
+			      BufferedReader br = new BufferedReader(new FileReader(inputfile));
+   		         String line="";
+   		          TotalLen=0;
+   		       accSeqLen.add(0);
+   			      while ((line=br.readLine())!=null) {
+   			    	  
+   			    	  String[] comps=line.split("\t| ");
+   			    	  if(comps.length<2)
+   			    		  continue;
+   			    	  String seqstr=comps[1].replace("N", "");
+   			    	seqWeighting.add(Double.parseDouble(comps[0]));
+   				    ForwardStrand.add(seqstr);
+   				  //ReverseStrand.add(common.getReverseCompletementString( seqstr));
+   				if(ForwardStrand.size()>maxSeq)
+   				    	 return;
+   				TotalLen+=seqstr.length();
+   				accSeqLen.add(TotalLen);
+   			      }
+   	
+			     br.close();
+			     double sum=0;
+			     for (int i = 0; i < seqWeighting.size(); i++) {
+					sum+=seqWeighting.get(i);
+				}
+			    double normfactor=seqWeighting.size()/sum;
+			    for (int i = 0; i < seqWeighting.size(); i++) {
+			    	seqWeighting.set(i, seqWeighting.get(i)*normfactor);
+			    }
+			    
+			
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+	
 	public void build_index(String inputfile,int maxSeq) {
 		accSeqLen.clear();
 		// TODO Auto-generated method stub
