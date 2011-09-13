@@ -18,6 +18,7 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang.ArrayUtils;
 import org.biojava.bio.dist.DistributionTools;
 import org.biojava.bio.dist.UniformDistribution;
 import org.biojava.bio.seq.DNATools;
@@ -176,7 +177,7 @@ public class GapImprover {
 		 LinkedList< HashSet<Integer> > queue=new LinkedList< HashSet<Integer> >();
 		for(GapBGModelingThread t2:list)
 		{
-			if(t2.KL_Divergence<baseScore)
+			if(t2.KL_Divergence<baseScore*0.999)
 			{
 				//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
@@ -323,7 +324,9 @@ public class GapImprover {
 		
 		//get a set of instance strings, assume they are all real binding site
 		LinkedList<String> sites=new LinkedList<String>();
-		ArrayList<Double> siteWeight=new ArrayList<Double>(SearchEngine.ForwardStrand.size());
+		ArrayList<Double> siteWeight=null;
+		if(SearchEngine.seqWeighting!=null)
+			siteWeight=new ArrayList<Double>(SearchEngine.ForwardStrand.size());
 		if(!OOPS)
 		{
 			double pwmThresh=motif.getThresh(sampling_ratio, FDR, background,false);
@@ -393,7 +396,11 @@ public class GapImprover {
 			if(max_currloc.ReverseStrand)
 				site=common.getReverseCompletementString(site);
 			if(site!=null)
+			{
 			sites.add(site);
+			if(SearchEngine.seqWeighting!=null)
+				siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
+			}
 			//debug
 			//snull.add(max_currloc.Score+Math.log(0.25));
 		}
@@ -426,9 +433,9 @@ public class GapImprover {
 					continue;
 				GapBGModelingThread t1=null;
 				if(removeBG)
-					t1=new GapBGModelingThread(gstart, gend, sites, dpos,background);//null mean not considering BG
+					t1=new GapBGModelingThread(gstart, gend, sites, dpos,background,siteWeight);//null mean not considering BG
 				else
-					t1=new GapBGModelingThread(gstart, gend, sites, dpos,null);//null mean not considering BG
+					t1=new GapBGModelingThread(gstart, gend, sites, dpos,null,siteWeight);//null mean not considering BG
 //				t1.run();
 			
 				executor.execute(t1);
@@ -577,7 +584,7 @@ public class GapImprover {
 //			double score2=motif.scoreWeightMatrix(temp);
 //			System.out.println(score1+"\t"+score2);
 //		}
-		System.out.println(KL_Divergence_empirical(sites, motif,gapPWM.head) +"\t"+KL_Divergence_empirical(sites, gapPWM,gapPWM.head));
+		System.out.println("orginal KL:"+KL_Divergence_empirical(sites, motif,gapPWM.head) +"\timproved KL:"+KL_Divergence_empirical(sites, gapPWM,gapPWM.head));
 		
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
@@ -593,8 +600,69 @@ public class GapImprover {
 		
 		return gapPWM;
 	}
+	public static double getPearsonCorrelation(double[] scores1,double[] scores2){
+        double result = 0;
+        double sum_sq_x = 0;
+        double sum_sq_y = 0;
+        double sum_coproduct = 0;
+        double mean_x = scores1[0];
+        double mean_y = scores2[0];
+        for(int i=2;i<scores1.length+1;i+=1){
+            double sweep =Double.valueOf(i-1)/i;
+            double delta_x = scores1[i-1]-mean_x;
+            double delta_y = scores2[i-1]-mean_y;
+            sum_sq_x += delta_x * delta_x * sweep;
+            sum_sq_y += delta_y * delta_y * sweep;
+            sum_coproduct += delta_x * delta_y * sweep;
+            mean_x += delta_x / i;
+            mean_y += delta_y / i;
+        }
+        double pop_sd_x = (double) Math.sqrt(sum_sq_x/scores1.length);
+        double pop_sd_y = (double) Math.sqrt(sum_sq_y/scores1.length);
+        double cov_x_y = sum_coproduct / scores1.length;
+        result = cov_x_y / (pop_sd_x*pop_sd_y);
+        return result;
+    }
 	
-	
+	public double CorrelationTest(PWM motif)
+	{
+		TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
+        
+   	 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
+   	 Iterator<FastaLocation> iter=falocs.iterator();
+   	 int lastseq=-1;
+   	 double seqcount=0;
+   	 double maxseq_score=	Double.NEGATIVE_INFINITY;
+   	 double[] scores=new double[SearchEngine.seqWeighting.size()];
+   	 int seqid=0;
+   	 while(iter.hasNext())
+   	 {
+   		 FastaLocation currloc=iter.next();
+   		 if(lastseq!=currloc.getSeqId())
+   		 {
+   			 seqcount+=1;
+   			 if(lastseq!=-1)
+   			 {
+   				 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
+   				scores[seqid]=Math.exp(maxseq_score);
+   				seqid++;
+   			 }
+   				 lastseq=currloc.getSeqId();
+   			 maxseq_score=currloc.Score;
+   		 }
+   		 if(maxseq_score<currloc.Score)
+   		 {
+   			 maxseq_score=currloc.Score;
+
+   		 }
+   	 }
+   	Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
+		scores[seqid]=Math.exp(maxseq_score);
+			
+		double corr=getPearsonCorrelation(scores,ArrayUtils.toPrimitive(SearchEngine.seqWeighting.toArray(new Double[1])));
+   	
+    return corr;
+	}
 	public double AUCtest(PWM motif)
 	{
       
@@ -694,7 +762,7 @@ public class GapImprover {
         	 
         	 //AUCcalc.addROCPoint(fp,(double)seqcount/SearchEngine.getSeqNum());
 	       	Confusion AUCcalc=AUCCalculator.readArrays(labels, scores);	
-	       	System.out.println(scores[scores.length-1]);
+//	       	System.out.println(scores[scores.length-1]);
          double AUCscore=AUCcalc.calculateAUCROC();
          
          return AUCscore;
@@ -822,10 +890,20 @@ public class GapImprover {
 				GapPWM gpwm=GImprover.fillDependency(rawpwm);
 				gpwm.Name="GPimpover_"+rawpwm.Name;
 				GImprover.SearchEngine.DisableBackground();
+				System.out.print("Original Motif:");
 				GImprover.AUCtest(rawpwm);
+				System.out.print("Improved Motif:");
 				double score=GImprover.AUCtest(gpwm);
 				gpwm.Score=score;
 				sortedPWMs.put(score, gpwm);
+				if(GImprover.PBMflag)
+				{
+					double corr1=GImprover.CorrelationTest(rawpwm);
+					System.out.println("Original Motif Correlation with Signal:"+corr1);
+					
+					double corr2=GImprover.CorrelationTest(gpwm);
+					System.out.println("Improved MotifCorrelation with Signal:"+corr2);
+				}
 				
 			}
 			for(Double key:sortedPWMs.descendingKeySet())

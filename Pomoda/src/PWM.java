@@ -356,6 +356,16 @@ public class PWM extends SimpleWeightMatrix {
 		
 	}
 	
+	public String get_randomSite()
+	{
+		String site="";
+		 for (int j = 0; j < columns(); j++) {
+			 site+=DistributionTools.generateSymbolList(getColumn(j), 1).seqString();
+		}
+		 
+		 return site;
+	}
+	
 	//only consider the core-part, ignore flanking , log score
 	public double scoreWeightMatrix( String seq)
 	{

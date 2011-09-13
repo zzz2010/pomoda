@@ -22,12 +22,14 @@ public class GapBGModelingThread extends Thread {
 	public PWM gapPWM;
 	//public ArrayList<Double>  debuglist=new ArrayList<Double>();
 	public double KL_Divergence;
+	public ArrayList<Double> seqWeighting=null;
 	public HashMap<String,Double> DprobMap;
 	public BGModel background;
 	
-	public GapBGModelingThread(int gapstart, int gapend, List<String> sites,HashSet<Integer> depend_pos,BGModel bg)
+	public GapBGModelingThread(int gapstart, int gapend, List<String> sites,HashSet<Integer> depend_pos,BGModel bg,ArrayList<Double> seqWeight)
 	{
 		this.gapEnd=gapend;
+		this.seqWeighting=seqWeight;
 		this.gapStart=gapstart;
 		this.Sites=sites;
 		this.depend_Pos=depend_pos;
@@ -151,11 +153,14 @@ public class GapBGModelingThread extends Thread {
 			Arrays.sort(sorteddpos);
 			for (int j = 0; j < gapstr.length; j++) {
 				String dmer="";
+				double weight=1;
+				if(seqWeighting!=null)
+					weight=seqWeighting.get(j);
 				//Iterator<Integer> iter2=depend_Pos.iterator();
 				if(gapstr[j].contains("N"))
 					continue;
 				int whash=common.getHashing(gapstr[j], 0, gapstr[j].length());
-				gapmerCount[whash]+=1;
+				gapmerCount[whash]+=weight;
 				if(sorteddpos[0]!=null)
 				for (int k = 0; k < sorteddpos.length; k++) {
 					int dpos=sorteddpos[k]-gapStart;
@@ -165,7 +170,7 @@ public class GapBGModelingThread extends Thread {
 				if(depend_Pos.size()>1)
 				{
 				int hash=common.getHashing(dmer, 0, depend_Pos.size());
-				dmerCount[hash]+=1;
+				dmerCount[hash]+=weight;
 				}
 			}
 			gapmerCount=common.Normalize(gapmerCount);
