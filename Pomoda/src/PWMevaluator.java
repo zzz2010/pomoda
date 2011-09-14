@@ -77,6 +77,7 @@ public class PWMevaluator {
 	public BGModel background=null;
 	
 	HashMap<String,XYSeries> ROCdata=new HashMap<String, XYSeries>();
+	private boolean PBMflag=false;
 	
 	public PWMevaluator(Pomoda motiffinder)
 	{
@@ -192,40 +193,35 @@ public class PWMevaluator {
 	{
 		common.initialize();
 		SearchEngine=new LinearEngine(4);
-		SearchEngine.build_index(this.inputFasta);
+		if(this.PBMflag)
+		{
+			SearchEngine.buildPBM_index(inputFasta, 1000);
+		}
+		else
+			SearchEngine.build_index(this.inputFasta);
 		if(background==null)
 		{
 			background=new BGModel();
-			File file=null;
 			int bg_markov_order=0;
-			if(ctrlFasta.isEmpty())
-			{
-				bg_markov_order=0;
-				file= new File(inputFasta+".bg");
-			}
-			else
+			if(!ctrlFasta.isEmpty())
 			{
 				BGSearchEngine=new LinearEngine(4);
+				 background.BuildModel(this.ctrlFasta, 5); //5-order bg
 				BGSearchEngine.build_index(this.ctrlFasta);
 				removeBG=true;
 			}
 			
-			if(!bgmodelFile.isEmpty())
+			else if(!bgmodelFile.isEmpty())
 			{
 				removeBG=true;
-				if(bgmodelFile.isEmpty())
-					background.LoadModel(file.getAbsolutePath());
-				else
 					background.LoadModel(bgmodelFile);
 			}
+			
 			else
 			{
-				if(ctrlFasta.isEmpty())
-				{
-			     background.BuildModel(inputFasta, bg_markov_order+1); //1-order bg
-			     background.SaveModel(inputFasta+".bg");
-				}			
+				background=BGModel.CreateUniform();
 			}
+
 		}
 		
 	}
@@ -514,6 +510,45 @@ public class PWMevaluator {
 		HGscore=(falocs.size()-this.SearchEngine.TotalLen*p)/Math.sqrt(this.SearchEngine.TotalLen*p*(1-p));
 		return HGscore;
 	}
+	public double CalcCorrelation(PWM motif)
+	{
+		TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
+        
+   	 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
+   	 Iterator<FastaLocation> iter=falocs.iterator();
+   	 int lastseq=-1;
+   	 double seqcount=0;
+   	 double maxseq_score=	Double.NEGATIVE_INFINITY;
+   	 double[] scores=new double[SearchEngine.seqWeighting.size()];
+   	 int seqid=0;
+   	 while(iter.hasNext())
+   	 {
+   		 FastaLocation currloc=iter.next();
+   		 if(lastseq!=currloc.getSeqId())
+   		 {
+   			 seqcount+=1;
+   			 if(lastseq!=-1)
+   			 {
+   				 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
+   				scores[seqid]=Math.exp(maxseq_score);//Math.exp
+   				seqid++;
+   			 }
+   				 lastseq=currloc.getSeqId();
+   			 maxseq_score=currloc.Score;
+   		 }
+   		 if(maxseq_score<currloc.Score)
+   		 {
+   			 maxseq_score=currloc.Score;
+
+   		 }
+   	 }
+   	Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
+		scores[seqid]=Math.exp(maxseq_score); //Math.exp
+			
+		double corr=common.getPearsonCorrelation(scores,ArrayUtils.toPrimitive(SearchEngine.seqWeighting.toArray(new Double[1])));
+   	
+    return corr;
+	}
 	
 	public double calcAUC(PWM motif,ArrayList<Double[]> DnaseLib, LinkedList<String> sequences)
 	{
@@ -739,12 +774,13 @@ public class PWMevaluator {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		Options options = new Options();
-		options.addOption("i", true, "input fasta file");
+		options.addOption("i", true, "input fasta file (or PBM format file with -pbm)");
 		options.addOption("pwm", true, "input PWM file");
 		options.addOption("N", true, "the number of PWM want to evaluate");
 		options.addOption("c", true, "control fasta file");
 		options.addOption("convert", false, "convert input PWM file to the transfac format");
 		options.addOption("roc", false, "compute AUC and draw ROC curve for the given pwm file");
+		options.addOption("pbm", false, "input file is PBM format, and will compute signal correlation");
 		options.addOption("multiscore", false, "compute SN,PPV,PC,ASP,CC for the given pwm file");
 		options.addOption("match", true, "find similar motifs in known PWM library (path to the library, e.g., jaspar.pwm)");
 		options.addOption("bgmodel", true, "background model file");
@@ -805,6 +841,10 @@ public class PWMevaluator {
 			if(cmd.hasOption("roc"))
 			{
 				rocflag=true;
+			}
+			if(cmd.hasOption("pbm"))
+			{
+				evaluator.PBMflag=true;
 			}
 			if(cmd.hasOption("multiscore"))
 			{
@@ -887,6 +927,7 @@ public class PWMevaluator {
 			writer.write(p1.Name+"\t"+auc+"\n");
 			sortedPWMs.put(auc, p1);
 		}
+		
 		if(convertflag)
 		{
 			File file2 = new File(inputPWM+"_sorted.pwm"); 
@@ -904,6 +945,7 @@ public class PWMevaluator {
 	     //   RefineryUtilities.centerFrameOnScreen(evaluator);
 	      //  evaluator.setVisible(true);
 		}
+
 		
 		
 		if(multiscore_flag)
@@ -929,6 +971,26 @@ public class PWMevaluator {
 				writer.write(scoreresult+"\n");
 			}
 			
+		}
+		
+		if(evaluator.PBMflag)
+		{
+			evaluator.initialize();
+			
+			List<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+			if(pwmlist.size()>topN)
+				pwmlist= pwmlist.subList(0, topN);
+			Iterator<PWM> iter=pwmlist.iterator();
+			writer.write("Correlation Result:\n");
+			while(iter.hasNext())
+			{
+				PWM p1=iter.next();
+				double corr=0;
+					corr=evaluator.CalcCorrelation(p1);
+				p1.Score=corr;
+				writer.write(p1.Name+"\t"+corr+"\n");
+				System.out.println("Pearson Correlation PBM:"+corr);
+			}
 		}
 		
 		
