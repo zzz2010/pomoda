@@ -175,7 +175,8 @@ public class GapBGModelingThread extends Thread {
 			}
 			gapmerCount=common.Normalize(gapmerCount);
 		
-			int num_top=4* depend_Pos.size()-1;
+			//the number of free parameter is 3d not 4d-1
+			int num_top=3*depend_Pos.size();//
 			if(depend_Pos.size()>1)
 			{
 				dmerCount=common.Normalize(dmerCount);
@@ -233,7 +234,7 @@ public class GapBGModelingThread extends Thread {
 					break;
 			}
 		
-			DprobMap.put("N", (1-sumprob)/(dmerSize-4*depend_Pos.size()+1));
+			DprobMap.put("N", (1-sumprob)/(dmerSize-num_top));
 //				if((1-sumprob)<=(num_top*num_top)*common.DoubleMinNormal)
 //				{
 //					KL_Divergence=Double.MAX_VALUE; //overfit!\
