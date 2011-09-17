@@ -625,7 +625,7 @@ public class GapImprover {
 		dataPWM.core_motiflen=gapPWM.core_motiflen;
 		dataPWM.tail=dataPWM.columns()-dataPWM.core_motiflen-dataPWM.head;
 		
-		if(siteWeight.size()>0)
+		if(siteWeight!=null)
 		{
 			System.out.println("orginal KL:"+KL_Divergence_empirical(sites,siteWeight, dataPWM,gapPWM.head) +"\timproved KL:"+KL_Divergence_empirical(sites,siteWeight, gapPWM,gapPWM.head));
 		}
