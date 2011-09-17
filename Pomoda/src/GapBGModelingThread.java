@@ -252,10 +252,10 @@ public class GapBGModelingThread extends Thread {
 				
 				String gapstrj=common.Hash2ACGT(j, gapEnd-gapStart);
 				double logq=0;
-				if(depend_Pos.size()>1)
+				if(depend_Pos.size()>1)//have dependency positions
 				{
 					String dmer="";
-		
+					//assume only one dependency group
 					if(sorteddpos[0]!=null)
 						for (int k = 0; k < sorteddpos.length; k++) {
 							int dpos=sorteddpos[k]-gapStart;
@@ -269,13 +269,14 @@ public class GapBGModelingThread extends Thread {
 						logq+=Math.log(DprobMap.get("N"));
 					
 					int di=common.getHashing(dmer, 0, dmer.length()); 
+					
 					//compute the real prob, when considering bgprob inside the observed prob
-
 					p=p*Pt[di]/dmerCount[di];
 
 				}
 				if(p==0.0)
 					continue;
+				//consider the non-dependency positions
 				for (int k = 0; k < gapstrj.length(); k++) {
 					int symid=common.acgt(gapstrj.charAt(k));
 					if(depend_Pos.size()>1&&depend_Pos.contains(gapStart+k))
