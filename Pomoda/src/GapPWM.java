@@ -307,7 +307,6 @@ public class GapPWM extends PWM {
 			dmers[i]="";
 		}
 		
-		
 		int len=Math.min(core_motiflen, seq.length());
          for (int i = 0; i < len; i++) {
         	 if(common.acgt(seq.charAt(i))>3)

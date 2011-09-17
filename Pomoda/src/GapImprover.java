@@ -110,7 +110,50 @@ public class GapImprover {
 		return KLsum;
 		
 	}
-	
+
+	public double KL_Divergence_empirical(List<String> sites,List<Double> SiteWeight,PWM motif,int start)
+	{
+		
+		double KLsum=0;
+		HashMap<String, Double> sitecount=new HashMap<String, Double>();
+		Iterator<String> iter=sites.iterator();
+		Iterator<Double> iter2=SiteWeight.iterator();
+		double totalCount=0;
+		while(iter.hasNext())
+		{
+			String temp=iter.next();
+			double weight=iter2.next();
+			temp=temp.substring(start,start+motif.core_motiflen);
+		
+			if(temp.contains("N"))
+				continue;
+			if(sitecount.containsKey(temp))
+			{
+				sitecount.put(temp, sitecount.get(temp)+weight);
+			}
+			else
+			{
+				sitecount.put(temp, weight);
+			}
+			totalCount+=weight;
+		}
+		
+		for(String key:sitecount.keySet())
+		{
+			Double count=sitecount.get(key);
+			double p=(double)count/totalCount;
+			double motif_logP=motif.scoreWeightMatrix(key);
+			if(Double.isInfinite(motif_logP))
+				continue;
+		
+			KLsum+=p*(Math.log(p)-motif_logP);
+		}
+			
+			
+		return KLsum;
+		
+	}
+
 	public void initialize()
 	{
 		common.initialize();
@@ -167,6 +210,8 @@ public class GapImprover {
 					//PWM case
 					
 				}
+				else //debug
+					System.out.println(t1.toString());
 		}
 		
 		
@@ -269,7 +314,7 @@ public class GapImprover {
 		if(bestDgroups.size()>0)
 		for(Integer id : bestDgroups)
 		{
-			System.out.println("best:"+positiveThread.get(id).toString());
+			System.out.println("max KL desc:"+positiveThread.get(id).toString());
 			Dmap.put(positiveThread.get(id).depend_Pos,positiveThread.get(id).DprobMap);
 		}
 				
@@ -569,48 +614,28 @@ public class GapImprover {
 //		}
 //		}
 	
-		gapPWM=GapPWM.createGapPWM(motif.subPWM( motif.head,motif.head+motif.core_motiflen), Dmap,FlankLen);
-		if(gapPWM.core_motiflen!=motif.core_motiflen&&sites.size()>0)
-		{
-			motif=new PWM(sites.toArray(new String[1]));
-			gapPWM=GapPWM.createGapPWM(motif.subPWM(FlankLen,motif.columns()-FlankLen), Dmap,FlankLen);
-			motif=motif.subPWM(gapPWM.head, gapPWM.head+gapPWM.core_motiflen);
-		}
-		
-		//debug
-//		for(String site : sites)
+		gapPWM=GapPWM.createGapPWM(dataPWM.subPWM(FlankLen,dataPWM.columns()-FlankLen), Dmap,FlankLen);
+//		if(gapPWM.core_motiflen!=motif.core_motiflen&&sites.size()>0)
 //		{
-//			double gs=gapPWM.scoreWeightMatrix(site.substring(2,19));
-//			sbest.add(gs);
+//			motif=new PWM(sites.toArray(new String[1]));
+//			gapPWM=GapPWM.createGapPWM(motif.subPWM(FlankLen,motif.columns()-FlankLen), Dmap,FlankLen);
+//			motif=motif.subPWM(gapPWM.head, gapPWM.head+gapPWM.core_motiflen);
 //		}
-//		int scnt=0;
-//		for (int i = 0; i < sbest.size(); i++) {
-//			if(sbest.get(i)>snull.get(i))
-//				scnt+=1;
-//		}
+		dataPWM.head=gapPWM.head;
+		dataPWM.core_motiflen=gapPWM.core_motiflen;
+		dataPWM.tail=dataPWM.columns()-dataPWM.core_motiflen-dataPWM.head;
 		
-		
-//		String testStr="agagaagaagaaagaaagaaagaagaaaggaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaagaaaagaaagaaagaa";
-//		testStr=common.getReverseCompletementString(testStr);
-//		for (int i = 0; i < testStr.length()-gapPWM.core_motiflen; i++) {
-//			String temp=testStr.substring(i, i+gapPWM.core_motiflen);
-//			double score1=gapPWM.scoreWeightMatrix(temp);
-//			double score2=motif.scoreWeightMatrix(temp);
-//			System.out.println(score1+"\t"+score2);
-//		}
-		System.out.println("orginal KL:"+KL_Divergence_empirical(sites, motif,gapPWM.head) +"\timproved KL:"+KL_Divergence_empirical(sites, gapPWM,gapPWM.head));
+		if(siteWeight.size()>0)
+		{
+			System.out.println("orginal KL:"+KL_Divergence_empirical(sites,siteWeight, dataPWM,gapPWM.head) +"\timproved KL:"+KL_Divergence_empirical(sites,siteWeight, gapPWM,gapPWM.head));
+		}
+		else
+		System.out.println("orginal KL:"+KL_Divergence_empirical(sites, dataPWM,gapPWM.head) +"\timproved KL:"+KL_Divergence_empirical(sites, gapPWM,gapPWM.head));
 		
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (IllegalAlphabetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalSymbolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
+		} 
 		
 		return gapPWM;
 	}
@@ -645,7 +670,6 @@ public class GapImprover {
    		 if(maxseq_score<currloc.Score)
    		 {
    			 maxseq_score=currloc.Score;
-
    		 }
    	 }
    	Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
