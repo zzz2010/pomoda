@@ -639,6 +639,305 @@ public class GapImprover {
 		
 		return gapPWM;
 	}
+	
+	public GapPWM fillDependency2(PWM motif)
+	{
+		GapPWM gapPWM=null;
+		String Consensus=motif.Consensus(true);
+
+		
+		//debug
+	//	ArrayList<Double> snull = new ArrayList<Double>(),sbest =new ArrayList<Double>();
+		
+		//get a set of instance strings, assume they are all real binding site
+		LinkedList<String> sites=new LinkedList<String>();
+		ArrayList<Double> siteWeight=null;
+		if(SearchEngine.seqWeighting!=null)
+			siteWeight=new ArrayList<Double>(SearchEngine.ForwardStrand.size());
+		if(!OOPS)
+		{
+			double pwmThresh=motif.getThresh(sampling_ratio, FDR, background,false);
+			LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(motif, pwmThresh);
+			Iterator<FastaLocation> iter=falocs.iterator();
+			while(iter.hasNext())
+			{
+				FastaLocation currloc=iter.next();
+				String site=SearchEngine.getSite(currloc.getSeqId(), currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+				if(currloc.ReverseStrand)
+					site=common.getReverseCompletementString(site);
+				if(site!=null)
+				{
+					sites.add(site);	
+					if(SearchEngine.seqWeighting!=null)
+						siteWeight.add(SearchEngine.seqWeighting.get(currloc.getSeqId()));
+				}
+			}
+		}
+		else
+		{
+			 LinkedList<FastaLocation> falocs =null;
+			 if(removeBG)
+				 falocs=SearchEngine.searchPattern(motif, 0); //enable background in searching
+			 else
+				 falocs=SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
+        	 Iterator<FastaLocation> iter=falocs.iterator();
+        	 int lastseq=-1;
+        	 double seqcount=0;
+        	 double maxseq_score=	Double.NEGATIVE_INFINITY;
+        	 FastaLocation max_currloc=null;
+        	 //take the best occurrences
+        	 while(iter.hasNext())
+        	 {
+        		 FastaLocation currloc=iter.next();
+        		 if(lastseq!=currloc.getSeqId())
+        		 {
+        			 seqcount+=1;
+        			
+        			 if(lastseq!=-1)
+        			 {
+     				String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+    				if(max_currloc.ReverseStrand)
+    					site=common.getReverseCompletementString(site);
+    				if(site!=null)
+    				{
+    					sites.add(site);
+    					if(SearchEngine.seqWeighting!=null)
+    						siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
+    				}
+    				
+    				//debug
+    				//snull.add(max_currloc.Score+Math.log(0.25));
+        			 }
+        			 lastseq=currloc.getSeqId(); 
+        			 maxseq_score=currloc.Score;
+        			 max_currloc=currloc;
+        		 }
+        		 if(maxseq_score<currloc.Score)
+        		 {
+        			 maxseq_score=currloc.Score;
+        			 max_currloc=currloc;
+        		 }
+        	 }
+        	 //last seq
+ 			String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+			if(max_currloc.ReverseStrand)
+				site=common.getReverseCompletementString(site);
+			if(site!=null)
+			{
+			sites.add(site);
+			if(SearchEngine.seqWeighting!=null)
+				siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
+			}
+			//debug
+			//snull.add(max_currloc.Score+Math.log(0.25));
+		}
+		PWM dataPWM=null;
+		try {
+			dataPWM=new PWM(sites.toArray(new String[1]));
+		} catch (IllegalAlphabetException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IllegalSymbolException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		if(dataPWM==null)
+			dataPWM=motif;
+	
+		
+		//detect gap range, separate gap region with conserved bases
+		HashSet<Integer> conBases=new HashSet<Integer>();
+		int start=-1;
+		for (int i = motif.head-FlankLen; i < motif.head+motif.core_motiflen+FlankLen; i++) {
+			double entropy=0;
+			if(i<0||i>=motif.columns())
+				entropy=2;
+			else
+				entropy=DistributionTools.totalEntropy(dataPWM.getColumn(i-motif.head+FlankLen)) ;//use dataPWM to determine conserved base
+			if(entropy>entropyThresh)
+			{
+				
+					start=i-motif.head+FlankLen;
+					conBases.add(start);
+			}
+		}
+
+		
+		try {
+		//find the best dependency modeling in each gap region
+		LinkedList<GapBGModelingThread> threadPool=new LinkedList<GapBGModelingThread>();
+		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>,HashMap<String,Double>>();
+		if(sites.size()>0)
+		{
+		//consider the whole motif length	
+		 {
+			int gstart=0;
+			int gend=dataPWM.columns();
+
+			int combinNum=(1<<Math.min(max_gaplen,dataPWM.columns()))*Math.max(1, dataPWM.columns()-max_gaplen+1);
+			PooledExecutor executor = new PooledExecutor(new LinkedQueue());
+			executor.setMinimumPoolSize(threadNum);
+			executor.setKeepAliveTime(-1);
+
+			for (int j = 0; j < combinNum; j++) {
+				HashSet<Integer> dpos=new HashSet<Integer>();
+				int bcode=j;
+				for (int j2 = 0; j2 < gend-gstart; j2++) {
+					if(bcode%2==0)
+						dpos.add(j2+gstart);
+					bcode>>=1;
+				}
+				if(dpos.size()==1)
+					continue;
+				GapBGModelingThread t1=null;
+				if(removeBG)
+					t1=new GapBGModelingThread(gstart, gend, sites, dpos,background,siteWeight);//null mean not considering BG
+				else
+					t1=new GapBGModelingThread(gstart, gend, sites, dpos,null,siteWeight);//null mean not considering BG
+//				t1.run();
+			
+				executor.execute(t1);
+	
+				threadPool.add(t1);
+			}
+//			 Wait until all threads are finish
+			
+			executor.shutdownAfterProcessingCurrentlyQueuedTasks();
+			executor.awaitTerminationAfterShutdown();
+			if(!OOPG)
+			{
+			Dmap.putAll( FindBest(threadPool.subList(0, threadPool.size())));
+			threadPool.clear();
+			}
+		}
+		
+		}
+	
+		Iterator<GapBGModelingThread> iter3=threadPool.iterator();
+		 start=-1;
+		double minKL=Double.MAX_VALUE;
+		GapBGModelingThread bestThread=null;
+		
+		GapBGModelingThread[] Pos_BestThread=new GapBGModelingThread[motif.core_motiflen+2*FlankLen];
+		
+		if(OOPG)
+		while(iter3.hasNext())
+		{
+			//find different flexible combinations in the same gap region(not allow two dependency group share the same position)
+			GapBGModelingThread t1=iter3.next();	
+				t1.join();
+				if(t1.depend_Pos.size()==0)
+				{
+					//print PWM case, no dependancy 
+					System.out.println(t1.toString());
+					//snull=t1.debuglist;
+				}
+				if(t1.gapStart!=start)
+				{
+					start=t1.gapStart;
+					minKL=t1.KL_Divergence;
+					if(bestThread!=null)
+					{
+						System.out.println("best:"+bestThread.toString());
+						if(bestThread.depend_Pos.size()>1)
+						{
+							Dmap.put(bestThread.depend_Pos, bestThread.DprobMap);
+							
+						}
+					}
+					bestThread=t1;
+				}
+				else 
+				{
+					if(t1.KL_Divergence<minKL)
+					{
+						minKL=t1.KL_Divergence;
+						bestThread=t1;
+					}
+					
+				}
+				
+				Iterator<Integer> iter4=t1.depend_Pos.iterator();
+				while(iter4.hasNext())
+				{
+					int posId=iter4.next();
+					if(Pos_BestThread[posId]!=null)
+					{
+						//as only one dep-group in the region, only check whether the given one is the best 
+						if(Pos_BestThread[posId].KL_Divergence>t1.KL_Divergence)
+							Pos_BestThread[posId]=t1;
+					}
+					else
+					{
+						Pos_BestThread[posId]=t1;
+					}
+				}
+				if(t1.depend_Pos.size()==0)
+				{
+					for (int i = t1.gapStart; i < t1.gapEnd; i++) {
+						if(Pos_BestThread[i].KL_Divergence>t1.KL_Divergence)
+							Pos_BestThread[i]=t1;
+						
+					}
+				}
+		}
+		if(bestThread!=null&&bestThread.depend_Pos.size()>1)
+		{
+			Dmap.put(bestThread.depend_Pos, bestThread.DprobMap);
+		System.out.println("best:"+bestThread.toString());
+		//sbest=bestThread.debuglist;
+		}
+
+		
+//		if(!OOPG)
+//		{
+//		//fill in multi-dependency in the same gap region	
+//		for (int i = 0; i < Pos_BestThread.length; i++) {
+//			if(Pos_BestThread[i]!=null&&Pos_BestThread[i].depend_Pos.size()>1)
+//			{
+//				boolean maxCover=true;
+//				for(Integer ii:Pos_BestThread[i].depend_Pos)
+//				{
+//					if(Pos_BestThread[ii].hashCode()!=Pos_BestThread[i].hashCode())
+//					{
+//						maxCover=false;
+//						break;
+//					}
+//				}
+//				if(maxCover)
+//				{
+//				Dmap.put(Pos_BestThread[i].depend_Pos, Pos_BestThread[i].DprobMap);
+//				System.out.println(Pos_BestThread[i]);
+//				}
+//			}
+//		}
+//		}
+	
+		gapPWM=GapPWM.createGapPWM(dataPWM.subPWM(FlankLen,dataPWM.columns()-FlankLen), Dmap,FlankLen);
+//		if(gapPWM.core_motiflen!=motif.core_motiflen&&sites.size()>0)
+//		{
+//			motif=new PWM(sites.toArray(new String[1]));
+//			gapPWM=GapPWM.createGapPWM(motif.subPWM(FlankLen,motif.columns()-FlankLen), Dmap,FlankLen);
+//			motif=motif.subPWM(gapPWM.head, gapPWM.head+gapPWM.core_motiflen);
+//		}
+		dataPWM.head=gapPWM.head;
+		dataPWM.core_motiflen=gapPWM.core_motiflen;
+		dataPWM.tail=dataPWM.columns()-dataPWM.core_motiflen-dataPWM.head;
+		
+		if(siteWeight!=null)
+		{
+			System.out.println("orginal KL:"+KL_Divergence_empirical(sites,siteWeight, dataPWM,gapPWM.head) +"\timproved KL:"+KL_Divergence_empirical(sites,siteWeight, gapPWM,gapPWM.head));
+		}
+		else
+		System.out.println("orginal KL:"+KL_Divergence_empirical(sites, dataPWM,gapPWM.head) +"\timproved KL:"+KL_Divergence_empirical(sites, gapPWM,gapPWM.head));
+		
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		
+		return gapPWM;
+	}
 
 	
 	public double CorrelationTest(PWM motif)
