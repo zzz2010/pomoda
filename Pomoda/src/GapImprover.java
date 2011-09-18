@@ -351,7 +351,7 @@ public class GapImprover {
 					site=common.getReverseCompletementString(site);
 				if(site!=null)
 				{
-					sites.add(site);	
+					sites.add(site.toUpperCase());	
 					if(SearchEngine.seqWeighting!=null)
 						siteWeight.add(SearchEngine.seqWeighting.get(currloc.getSeqId()));
 				}
@@ -384,7 +384,7 @@ public class GapImprover {
     					site=common.getReverseCompletementString(site);
     				if(site!=null)
     				{
-    					sites.add(site);
+    					sites.add(site.toUpperCase());
     					if(SearchEngine.seqWeighting!=null)
     						siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
     				}
@@ -408,7 +408,7 @@ public class GapImprover {
 				site=common.getReverseCompletementString(site);
 			if(site!=null)
 			{
-			sites.add(site);
+			sites.add(site.toUpperCase());
 			if(SearchEngine.seqWeighting!=null)
 				siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
 			}
@@ -640,6 +640,8 @@ public class GapImprover {
 		return gapPWM;
 	}
 	
+	
+	//this one dont make assumption conserved base will break the interaction regions
 	public GapPWM fillDependency2(PWM motif)
 	{
 		GapPWM gapPWM=null;
@@ -667,7 +669,7 @@ public class GapImprover {
 					site=common.getReverseCompletementString(site);
 				if(site!=null)
 				{
-					sites.add(site);	
+					sites.add(site.toUpperCase());	
 					if(SearchEngine.seqWeighting!=null)
 						siteWeight.add(SearchEngine.seqWeighting.get(currloc.getSeqId()));
 				}
@@ -700,7 +702,7 @@ public class GapImprover {
     					site=common.getReverseCompletementString(site);
     				if(site!=null)
     				{
-    					sites.add(site);
+    					sites.add(site.toUpperCase());
     					if(SearchEngine.seqWeighting!=null)
     						siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
     				}
@@ -724,7 +726,7 @@ public class GapImprover {
 				site=common.getReverseCompletementString(site);
 			if(site!=null)
 			{
-			sites.add(site);
+			sites.add(site.toUpperCase());
 			if(SearchEngine.seqWeighting!=null)
 				siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
 			}
@@ -745,7 +747,7 @@ public class GapImprover {
 			dataPWM=motif;
 	
 		
-		//detect gap range, separate gap region with conserved bases
+		//detect  conserved bases
 		HashSet<Integer> conBases=new HashSet<Integer>();
 		int start=-1;
 		for (int i = motif.head-FlankLen; i < motif.head+motif.core_motiflen+FlankLen; i++) {
@@ -754,7 +756,7 @@ public class GapImprover {
 				entropy=2;
 			else
 				entropy=DistributionTools.totalEntropy(dataPWM.getColumn(i-motif.head+FlankLen)) ;//use dataPWM to determine conserved base
-			if(entropy>entropyThresh)
+			if(entropy<entropyThresh)
 			{
 				
 					start=i-motif.head+FlankLen;
@@ -762,6 +764,7 @@ public class GapImprover {
 			}
 		}
 
+		System.out.println("Conserved Bases:"+conBases);
 		
 		try {
 		//find the best dependency modeling in each gap region
@@ -773,21 +776,42 @@ public class GapImprover {
 		 {
 			int gstart=0;
 			int gend=dataPWM.columns();
-
-			int combinNum=(1<<Math.min(max_gaplen,dataPWM.columns()))*Math.max(1, dataPWM.columns()-max_gaplen+1);
+			//each block assume the start base must in the dep-group,so only max_gaplen-1 binary length to consider
+			int combinNum=(1<<Math.min(max_gaplen-1,dataPWM.columns()))*Math.max(1, dataPWM.columns()-max_gaplen+2); //+2 due to need a final to represent start point not in dep-group
 			PooledExecutor executor = new PooledExecutor(new LinkedQueue());
 			executor.setMinimumPoolSize(threadNum);
 			executor.setKeepAliveTime(-1);
-
+			int shift=0;//move the max_gaplen along the positions
+			int blocksize=1<<(max_gaplen-1);
 			for (int j = 0; j < combinNum; j++) {
 				HashSet<Integer> dpos=new HashSet<Integer>();
-				int bcode=j;
-				for (int j2 = 0; j2 < gend-gstart; j2++) {
+				int bcode=j%blocksize;
+				boolean convflag=false;
+				shift=j/blocksize;
+				if(shift!=(dataPWM.columns()-max_gaplen+1))
+				{
+					if(!conBases.contains(shift))
+					{
+						dpos.add(shift);
+					}
+					else 
+						continue;
+				}
+				else
+					shift--;//the final block
+				for (int j2 = 0; j2 < Math.min(max_gaplen-1,dataPWM.columns()); j2++) {
 					if(bcode%2==0)
-						dpos.add(j2+gstart);
+					{
+						dpos.add(j2+shift+1);
+						if(conBases.contains(j2+shift+1))
+						{
+							convflag=true;
+							break;
+						}
+					}
 					bcode>>=1;
 				}
-				if(dpos.size()==1)
+				if(dpos.size()<2||convflag)
 					continue;
 				GapBGModelingThread t1=null;
 				if(removeBG)
@@ -800,6 +824,16 @@ public class GapImprover {
 	
 				threadPool.add(t1);
 			}
+			//add non-dep group thread
+			HashSet<Integer> dpos=new HashSet<Integer>();
+			GapBGModelingThread t1=null;
+			if(removeBG)
+				t1=(new GapBGModelingThread(gstart, gend, sites, dpos,background,siteWeight));//null mean not considering BG
+			else
+				 t1=(new GapBGModelingThread(gstart, gend, sites, dpos,null,siteWeight));//null mean not considering BG
+			executor.execute(t1);
+			threadPool.add(t1);
+			
 //			 Wait until all threads are finish
 			
 			executor.shutdownAfterProcessingCurrentlyQueuedTasks();
@@ -1204,7 +1238,7 @@ public class GapImprover {
 				System.out.println(rawpwm.Consensus(true));
 				if(GImprover.removeBG)
 					GImprover.SearchEngine.EnableBackground(GImprover.background);
-				GapPWM gpwm=GImprover.fillDependency(rawpwm);
+				GapPWM gpwm=GImprover.fillDependency2(rawpwm);
 				gpwm.Name="GPimpover_"+rawpwm.Name;
 				GImprover.SearchEngine.DisableBackground();
 				System.out.print("Original Motif:");
