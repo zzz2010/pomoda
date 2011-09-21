@@ -946,8 +946,10 @@ public class GapImprover {
 //			}
 //		}
 //		}
-	
-		gapPWM=GapPWM.createGapPWM(dataPWM.subPWM(FlankLen,dataPWM.columns()-FlankLen), Dmap,FlankLen);
+		if(FlankLen==0)
+			gapPWM=GapPWM.createGapPWM(motif.subPWM( motif.head,motif.head+motif.core_motiflen), Dmap,FlankLen);
+		else
+			gapPWM=GapPWM.createGapPWM(dataPWM.subPWM(FlankLen,dataPWM.columns()-FlankLen), Dmap,FlankLen);
 //		if(gapPWM.core_motiflen!=motif.core_motiflen&&sites.size()>0)
 //		{
 //			motif=new PWM(sites.toArray(new String[1]));
