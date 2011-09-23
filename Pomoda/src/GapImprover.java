@@ -54,6 +54,7 @@ public class GapImprover {
 	public int FlankLen=0;
 	public int threadNum=4;
 	public int max_gaplen=12;
+	public double KLthresh=0.01;
 	
 	public BGModel background;
 	public GapImprover(Pomoda motiffinder)
@@ -222,7 +223,7 @@ public class GapImprover {
 		 LinkedList< HashSet<Integer> > queue=new LinkedList< HashSet<Integer> >();
 		for(GapBGModelingThread t2:list)
 		{
-			if(t2.KL_Divergence<baseScore*0.999)
+			if(t2.KL_Divergence<baseScore*(1-KLthresh))
 			{
 				//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
@@ -1133,6 +1134,7 @@ public class GapImprover {
 		options.addOption("ratio",true, "sampling ratio (default 1)");
 		options.addOption("threadnum",true, "number of threads to use(default :4)");
 		options.addOption("thresh",true, "minimum entropy threshold for considering a position as a gap(default 1)");
+		options.addOption("KLthresh",true, "at least percentage of descrease to claim as a dependency (default 0.01)");
 		options.addOption("oops",false,"whether assuming only one occurrence per sequence (default false)");
 		options.addOption("oopg",false,"whether assuming only one dependence per gap region (default false)");
 		options.addOption("rmbg",false,"whether considering the background probility in learning and evaluating the dependences (default false)");
@@ -1193,6 +1195,10 @@ public class GapImprover {
 			if(cmd.hasOption("thresh"))
 			{
 				GImprover.entropyThresh=Double.parseDouble(cmd.getOptionValue("thresh"));
+			}
+			if(cmd.hasOption("KLthresh"))
+			{
+				GImprover.KLthresh=Double.parseDouble(cmd.getOptionValue("KLthresh"));
 			}
 			if(cmd.hasOption("maxlen"))
 			{
