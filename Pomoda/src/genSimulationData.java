@@ -76,6 +76,15 @@ public class genSimulationData {
 		}
 
 	}
+	
+	public GapPWM maxDiffGapPWM(PWM motif , double entropythresh)
+	{
+		GapPWM gapmotif=null;
+		
+		
+		
+		return gapmotif;
+	}
 	/**
 	 * @param args
 	 */
