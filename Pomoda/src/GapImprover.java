@@ -789,7 +789,7 @@ public class GapImprover {
 				int bcode=j%blocksize;
 				boolean convflag=false;
 				shift=j/blocksize;
-				if(shift!=(dataPWM.columns()-max_gaplen+1))
+				if(shift!=(dataPWM.columns()-max_gaplen+1)&&dataPWM.columns()>=max_gaplen)
 				{
 					if(!conBases.contains(shift))
 					{
