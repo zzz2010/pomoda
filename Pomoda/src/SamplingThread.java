@@ -70,7 +70,7 @@ import org.biojava.utils.ChangeVetoException;
 					FastaLocation bestpos=null;
 					try {
 						double minprob=Math.log(1.0/6);
-						for (int i = 0; i < seq.length()-motif.core_motiflen; i++) {
+						for (int i = 0; i < seq.length()-motif.core_motiflen+1; i++) {
 							String temp=seq.substring(i,i+motif.core_motiflen);
 							double score=motif.scoreWeightMatrix(temp);
 							

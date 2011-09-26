@@ -69,7 +69,7 @@ public class SearchThread extends Thread  {
 				FastaLocation bestpos=null;
 				try {
 
-					for (int i = 0; i < seq.length()-motif.core_motiflen; i++) {
+					for (int i = 0; i < seq.length()-motif.core_motiflen+1; i++) {
 						String temp=seq.substring(i,i+motif.core_motiflen);
 						double score=motif.scoreWeightMatrix(temp);
 						double bgscore=0;

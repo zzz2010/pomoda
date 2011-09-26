@@ -66,7 +66,7 @@ public class SamplingThread_PS extends Thread {
 				
 				try {
 
-					for (int i = 0; i < seq.length()-motif.core_motiflen; i++) {
+					for (int i = 0; i < seq.length()-motif.core_motiflen+1; i++) {
 						String temp=seq.substring(i,i+motif.core_motiflen);
 						double score=motif.scoreWeightMatrix(temp);
 						
@@ -142,7 +142,7 @@ public class SamplingThread_PS extends Thread {
 				
 				try {
 
-					for (int i = 0; i < seq.length()-motif.core_motiflen; i++) {
+					for (int i = 0; i < seq.length()-motif.core_motiflen+1; i++) {
 						String temp=seq.substring(i,i+motif.core_motiflen);
 						double score=motif.scoreWeightMatrix(temp);
 						
