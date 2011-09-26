@@ -46,6 +46,7 @@ public class GapImprover {
 	public boolean OOPG=false; //only one occurrence per sequence
 	public boolean removeBG=false; //false:uniform BG assume
 	public boolean PBMflag=false;
+	public boolean is_bsitedata=false;
 	public String bgmodelFile="";
 	LinearEngine SearchEngine;
 	public double sampling_ratio=1;
@@ -53,7 +54,7 @@ public class GapImprover {
 	public double entropyThresh=1;
 	public int FlankLen=0;
 	public int threadNum=4;
-	public int max_gaplen=12;
+	public int max_gaplen=8;
 	public double KLthresh=0.01;
 	
 	public BGModel background;
@@ -161,7 +162,10 @@ public class GapImprover {
 		SearchEngine=new LinearEngine(4);
 		if(this.PBMflag)
 		{
-			SearchEngine.buildPBM_index(inputFasta, 1000);
+			if(is_bsitedata)
+				SearchEngine.buildPBM_index(inputFasta, 100000,false);
+			else
+				SearchEngine.buildPBM_index(inputFasta, 1000,true);
 		}
 		else
 			SearchEngine.build_index(this.inputFasta);
@@ -646,7 +650,8 @@ public class GapImprover {
 	public GapPWM fillDependency2(PWM motif)
 	{
 		GapPWM gapPWM=null;
-		String Consensus=motif.Consensus(true);
+		if(!is_bsitedata)
+		motif.Consensus(true);
 
 		
 		//debug
@@ -657,82 +662,93 @@ public class GapImprover {
 		ArrayList<Double> siteWeight=null;
 		if(SearchEngine.seqWeighting!=null)
 			siteWeight=new ArrayList<Double>(SearchEngine.ForwardStrand.size());
-		if(!OOPS)
+		if(!is_bsitedata)
 		{
-			double pwmThresh=motif.getThresh(sampling_ratio, FDR, background,false);
-			LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(motif, pwmThresh);
-			Iterator<FastaLocation> iter=falocs.iterator();
-			while(iter.hasNext())
+			if(!OOPS)
 			{
-				FastaLocation currloc=iter.next();
-				String site=SearchEngine.getSite(currloc.getSeqId(), currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
-				if(currloc.ReverseStrand)
+				double pwmThresh=motif.getThresh(sampling_ratio, FDR, background,false);
+				LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(motif, pwmThresh);
+				Iterator<FastaLocation> iter=falocs.iterator();
+				while(iter.hasNext())
+				{
+					FastaLocation currloc=iter.next();
+					String site=SearchEngine.getSite(currloc.getSeqId(), currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+					if(currloc.ReverseStrand)
+						site=common.getReverseCompletementString(site);
+					if(site!=null)
+					{
+						sites.add(site.toUpperCase());	
+						if(SearchEngine.seqWeighting!=null)
+							siteWeight.add(SearchEngine.seqWeighting.get(currloc.getSeqId()));
+					}
+				}
+			}
+			else
+			{
+				 LinkedList<FastaLocation> falocs =null;
+				 if(removeBG)
+					 falocs=SearchEngine.searchPattern(motif, 0); //enable background in searching
+				 else
+					 falocs=SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
+	        	 Iterator<FastaLocation> iter=falocs.iterator();
+	        	 int lastseq=-1;
+	        	 double seqcount=0;
+	        	 double maxseq_score=	Double.NEGATIVE_INFINITY;
+	        	 FastaLocation max_currloc=null;
+	        	 //take the best occurrences
+	        	 while(iter.hasNext())
+	        	 {
+	        		 FastaLocation currloc=iter.next();
+	        		 if(lastseq!=currloc.getSeqId())
+	        		 {
+	        			 seqcount+=1;
+	        			
+	        			 if(lastseq!=-1)
+	        			 {
+	     				String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+	    				if(max_currloc.ReverseStrand)
+	    					site=common.getReverseCompletementString(site);
+	    				if(site!=null)
+	    				{
+	    					sites.add(site.toUpperCase());
+	    					if(SearchEngine.seqWeighting!=null)
+	    						siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
+	    				}
+	    				
+	    				//debug
+	    				//snull.add(max_currloc.Score+Math.log(0.25));
+	        			 }
+	        			 lastseq=currloc.getSeqId(); 
+	        			 maxseq_score=currloc.Score;
+	        			 max_currloc=currloc;
+	        		 }
+	        		 if(maxseq_score<currloc.Score)
+	        		 {
+	        			 maxseq_score=currloc.Score;
+	        			 max_currloc=currloc;
+	        		 }
+	        	 }
+	        	 //last seq
+	 			String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+				if(max_currloc.ReverseStrand)
 					site=common.getReverseCompletementString(site);
 				if(site!=null)
 				{
-					sites.add(site.toUpperCase());	
-					if(SearchEngine.seqWeighting!=null)
-						siteWeight.add(SearchEngine.seqWeighting.get(currloc.getSeqId()));
+				sites.add(site.toUpperCase());
+				if(SearchEngine.seqWeighting!=null)
+					siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
 				}
+				//debug
+				//snull.add(max_currloc.Score+Math.log(0.25));
 			}
 		}
 		else
 		{
-			 LinkedList<FastaLocation> falocs =null;
-			 if(removeBG)
-				 falocs=SearchEngine.searchPattern(motif, 0); //enable background in searching
-			 else
-				 falocs=SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
-        	 Iterator<FastaLocation> iter=falocs.iterator();
-        	 int lastseq=-1;
-        	 double seqcount=0;
-        	 double maxseq_score=	Double.NEGATIVE_INFINITY;
-        	 FastaLocation max_currloc=null;
-        	 //take the best occurrences
-        	 while(iter.hasNext())
-        	 {
-        		 FastaLocation currloc=iter.next();
-        		 if(lastseq!=currloc.getSeqId())
-        		 {
-        			 seqcount+=1;
-        			
-        			 if(lastseq!=-1)
-        			 {
-     				String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
-    				if(max_currloc.ReverseStrand)
-    					site=common.getReverseCompletementString(site);
-    				if(site!=null)
-    				{
-    					sites.add(site.toUpperCase());
-    					if(SearchEngine.seqWeighting!=null)
-    						siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
-    				}
-    				
-    				//debug
-    				//snull.add(max_currloc.Score+Math.log(0.25));
-        			 }
-        			 lastseq=currloc.getSeqId(); 
-        			 maxseq_score=currloc.Score;
-        			 max_currloc=currloc;
-        		 }
-        		 if(maxseq_score<currloc.Score)
-        		 {
-        			 maxseq_score=currloc.Score;
-        			 max_currloc=currloc;
-        		 }
-        	 }
-        	 //last seq
- 			String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
-			if(max_currloc.ReverseStrand)
-				site=common.getReverseCompletementString(site);
-			if(site!=null)
-			{
-			sites.add(site.toUpperCase());
+			//directly use the sequences as binding sites
+			sites=SearchEngine.ForwardStrand;
 			if(SearchEngine.seqWeighting!=null)
-				siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
-			}
-			//debug
-			//snull.add(max_currloc.Score+Math.log(0.25));
+				siteWeight=SearchEngine.seqWeighting;
+			
 		}
 		PWM dataPWM=null;
 		try {
@@ -746,6 +762,8 @@ public class GapImprover {
 		}
 		if(dataPWM==null)
 			dataPWM=motif;
+		if(motif==null)
+			motif=dataPWM;
 	
 		
 		//detect  conserved bases
@@ -1129,6 +1147,7 @@ public class GapImprover {
 		options.addOption("pwm", true, "input PWM file");
 		options.addOption("c", true, "control fasta file");
 		options.addOption("bgmodel", true, "background model file");
+		options.addOption("site", false, "input sequences are binding sites, no need to provide PWM");
 		options.addOption("prefix", true, "output directory");
 		options.addOption("flank", true, "the number of flanking positions around PWM to include(default 0)");
 		options.addOption("ratio",true, "sampling ratio (default 1)");
@@ -1138,7 +1157,7 @@ public class GapImprover {
 		options.addOption("oops",false,"whether assuming only one occurrence per sequence (default false)");
 		options.addOption("oopg",false,"whether assuming only one dependence per gap region (default false)");
 		options.addOption("rmbg",false,"whether considering the background probility in learning and evaluating the dependences (default false)");
-		options.addOption("maxlen",true,"maxmimum length of gap (default 12)");
+		options.addOption("maxlen",true,"maxmimum length of gap (default 8)");
 		options.addOption("FDR",true,"fasle positive rate");
 		String inputPWM="";
 		CommandLineParser parser = new GnuParser();
@@ -1152,19 +1171,23 @@ public class GapImprover {
 			}
 			else
 			{
-				throw new ParseException("no input fasta file");
+				throw new ParseException("no input sequence file");
 			}
 			if(cmd.hasOption("pwm"))
 			{
 				inputPWM=cmd.getOptionValue("pwm");
 			}
-			else
+			else if(!cmd.hasOption("site"))
 			{
 				throw new ParseException("no input pwm file");
 			}
 			if(cmd.hasOption("pbm"))
 			{
 				GImprover.PBMflag=true;
+			}
+			if(cmd.hasOption("site"))
+			{
+				GImprover.is_bsitedata=true;
 			}
 			
 			if(cmd.hasOption("threadnum"))
@@ -1229,50 +1252,101 @@ public class GapImprover {
 		}
 		
 		GImprover.initialize();
-		LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
-		Iterator<PWM> iter=pwmlist.iterator();
-		LinkedList<GapPWM> improvedPWMs=new LinkedList<GapPWM>();
-		 File directory=new File(inputPWM);
-		 String outdir=directory.getParent();
-		 if(GImprover.outputPrefix!="./")
-			 outdir=GImprover.outputPrefix;
-		File file = new File(outdir+"/GPimprover_sorted.dpwm"); 
-		TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
-		try {
-			BufferedWriter writer= new BufferedWriter(new FileWriter(file));
-			while(iter.hasNext())
-			{
-				PWM rawpwm=iter.next();
-				System.out.println(rawpwm.Consensus(true));
+		LinkedList<PWM> pwmlist=null;
+		if(!GImprover.is_bsitedata)
+		{
+			pwmlist=common.LoadPWMFromFile(inputPWM);
+			Iterator<PWM> iter=pwmlist.iterator();
+			LinkedList<GapPWM> improvedPWMs=new LinkedList<GapPWM>();
+			 File directory=new File(inputPWM);
+			 String outdir=directory.getParent();
+			 if(GImprover.outputPrefix!="./")
+				 outdir=GImprover.outputPrefix;
+			File file = new File(outdir+"/GPimprover_sorted.dpwm"); 
+			TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
+			try {
+				BufferedWriter writer= new BufferedWriter(new FileWriter(file));
+				while(iter.hasNext())
+				{
+					PWM rawpwm=iter.next();
+					System.out.println(rawpwm.Consensus(true));
+					if(GImprover.removeBG)
+						GImprover.SearchEngine.EnableBackground(GImprover.background);
+					GapPWM gpwm=GImprover.fillDependency2(rawpwm);
+					gpwm.Name="GPimpover_"+rawpwm.Name;
+					GImprover.SearchEngine.DisableBackground();
+					System.out.print("Original Motif:");
+					GImprover.AUCtest(rawpwm);
+					System.out.print("Improved Motif:");
+					double score=GImprover.AUCtest(gpwm);
+					gpwm.Score=score;
+					sortedPWMs.put(score, gpwm);
+					if(GImprover.PBMflag)
+					{
+						double corr1=GImprover.CorrelationTest(rawpwm);
+						System.out.println("Original Motif Correlation with Signal:"+corr1);
+						
+						double corr2=GImprover.CorrelationTest(gpwm);
+						System.out.println("Improved MotifCorrelation with Signal:"+corr2);
+					}
+					
+				}
+				for(Double key:sortedPWMs.descendingKeySet())
+				{
+					writer.write(sortedPWMs.get(key).toString());
+				}
+				writer.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		else
+		{
+			 File directory=new File(GImprover.inputFasta);
+			 String outdir=directory.getParent();
+			 if(GImprover.outputPrefix!="./")
+				 outdir=GImprover.outputPrefix;
+			File file = new File(outdir+"/GPimprover_sorted.dpwm"); 
+			try {
+				BufferedWriter writer= new BufferedWriter(new FileWriter(file));
+				System.out.println("binding sites mode");
 				if(GImprover.removeBG)
 					GImprover.SearchEngine.EnableBackground(GImprover.background);
-				GapPWM gpwm=GImprover.fillDependency2(rawpwm);
-				gpwm.Name="GPimpover_"+rawpwm.Name;
+				GapPWM gpwm=GImprover.fillDependency2(null);
+				gpwm.Name="GPimpover_sitePWM";
 				GImprover.SearchEngine.DisableBackground();
+				writer.write(gpwm.toString());
+				PWM dataPWM=new PWM(GImprover.SearchEngine.ForwardStrand.toArray(new String[1]));
+				dataPWM.Name="sitePWM";
+				writer.write(dataPWM.toString());
 				System.out.print("Original Motif:");
-				GImprover.AUCtest(rawpwm);
+				GImprover.AUCtest(dataPWM);
 				System.out.print("Improved Motif:");
 				double score=GImprover.AUCtest(gpwm);
 				gpwm.Score=score;
-				sortedPWMs.put(score, gpwm);
+				
 				if(GImprover.PBMflag)
 				{
-					double corr1=GImprover.CorrelationTest(rawpwm);
+					double corr1=GImprover.CorrelationTest(dataPWM);
 					System.out.println("Original Motif Correlation with Signal:"+corr1);
 					
 					double corr2=GImprover.CorrelationTest(gpwm);
 					System.out.println("Improved MotifCorrelation with Signal:"+corr2);
 				}
+				writer.close();
 				
+				
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalAlphabetException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalSymbolException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-			for(Double key:sortedPWMs.descendingKeySet())
-			{
-				writer.write(sortedPWMs.get(key).toString());
-			}
-			writer.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 		
 		

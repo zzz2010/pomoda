@@ -196,7 +196,7 @@ public class PWMevaluator {
 		SearchEngine=new LinearEngine(4);
 		if(this.PBMflag)
 		{
-			SearchEngine.buildPBM_index(inputFasta, 1000);
+			SearchEngine.buildPBM_index(inputFasta, 100000,false);
 		}
 		else
 			SearchEngine.build_index(this.inputFasta);

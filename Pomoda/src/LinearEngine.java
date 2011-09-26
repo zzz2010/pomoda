@@ -85,7 +85,7 @@ public class LinearEngine {
 		}
 	}
 	
-	public void buildPBM_index(String inputfile,int maxSeq) {
+	public void buildPBM_index(String inputfile,int maxSeq,boolean trim) {
 		accSeqLen.clear();
 		// TODO Auto-generated method stub
 		 try {
@@ -105,7 +105,10 @@ public class LinearEngine {
    			    		  continue;
    			    	  String seqstr=comps[1].replace("N", "");
    			    	seqWeighting.add(Double.parseDouble(comps[0]));
-   				    ForwardStrand.add(seqstr.substring(0,35));
+   			    	if(trim)
+   			    		ForwardStrand.add(seqstr.substring(0,35));
+   			    	else
+   			    		ForwardStrand.add(seqstr);
    				  //ReverseStrand.add(common.getReverseCompletementString( seqstr));
    				if(ForwardStrand.size()>maxSeq)
    				    	 break;
