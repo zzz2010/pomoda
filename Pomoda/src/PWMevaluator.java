@@ -66,6 +66,7 @@ public class PWMevaluator {
 //	public boolean OOPS=true; //only one dependence per sequence
 	public boolean removeBG=false; //false:uniform BG assume
 	public String bgmodelFile="";
+	public int BGFold=1;
 	LinearEngine SearchEngine;
 	LinearEngine BGSearchEngine;
 	public double sampling_ratio=1;
@@ -277,20 +278,22 @@ public class PWMevaluator {
          while(iter2.hasNext())
          {
         	 int len=iter2.next().length();
-        	 String bgstr="";
-        	 if(removeBG)
-        	 {
-	        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
-	        	 bgstr=bgstr_p.value;
+        	 for (int i = 0; i < BGFold; i++) {		
+	        	 String bgstr="";
+	        	 if(removeBG)
+	        	 {
+		        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
+		        	 bgstr=bgstr_p.value;
+	        	 }
+	        	 else
+	        	 {
+		        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
+		        	 bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
+	        	 }
+	        	 BGSearch.ForwardStrand.add(bgstr);	 
+	        	 BGSearch.TotalLen+=bgstr.length();
+	        	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
         	 }
-        	 else
-        	 {
-	        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
-	        	 bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
-        	 }
-        	 BGSearch.ForwardStrand.add(bgstr);	 
-        	 BGSearch.TotalLen+=bgstr.length();
-        	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
          }
 		}
 		else
@@ -343,20 +346,23 @@ public class PWMevaluator {
          while(iter2.hasNext())
          {
         	 int len=iter2.next().length();
-        	 String bgstr="";
-        	 if(removeBG)
-        	 {
-	        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
-	        	 bgstr=bgstr_p.value;
+        	 for (int i = 0; i < BGFold; i++) {
+
+	        	 String bgstr="";
+	        	 if(removeBG)
+	        	 {
+		        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
+		        	 bgstr=bgstr_p.value;
+	        	 }
+	        	 else
+	        	 {
+		        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
+		        	 bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
+	        	 }
+	        	 BGSearch.ForwardStrand.add(bgstr);	 
+	        	 BGSearch.TotalLen+=bgstr.length();
+	        	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
         	 }
-        	 else
-        	 {
-	        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
-	        	 bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
-        	 }
-        	 BGSearch.ForwardStrand.add(bgstr);	 
-        	 BGSearch.TotalLen+=bgstr.length();
-        	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
          }
 		}
 		else
@@ -483,20 +489,23 @@ public class PWMevaluator {
 		         while(iter2.hasNext())
 		         {
 		        	 int len=iter2.next().length();
-		        	 String bgstr="";
-		        	 if(removeBG)
-		        	 {
-			        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
-			        	 bgstr=bgstr_p.value;
+		        	 for (int i = 0; i < BGFold; i++) {
+
+			        	 String bgstr="";
+			        	 if(removeBG)
+			        	 {
+				        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
+				        	 bgstr=bgstr_p.value;
+			        	 }
+			        	 else
+			        	 {
+				        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
+				        	 bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
+			        	 }
+			        	 BGSearch.ForwardStrand.add(bgstr);	 
+			        	 BGSearch.TotalLen+=bgstr.length();
+			        	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
 		        	 }
-		        	 else
-		        	 {
-			        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
-			        	 bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
-		        	 }
-		        	 BGSearch.ForwardStrand.add(bgstr);	 
-		        	 BGSearch.TotalLen+=bgstr.length();
-		        	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
 		         }
 				}
 				else
@@ -568,20 +577,23 @@ public class PWMevaluator {
          while(iter2.hasNext())
          {
         	 int len=iter2.next().length();
-        	 String bgstr="";
-        	 if(removeBG)
-        	 {
-	        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
-	        	 bgstr=bgstr_p.value;
+        	 for (int i = 0; i < BGFold; i++) {
+	
+		        	 String bgstr="";
+		        	 if(removeBG)
+		        	 {
+			        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
+			        	 bgstr=bgstr_p.value;
+		        	 }
+		        	 else
+		        	 {
+			        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
+			        	 bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
+		        	 }
+		        	 BGSearch.ForwardStrand.add(bgstr);	 
+		        	 BGSearch.TotalLen+=bgstr.length();
+		        	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
         	 }
-        	 else
-        	 {
-	        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
-	        	 bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
-        	 }
-        	 BGSearch.ForwardStrand.add(bgstr);	 
-        	 BGSearch.TotalLen+=bgstr.length();
-        	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
          }
 
      	TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
@@ -784,6 +796,7 @@ public class PWMevaluator {
 		options.addOption("multiscore", false, "compute SN,PPV,PC,ASP,CC for the given pwm file");
 		options.addOption("match", true, "find similar motifs in known PWM library (path to the library, e.g., jaspar.pwm)");
 		options.addOption("bgmodel", true, "background model file");
+		options.addOption("bgfold", true, "if background model is set, the fold change between negative sequence and positive sequences (default 1, Integer)");
 		options.addOption("markov", true, "use markov model of the control sequences rather than directly control sequences");
 		options.addOption("prefix", true, "output directory");
 		options.addOption("ratio",true, "sampling ratio (default 1)");
@@ -833,6 +846,10 @@ public class PWMevaluator {
 			if(cmd.hasOption("bgmodel"))
 			{
 				evaluator.bgmodelFile=cmd.getOptionValue("bgmodel");
+			}
+			if(cmd.hasOption("bgfold"))
+			{
+				evaluator.BGFold=Integer.parseInt(cmd.getOptionValue("bgfold"));
 			}
 			if(cmd.hasOption("match"))
 			{
