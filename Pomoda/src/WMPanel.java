@@ -319,6 +319,7 @@ null) ? "" : (" (" + message + ")")));
     		}
     	 LinkedList<PWM> pwms=common.LoadPWMFromFile(inputPWMfile);
     	 for (int i = 0; i < topN&&i<pwms.size(); i++) {
+    		 if(pwms.get(i) instanceof GapPWM)
     		 wmViewer((GapPWM)pwms.get(i), "Dependency Motif Logo");
 		}
     	
