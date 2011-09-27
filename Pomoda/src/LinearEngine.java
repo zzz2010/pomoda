@@ -427,7 +427,7 @@ public class LinearEngine {
 	
 	public LinkedList<FastaLocation> searchPattern(PWM pattern, double thresh) {
 		// TODO Auto-generated method stub
-		if(num_thread>ForwardStrand.size())
+		if(num_thread>ForwardStrand.size()||ForwardStrand.size()<100)
 			num_thread=1;
 	    int workSize=ForwardStrand.size()/num_thread+1;
 	    Iterator<String> iter=ForwardStrand.iterator();
@@ -459,6 +459,9 @@ public class LinearEngine {
 		}
 	    //Forward search
 	    for (int i = 0; i < num_thread; i++) {
+	    	if(i*workSize>=ForwardStrand.size())
+	    		break;
+	    		
 	    	SearchThread t1 = new SearchThread(pattern, thresh, ForwardStrand.subList(i*workSize,Math.min(ForwardStrand.size(),(i+1)*workSize )),i*workSize,accSeqLen);
 	    	t1.singleStrand=this.singleStrand;
 	    	if(background!=null)
