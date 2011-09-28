@@ -17,6 +17,7 @@ public class GapBGModelingThread extends Thread {
 	List<String> Sites;
 	public int gapStart;
 	public int gapEnd;
+	HashMap<String,Double> gapmerCount;
 	public double lamda=1;
 	public HashSet<Integer> depend_Pos;
 	public PWM gapPWM;
@@ -36,6 +37,17 @@ public class GapBGModelingThread extends Thread {
 		KL_Divergence=common.DoubleMinNormal;
 		DprobMap=new HashMap<String,Double>();
 		background=bg;
+	}
+	
+	public GapBGModelingThread(HashMap<String,Double> gapmerCount, PWM sitePWM,HashSet<Integer> depend_pos,BGModel bg)
+	{
+		this.gapmerCount=gapmerCount;
+		gapPWM=sitePWM;
+		this.depend_Pos=depend_pos;
+		KL_Divergence=common.DoubleMinNormal;
+		DprobMap=new HashMap<String,Double>();
+		background=bg;
+		this.gapEnd=gapPWM.columns();
 	}
 	
 	double findPriorLamda(double[] Pob,double[] Pbg,double[] Pt)
@@ -129,6 +141,155 @@ public class GapBGModelingThread extends Thread {
 	
 	
 	public void run() {
+		
+		
+			
+			//build Kmer model
+			int dmerSize=1<<(depend_Pos.size() *2);
+			
+			
+			double[] dmerCount=new double[dmerSize];
+			double[] Pt = new double[dmerSize];
+			Integer[] sorteddpos=depend_Pos.toArray(new Integer[1]);
+			Arrays.sort(sorteddpos);
+			for (String gapstrj:gapmerCount.keySet()) {
+				double weight=gapmerCount.get(gapstrj);
+				String dmer="";
+				
+				if(sorteddpos[0]!=null)
+				for (int k = 0; k < sorteddpos.length; k++) {
+					int dpos=sorteddpos[k]-gapStart;
+					dmer+=gapstrj.charAt(dpos);
+				}
+
+				if(depend_Pos.size()>1)
+				{
+				int hash=common.getHashing(dmer, 0, depend_Pos.size());
+				dmerCount[hash]+=weight;
+				}
+				
+				
+			}
+		
+			//the number of free parameter is 3d not 4d-1
+			int num_top=3*depend_Pos.size();//
+			if(depend_Pos.size()>1)
+			{
+				dmerCount=common.Normalize(dmerCount);
+				
+				if(background!=null)
+				{
+				Iterator<Integer> iiter=depend_Pos.iterator();
+				int[] gapN=new int[depend_Pos.size()-1];
+				int last=iiter.next();
+				int ii=0;
+				while(iiter.hasNext())
+				{
+					int curr=iiter.next();
+					gapN[ii]=curr-last-1;
+					ii++;
+					last=curr;
+				}
+				double[] Pbg=new double[dmerSize];
+				for (int j = 0; j< dmerSize; j++)
+				{
+					String dmer=(common.Hash2ACGT(j, depend_Pos.size()));
+					String gapdmer=String.valueOf(dmer.charAt(0));
+					for (int k = 0; k < gapN.length; k++) {
+						if(gapN[k]>0)
+							gapdmer+="N";
+						gapdmer+=String.valueOf(dmer.charAt(k+1));
+					}
+					Pbg[j]=Math.exp(background.Get_LOGPROB(gapdmer));
+				}
+				 lamda=findPriorLamda(dmerCount,Pbg,Pt);
+				 
+				}
+				else
+				{
+					for (int j = 0; j< dmerSize; j++)
+						Pt[j]=dmerCount[j];
+				}
+				TreeMap<Double,Integer> sorted_column=new TreeMap<Double,Integer>();
+				for (int j = 0; j< dmerSize; j++)
+				{  
+					double weight=Pt[j]-(j%num_top)*common.DoubleMinNormal;
+					if(weight<0)
+						weight=0;
+					sorted_column.put(weight, j);
+				}
+			
+			double sumprob=0;
+			//sort the dmer by desc prob£¬ and take top 3d as the dependency model 
+			for(Double key:sorted_column.descendingKeySet())
+			{
+				DprobMap.put(common.Hash2ACGT(sorted_column.get(key), depend_Pos.size()), key);
+				sumprob+=key;
+
+				if(DprobMap.size()==(num_top))
+					break;
+			}
+		
+			DprobMap.put("N", (1-sumprob)/(dmerSize-num_top));
+//				if((1-sumprob)<=(num_top*num_top)*common.DoubleMinNormal)
+//				{
+//					KL_Divergence=Double.MAX_VALUE; //overfit!\
+//					return;
+//				}
+			}
+			
+			//compute KL-divergence
+			
+			double sum_plogp_p=0;
+			//the reason to use gapmer instead of dmer here, to measure, the thing is comparable among threads
+			for (String gapstrj:gapmerCount.keySet()) {
+				double p=gapmerCount.get(gapstrj);
+				if(p==0.0)
+					continue;
+				
+				
+				double logq=0;
+				if(depend_Pos.size()>1)//have dependency positions
+				{
+					String dmer="";
+					//assume only one dependency group
+					if(sorteddpos[0]!=null)
+						for (int k = 0; k < sorteddpos.length; k++) {
+							int dpos=sorteddpos[k]-gapStart;
+							dmer+=gapstrj.charAt(dpos);
+						}
+
+					
+					if(DprobMap.containsKey(dmer))
+						logq+=Math.log(DprobMap.get(dmer));
+					else
+						logq+=Math.log(DprobMap.get("N"));
+					
+					int di=common.getHashing(dmer, 0, dmer.length()); 
+					
+					//compute the real prob, when considering bgprob inside the observed prob
+					p=p*Pt[di]/dmerCount[di];
+
+				}
+				if(p==0.0)
+					continue;
+				//consider the non-dependency positions
+				for (int k = 0; k < gapstrj.length(); k++) {
+					int symid=common.acgt(gapstrj.charAt(k));
+					if(depend_Pos.size()>1&&depend_Pos.contains(gapStart+k))
+						continue;
+					logq+=gapPWM.getLogWeight(k, symid);
+					
+				}
+				sum_plogp_p+=p*(Math.log(p) -logq);
+				//debuglist.add(Math.floor( Sites.size()*p)+Math.exp(logq));
+			}
+			
+			KL_Divergence=sum_plogp_p;
+
+	}
+			
+	public void run3() {
 		String[] gapstr=new String[ Sites.size()];
 		Iterator<String> iter=Sites.iterator();
 		int i=0;
@@ -232,7 +393,7 @@ public class GapBGModelingThread extends Thread {
 				}
 			
 			double sumprob=0;
-			//sort the dmer by desc prob£¬ and take top 4d-1 as the dependency model 
+			//sort the dmer by desc prob£¬ and take top 3d as the dependency model 
 			for(Double key:sorted_column.descendingKeySet())
 			{
 				DprobMap.put(common.Hash2ACGT(sorted_column.get(key), depend_Pos.size()), key);
@@ -307,7 +468,6 @@ public class GapBGModelingThread extends Thread {
 			e.printStackTrace();
 		} 
 	}
-	
 	
 	
 	//this one cant handle large gap length
