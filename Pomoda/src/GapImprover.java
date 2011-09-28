@@ -784,6 +784,54 @@ public class GapImprover {
 		}
 
 		System.out.println("Conserved Bases:"+conBases);
+/******************************************************************************************/		
+		//transate : remove the Conserved Columns and do again.
+		
+		LinkedList<String> sites2=new LinkedList<String>();
+		for(String site:sites)
+		{
+			StringBuilder sb=new StringBuilder();
+			for (int i = 0; i < site.length(); i++) {
+				if(!conBases.contains(i))
+				{
+					sb.append(site.charAt(i));
+				}
+			}
+			sites2.add(sb.toString());
+		}
+		PWM dataPWM2=null;
+		HashSet<Integer> conBases2=new HashSet<Integer>(conBases);
+		conBases.clear();
+		try {
+			
+			 dataPWM2=new PWM(sites2.toArray(new String[1]));
+			PWM temp=dataPWM;
+			dataPWM=dataPWM2;
+			dataPWM2=temp;
+			LinkedList<String> tempsites=null;
+			tempsites=sites;
+			sites=sites2;
+			sites2=tempsites;
+			
+		} catch (IllegalAlphabetException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IllegalSymbolException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		int[] translateTB=new int[dataPWM.columns()];
+		int Dj=0;
+		for (int i = 0; i < translateTB.length; i++) {
+			while(conBases2.contains(Dj))
+			{
+				Dj++;
+			}
+			translateTB[i]=Dj;
+			Dj++;
+		}
+/******************************************************************************************/	
+		
 		
 		try {
 		//find the best dependency modeling in each gap region
@@ -792,6 +840,7 @@ public class GapImprover {
 		if(sites.size()>0)
 		{
 		//consider the whole motif length	
+			HashMap<String, Double> sitecountMap=getSitemerFrequency(sites, siteWeight);	
 		 {
 			int gstart=0;
 			int gend=dataPWM.columns();
@@ -818,7 +867,9 @@ public class GapImprover {
 				}
 				else
 					shift--;//the final block
-				for (int j2 = 0; j2 < Math.min(max_gaplen-1,dataPWM.columns()); j2++) {
+				
+				int blocklen=Math.min(max_gaplen-1,dataPWM.columns());
+				for (int j2 = 0; j2 < blocklen; j2++) {
 					if(bcode%2==0)
 					{
 						dpos.add(j2+shift+1);
@@ -834,9 +885,9 @@ public class GapImprover {
 					continue;
 				GapBGModelingThread t1=null;
 				if(removeBG)
-					t1=new GapBGModelingThread(gstart, gend, sites, dpos,background,siteWeight);//null mean not considering BG
+					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight);//null mean not considering BG
 				else
-					t1=new GapBGModelingThread(gstart, gend, sites, dpos,null,siteWeight);//null mean not considering BG
+					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight);//null mean not considering BG
 //				t1.run();
 			
 				executor.execute(t1);
@@ -847,9 +898,9 @@ public class GapImprover {
 			HashSet<Integer> dpos=new HashSet<Integer>();
 			GapBGModelingThread t1=null;
 			if(removeBG)
-				t1=(new GapBGModelingThread(gstart, gend, sites, dpos,background,siteWeight));//null mean not considering BG
+				t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight));//null mean not considering BG
 			else
-				 t1=(new GapBGModelingThread(gstart, gend, sites, dpos,null,siteWeight));//null mean not considering BG
+				 t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight));//null mean not considering BG
 			executor.execute(t1);
 			threadPool.add(t1);
 			
@@ -965,6 +1016,27 @@ public class GapImprover {
 //			}
 //		}
 //		}
+
+/******************************************************************************************/	
+		//translate back to orignial columns ids
+		HashMap<HashSet<Integer>, HashMap<String, Double>> Dmap2=new HashMap<HashSet<Integer>, HashMap<String,Double>>();
+
+		for(HashSet<Integer> keyset : Dmap.keySet())
+		{
+			HashSet<Integer> keyset2= new HashSet<Integer>();
+			for(Integer dj : keyset)
+			{
+				keyset2.add(translateTB[dj]);
+			}
+			System.out.println("Translate:"+keyset.toString()+" To "+keyset2.toString());
+			Dmap2.put(keyset2, Dmap.get(keyset));
+			
+		}
+		Dmap=Dmap2;
+		dataPWM=dataPWM2;
+		sites=sites2;
+/******************************************************************************************/			
+		
 		if(FlankLen==0)
 			gapPWM=GapPWM.createGapPWM(motif.subPWM( motif.head,motif.head+motif.core_motiflen), Dmap,FlankLen);
 		else
@@ -1033,6 +1105,52 @@ public class GapImprover {
    	
     return corr;
 	}
+	
+	
+	static public HashMap<String,Double> getSitemerFrequency(List<String> Sites,ArrayList<Double> seqWeighting)
+	{
+		String[] gapstr=new String[ Sites.size()];
+		int gapStart=0;
+		int gapEnd=Sites.get(0).length();
+		Iterator<String> iter=Sites.iterator();
+		int i=0;
+		while(iter.hasNext())
+		{
+			String temp=iter.next();
+			gapstr[i]=temp.substring(gapStart, gapEnd);
+		
+			 i++;
+		}
+		
+	
+			//build Kmer model
+			HashMap<String,Double> gapmerCount=new HashMap<String,Double>(gapstr.length);
+
+			double sumWeight=0;
+			for (int j = 0; j < gapstr.length; j++) {
+				String dmer="";
+				double weight=1;
+				if(seqWeighting!=null)
+					weight=seqWeighting.get(j);
+				
+				//Iterator<Integer> iter2=depend_Pos.iterator();
+				if(gapstr[j].contains("N"))
+					continue;
+				if(gapmerCount.containsKey(gapstr[j]))
+					gapmerCount.put(gapstr[j], gapmerCount.get(gapstr[j])+weight) ;
+				else
+					gapmerCount.put(gapstr[j],weight);
+				sumWeight+=weight;
+
+			}
+			//Normalize gapmerCount
+			for (String key:gapmerCount.keySet()) {
+				gapmerCount.put(key, gapmerCount.get(key)/sumWeight);
+			}
+			
+			return gapmerCount;
+	}
+	
 	public double AUCtest(PWM motif)
 	{
       
