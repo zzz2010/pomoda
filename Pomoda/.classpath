@@ -1,20 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jre7"/>
-	<classpathentry kind="lib" path="C:/Documents and Settings/g0800188/My Documents/Downloads/commons-cli-1.2/commons-cli-1.2.jar">
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.launching.macosx.MacOSXType/Java SE 6 (MacOS X Default)"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/commons-cli-1.2/commons-cli-1.2.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:file:/C:/Documents and Settings/g0800188/My Documents/Downloads/commons-cli-1.2/commons-cli-1.2-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="D:/eclipse/library/biojava.jar" sourcepath="D:/eclipse/library/biojava-1.7.1-src.jar"/>
-	<classpathentry kind="lib" path="D:/eclipse/library/bytecode.jar"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/clustering"/>
-	<classpathentry kind="lib" path="D:/eclipse/library/colt/lib/colt.jar"/>
-	<classpathentry kind="lib" path="D:/eclipse/library/colt/lib/concurrent.jar"/>
-	<classpathentry kind="lib" path="D:/eclipse/library/auc.jar"/>
-	<classpathentry kind="lib" path="D:/eclipse/library/jfreechart-1.0.13/lib/jfreechart-1.0.13.jar"/>
-	<classpathentry kind="lib" path="D:/eclipse/library/jfreechart-1.0.13/lib/swtgraphics2d.jar"/>
-	<classpathentry kind="lib" path="D:/eclipse/library/jfreechart-1.0.13/lib/jcommon-1.0.16.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/biojava.jar" sourcepath="D:/eclipse/library/biojava-1.7.1-src.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/bytecode.jar"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/clustering"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/colt/lib/colt.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/colt/lib/concurrent.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/auc.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/ssj/lib/jcommon-1.0.13.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/jfreechart-1.0.13/lib/gnujaxp.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/jfreechart-1.0.13/lib/iText-2.1.5.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/jfreechart-1.0.13/lib/jcommon-1.0.16.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/jfreechart-1.0.13/lib/jfreechart-1.0.13-experimental.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/jfreechart-1.0.13/lib/jfreechart-1.0.13-swt.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/jfreechart-1.0.13/lib/jfreechart-1.0.13.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/jfreechart-1.0.13/lib/junit.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/jfreechart-1.0.13/lib/servlet.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/jfreechart-1.0.13/lib/swtgraphics2d.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/ssj/lib/Blas.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/ssj/lib/event-1.6.5.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/ssj/lib/interpreter-1.6.8.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/ssj/lib/language-1.6.7.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/ssj/lib/logger-1.6.4.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/ssj/lib/optimization.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/ssj/lib/ssj.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/ssj/lib/tcode.jar"/>
+	<classpathentry kind="lib" path="/Users/zhangzhizhuo/Desktop/eclipse/library/commons-lang-2.6/commons-lang-2.6.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
