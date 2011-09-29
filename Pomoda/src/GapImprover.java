@@ -1002,7 +1002,7 @@ public class GapImprover {
 			
 		//consider the whole motif length	
 			HashMap<String, Double> sitecountMap=getSitemerFrequency(sites, siteWeight);
-		
+			int combinNum=(1<<Math.min(max_gaplen-1,dataPWM.columns()))*Math.max(1, dataPWM.columns()-max_gaplen+2); //+2 due to need a final to represent start point not in dep-group
 		//Threads Pool
 			PooledExecutor executor = new PooledExecutor(new LinkedQueue());
 			executor.setMinimumPoolSize(threadNum);
@@ -1023,7 +1023,7 @@ public class GapImprover {
 			int gstart=0;
 			int gend=dataPWM.columns();
 			//each block assume the start base must in the dep-group,so only max_gaplen-1 binary length to consider
-			int combinNum=(1<<Math.min(max_gaplen-1,dataPWM.columns()))*Math.max(1, dataPWM.columns()-max_gaplen+2); //+2 due to need a final to represent start point not in dep-group
+		
 			
 			int shift=0;//move the max_gaplen along the positions
 			int blocksize=1<<(max_gaplen-1);
@@ -1064,9 +1064,12 @@ public class GapImprover {
 					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight);//null mean not considering BG
 				else
 					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight);//null mean not considering BG
-//				t1.run();
-			
+				if(combinNum<=1000)
+					t1.run();
+				else
+				{
 				executor.execute(t1);
+				}
 	
 				threadPool.add(t1);
 				if(threadPool.size()>10000&&threadPool.size()%10000==0)
@@ -1080,9 +1083,11 @@ public class GapImprover {
 
 			
 //			 Wait until all threads are finish
-			
+			if(combinNum>1000)
+			{
 			executor.shutdownAfterProcessingCurrentlyQueuedTasks();
 			executor.awaitTerminationAfterShutdown();
+			}
 			if(!OOPG)
 			{
 				
