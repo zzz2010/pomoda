@@ -839,20 +839,36 @@ public class GapImprover {
 		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>,HashMap<String,Double>>();
 		if(sites.size()>0)
 		{
+			
 		//consider the whole motif length	
-			HashMap<String, Double> sitecountMap=getSitemerFrequency(sites, siteWeight);	
+			HashMap<String, Double> sitecountMap=getSitemerFrequency(sites, siteWeight);
+		
+		//Threads Pool
+			PooledExecutor executor = new PooledExecutor(new LinkedQueue());
+			executor.setMinimumPoolSize(threadNum);
+			executor.setKeepAliveTime(-1);
+			
+			//add non-dep group thread
+			HashSet<Integer> dpos=new HashSet<Integer>();
+			GapBGModelingThread t1=null;
+			if(removeBG)
+				t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight));//null mean not considering BG
+			else
+				 t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight));//null mean not considering BG
+			executor.execute(t1);
+			threadPool.add(t1);
+			
+			
 		 {
 			int gstart=0;
 			int gend=dataPWM.columns();
 			//each block assume the start base must in the dep-group,so only max_gaplen-1 binary length to consider
 			int combinNum=(1<<Math.min(max_gaplen-1,dataPWM.columns()))*Math.max(1, dataPWM.columns()-max_gaplen+2); //+2 due to need a final to represent start point not in dep-group
-			PooledExecutor executor = new PooledExecutor(new LinkedQueue());
-			executor.setMinimumPoolSize(threadNum);
-			executor.setKeepAliveTime(-1);
+			
 			int shift=0;//move the max_gaplen along the positions
 			int blocksize=1<<(max_gaplen-1);
 			for (int j = 0; j < combinNum; j++) {
-				HashSet<Integer> dpos=new HashSet<Integer>();
+				 dpos=new HashSet<Integer>();
 				int bcode=j%blocksize;
 				boolean convflag=false;
 				shift=j/blocksize;
@@ -883,7 +899,7 @@ public class GapImprover {
 				}
 				if(dpos.size()<2||convflag)
 					continue;
-				GapBGModelingThread t1=null;
+				 t1=null;
 				if(removeBG)
 					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight);//null mean not considering BG
 				else
@@ -894,15 +910,7 @@ public class GapImprover {
 	
 				threadPool.add(t1);
 			}
-			//add non-dep group thread
-			HashSet<Integer> dpos=new HashSet<Integer>();
-			GapBGModelingThread t1=null;
-			if(removeBG)
-				t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight));//null mean not considering BG
-			else
-				 t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight));//null mean not considering BG
-			executor.execute(t1);
-			threadPool.add(t1);
+
 			
 //			 Wait until all threads are finish
 			
@@ -1065,6 +1073,8 @@ public class GapImprover {
 		
 		return gapPWM;
 	}
+	
+	
 
 	
 	public double CorrelationTest(PWM motif)

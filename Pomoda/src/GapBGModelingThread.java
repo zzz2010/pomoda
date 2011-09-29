@@ -14,13 +14,14 @@ import org.biojava.bio.symbol.IllegalSymbolException;
 
 public class GapBGModelingThread extends Thread {
 	
-	List<String> Sites;
+	public static double KL_scorethresh=Double.MAX_VALUE;
+	List<String> Sites=null;
 	public int gapStart;
 	public int gapEnd;
 	HashMap<String,Double> gapmerCount;
 	public double lamda=1;
 	public HashSet<Integer> depend_Pos;
-	public PWM gapPWM;
+	public PWM gapPWM=null;
 	//public ArrayList<Double>  debuglist=new ArrayList<Double>();
 	public double KL_Divergence;
 	public ArrayList<Double> seqWeighting=null;
@@ -286,6 +287,22 @@ public class GapBGModelingThread extends Thread {
 			}
 			
 			KL_Divergence=sum_plogp_p;
+			
+			if(depend_Pos.size()==0)
+			{
+				KL_scorethresh=KL_Divergence;
+			}
+			if(KL_scorethresh<KL_Divergence)
+			{
+				//no need to consider
+				//depend_Pos.clear();
+				DprobMap.clear();
+
+			}
+			//clean
+			dmerCount=null;
+			Pt=null;
+			
 
 	}
 			
