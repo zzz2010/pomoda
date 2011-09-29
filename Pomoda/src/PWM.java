@@ -184,6 +184,8 @@ public class PWM extends SimpleWeightMatrix {
 	    return	dists;
 			
 	}
+	
+	
 	public static final Distribution[] alignment2Distribution(String[] alignments) throws IllegalSymbolException, IllegalAlphabetException
 	{
 		Map<String, SymbolList> map = new HashMap<String, SymbolList>();
@@ -277,6 +279,21 @@ public class PWM extends SimpleWeightMatrix {
 	public PWM(String[] alignments) throws IllegalAlphabetException, IllegalSymbolException  {
 
 	    this(alignment2Distribution(alignments));
+		
+	    
+	}
+	
+	public static PWM createPWM(String[] alignments, Double[] Weights) throws IllegalAlphabetException, IllegalSymbolException  {
+		
+		double[][] count_matrix=new double[alignments[0].length()][4];
+		for (int i = 0; i < alignments.length; i++) {
+			for (int j = 0; j < count_matrix.length; j++) {
+				int symid=common.acgt(alignments[i].charAt(j));
+				if(symid<4)
+					count_matrix[j][symid]+=Weights[i];
+			}
+		}
+	    return new PWM(countMatrix2Distribution(count_matrix));
 		
 	    
 	}
