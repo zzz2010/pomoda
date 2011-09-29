@@ -1064,7 +1064,7 @@ public class GapImprover {
 					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight);//null mean not considering BG
 				else
 					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight);//null mean not considering BG
-				if(combinNum<=1000)
+				if(combinNum<=100)
 					t1.run();
 				else
 				{
@@ -1083,7 +1083,7 @@ public class GapImprover {
 
 			
 //			 Wait until all threads are finish
-			if(combinNum>1000)
+			if(combinNum>100)
 			{
 			executor.shutdownAfterProcessingCurrentlyQueuedTasks();
 			executor.awaitTerminationAfterShutdown();
