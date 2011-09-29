@@ -329,6 +329,145 @@ public class GapImprover {
 		}
 		return Dmap;
 	}
+	
+	public GapPWM refineGapPWM(GapPWM motif)
+	{
+		
+		//get a set of instance strings, assume they are all real binding site
+		LinkedList<String> sites=new LinkedList<String>();
+		ArrayList<Double> siteWeight=null;
+		if(SearchEngine.seqWeighting!=null)
+			siteWeight=new ArrayList<Double>(SearchEngine.ForwardStrand.size());
+		if(!is_bsitedata)
+		{
+			if(!OOPS)
+			{
+				double pwmThresh=motif.getThresh(sampling_ratio, FDR, background,false);
+				LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(motif, pwmThresh);
+				Iterator<FastaLocation> iter=falocs.iterator();
+				while(iter.hasNext())
+				{
+					FastaLocation currloc=iter.next();
+					String site=SearchEngine.getSite(currloc.getSeqId(), currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+					if(currloc.ReverseStrand)
+						site=common.getReverseCompletementString(site);
+					if(site!=null)
+					{
+						sites.add(site.toUpperCase());	
+						if(SearchEngine.seqWeighting!=null)
+							siteWeight.add(SearchEngine.seqWeighting.get(currloc.getSeqId()));
+					}
+				}
+			}
+			else
+			{
+				 LinkedList<FastaLocation> falocs =null;
+				 if(removeBG)
+					 falocs=SearchEngine.searchPattern(motif, 0); //enable background in searching
+				 else
+					 falocs=SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
+	        	 Iterator<FastaLocation> iter=falocs.iterator();
+	        	 int lastseq=-1;
+	        	 double seqcount=0;
+	        	 double maxseq_score=	Double.NEGATIVE_INFINITY;
+	        	 FastaLocation max_currloc=null;
+	        	 //take the best occurrences
+	        	 while(iter.hasNext())
+	        	 {
+	        		 FastaLocation currloc=iter.next();
+	        		 if(lastseq!=currloc.getSeqId())
+	        		 {
+	        			 seqcount+=1;
+	        			
+	        			 if(lastseq!=-1)
+	        			 {
+	     				String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+	    				if(max_currloc.ReverseStrand)
+	    					site=common.getReverseCompletementString(site);
+	    				if(site!=null)
+	    				{
+	    					sites.add(site.toUpperCase());
+	    					if(SearchEngine.seqWeighting!=null)
+	    						siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
+	    				}
+	    				
+	    				//debug
+	    				//snull.add(max_currloc.Score+Math.log(0.25));
+	        			 }
+	        			 lastseq=currloc.getSeqId(); 
+	        			 maxseq_score=currloc.Score;
+	        			 max_currloc=currloc;
+	        		 }
+	        		 if(maxseq_score<currloc.Score)
+	        		 {
+	        			 maxseq_score=currloc.Score;
+	        			 max_currloc=currloc;
+	        		 }
+	        	 }
+	        	 //last seq
+	 			String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+				if(max_currloc.ReverseStrand)
+					site=common.getReverseCompletementString(site);
+				if(site!=null)
+				{
+				sites.add(site.toUpperCase());
+				if(SearchEngine.seqWeighting!=null)
+					siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
+				}
+				//debug
+				//snull.add(max_currloc.Score+Math.log(0.25));
+			}
+			
+			PWM dataPWM=null;
+			
+				try {
+					
+					if(SearchEngine.seqWeighting!=null)
+					dataPWM=PWM.createPWM(sites.toArray(new String[1]), siteWeight.toArray(new Double[1]));
+					else
+						dataPWM=new PWM(sites.toArray(new String[1]));
+				} catch (IllegalAlphabetException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalSymbolException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+
+			
+			//consider the whole motif length	
+			HashMap<String, Double> sitecountMap=getSitemerFrequency(sites, siteWeight);
+			GapBGModelingThread.KL_scorethresh=Double.MAX_VALUE;
+			//compute the new probalitiy with sites data
+			for(Integer dgroupId:motif.Dgroup_DmerProb.keySet())
+			{
+				HashSet<Integer> dpos=new HashSet<Integer>();
+				for (int i = 0; i < motif.GroupId.length; i++) {
+					if(motif.GroupId[i]==dgroupId)
+						dpos.add(i);
+				}
+				GapBGModelingThread t1=null;
+				if(removeBG)
+					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight));//null mean not considering BG
+				else
+					 t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,null);
+				
+				t1.run();
+				motif.Dgroup_DmerProb.put(dgroupId,t1.DprobMap);
+			}
+			for (int i = 0; i < dataPWM.columns(); i++) {
+				motif.setWeights(i, dataPWM.m_matrix[i]);
+			}
+			
+			
+		}
+	
+		
+		
+		
+		return motif;
+	}
+	
 	public GapPWM fillDependency(PWM motif)
 	{
 		GapPWM gapPWM=null;
@@ -422,7 +561,10 @@ public class GapImprover {
 		}
 		PWM dataPWM=null;
 		try {
-			dataPWM=new PWM(sites.toArray(new String[1]));
+			if(SearchEngine.seqWeighting!=null)
+				dataPWM=PWM.createPWM(sites.toArray(new String[1]), siteWeight.toArray(new Double[1]));
+			else
+				dataPWM=new PWM(sites.toArray(new String[1]));
 		} catch (IllegalAlphabetException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -645,6 +787,18 @@ public class GapImprover {
 		return gapPWM;
 	}
 	
+	public void cleanupThread(LinkedList<GapBGModelingThread> threadsPool)
+	{
+		double thresh=GapBGModelingThread.KL_scorethresh*(1-KLthresh);
+	         Iterator<GapBGModelingThread> iter=threadsPool.iterator();
+	         while(iter.hasNext())
+	         {
+	        	 GapBGModelingThread t1=iter.next();
+	        	 	if(t1.KL_Divergence>thresh)
+	        	 		iter.remove();
+	         }
+	}
+	
 	
 	//this one dont make assumption conserved base will break the interaction regions
 	public GapPWM fillDependency2(PWM motif)
@@ -752,7 +906,10 @@ public class GapImprover {
 		}
 		PWM dataPWM=null;
 		try {
-			dataPWM=new PWM(sites.toArray(new String[1]));
+			if(SearchEngine.seqWeighting!=null)
+				dataPWM=PWM.createPWM(sites.toArray(new String[1]), siteWeight.toArray(new Double[1]));
+			else
+				dataPWM=new PWM(sites.toArray(new String[1]));
 		} catch (IllegalAlphabetException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -803,8 +960,11 @@ public class GapImprover {
 		HashSet<Integer> conBases2=new HashSet<Integer>(conBases);
 		conBases.clear();
 		try {
+			if(SearchEngine.seqWeighting!=null)
+				dataPWM2=PWM.createPWM(sites2.toArray(new String[1]), siteWeight.toArray(new Double[1]));
+			else
+				dataPWM2=new PWM(sites2.toArray(new String[1]));
 			
-			 dataPWM2=new PWM(sites2.toArray(new String[1]));
 			PWM temp=dataPWM;
 			dataPWM=dataPWM2;
 			dataPWM2=temp;
@@ -909,6 +1069,13 @@ public class GapImprover {
 				executor.execute(t1);
 	
 				threadPool.add(t1);
+				if(threadPool.size()>10000&&threadPool.size()%10000==0)
+				{
+					Thread.sleep(100);
+					System.out.println("before:"+threadPool.size());
+					cleanupThread(threadPool);
+					System.out.println("after:"+threadPool.size());
+				}
 			}
 
 			
@@ -918,7 +1085,9 @@ public class GapImprover {
 			executor.awaitTerminationAfterShutdown();
 			if(!OOPG)
 			{
+				
 			Dmap.putAll( FindBest(threadPool.subList(0, threadPool.size())));
+			System.out.println("Final:"+threadPool.size());
 			threadPool.clear();
 			}
 		}
@@ -1401,6 +1570,7 @@ public class GapImprover {
 					if(GImprover.removeBG)
 						GImprover.SearchEngine.EnableBackground(GImprover.background);
 					GapPWM gpwm=GImprover.fillDependency2(rawpwm);
+					gpwm=GImprover.refineGapPWM(gpwm);
 					gpwm.Name="GPimpover_"+rawpwm.Name;
 					GImprover.SearchEngine.DisableBackground();
 					System.out.print("Original Motif:");
