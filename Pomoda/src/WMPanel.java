@@ -182,7 +182,7 @@ RenderingHints.VALUE_ANTIALIAS_ON);
                 	 
                 	 HashMap<String,Double> dprobs=wm.Dgroup_DmerProb.get(wm.GroupId[pos]);
                 	 int groupsize=0;//dprobs.keySet().iterator().next().length();
-                	 for (int i = pos+1; i < wm.columns(); i++) {
+                	 for (int i = 0; i < wm.columns(); i++) {
                 		 if(wm.GroupId[pos]==wm.GroupId[i])
                 			 groupsize++;
                 	 }
