@@ -149,6 +149,60 @@ public class PWMevaluator {
 		return sub;
 	}
 	
+	public static TreeMap<String, Double> getKmerCount(List<String> seqs,List<Double> weightList,int len)
+	{
+		TreeMap<String, Double> KmerCount=new TreeMap<String, Double>();
+		TreeMap<String, Integer> KmerCount2=new TreeMap<String, Integer>();
+		int i=0;
+		Iterator<String> seqsIter=seqs.iterator();
+		while(seqsIter.hasNext())
+		{
+			double weight=1.0;
+			if(weightList!=null)
+				weight=weightList.get(i);
+			String seqstr=seqsIter.next();
+			for (int j = 0; j < seqstr.length()-len+1; j++) {
+				String kmer=seqstr.substring(j,len);
+				String rckmer=common.getReverseCompletementString(kmer);
+				if(KmerCount.containsKey(kmer))
+				{
+					KmerCount.put(kmer, KmerCount.get(kmer)+weight);
+					KmerCount2.put(kmer, KmerCount2.get(kmer)+1);
+				}
+				else
+				{
+					KmerCount.put(kmer, weight);
+					KmerCount2.put(kmer, 1);
+				}
+				if(!rckmer.equalsIgnoreCase(kmer))
+				{
+					if(KmerCount.containsKey(rckmer))
+					{
+						KmerCount.put(rckmer, KmerCount.get(rckmer)+weight);
+						KmerCount2.put(rckmer, KmerCount2.get(rckmer)+1);
+					}
+					else
+					{
+						KmerCount.put(rckmer, weight);
+						KmerCount2.put(rckmer, 1);
+					}
+					
+				}
+			}
+				
+				i++;
+		}
+		
+		//normalizing
+		for(String key:KmerCount.keySet())
+		{
+			KmerCount.put(key, KmerCount.get(key)/KmerCount2.get(key));
+		}
+		
+		return KmerCount;
+		
+	}
+	
 	public static int comparePositionList(List<FastaLocation> Falocs,String ansfile,int windowsize)
 	{
 		int maxseqlen=10000;
@@ -196,7 +250,7 @@ public class PWMevaluator {
 		SearchEngine=new LinearEngine(4);
 		if(this.PBMflag)
 		{
-			SearchEngine.buildPBM_index(inputFasta, 100000,false);
+			SearchEngine.buildPBM_index(inputFasta, 100000,true);
 		}
 		else
 			SearchEngine.build_index(this.inputFasta);
@@ -559,6 +613,8 @@ public class PWMevaluator {
     return corr;
 	}
 	
+	
+	
 	public double calcAUC(PWM motif,ArrayList<Double[]> DnaseLib, LinkedList<String> sequences)
 	{
 		 LinearEngine SearEngine=null;
@@ -790,6 +846,7 @@ public class PWMevaluator {
 		options.addOption("pwm", true, "input PWM file");
 		options.addOption("N", true, "the number of PWM want to evaluate");
 		options.addOption("c", true, "control fasta file");
+		options.addOption("dpwm", false,"compare dpwm and its pwm version");
 		options.addOption("convert", false, "convert input PWM file to the transfac format");
 		options.addOption("roc", false, "compute AUC and draw ROC curve for the given pwm file");
 		options.addOption("pbm", false, "input file is PBM format, and will compute signal correlation");
@@ -807,6 +864,7 @@ public class PWMevaluator {
 		CommandLineParser parser = new GnuParser();
 		PWMevaluator evaluator=new PWMevaluator();
 		boolean rocflag=false;
+		boolean dpwmflag=false;
 		boolean genrand=false;
 		boolean multiscore_flag=false;
 		boolean convertflag=false;
@@ -858,6 +916,10 @@ public class PWMevaluator {
 			if(cmd.hasOption("roc"))
 			{
 				rocflag=true;
+			}
+			if(cmd.hasOption("dpwm"))
+			{
+				dpwmflag=true;
 			}
 			if(cmd.hasOption("pbm"))
 			{
@@ -935,6 +997,10 @@ public class PWMevaluator {
 		while(iter.hasNext())
 		{
 			PWM p1=iter.next();
+			if(dpwmflag&&p1 instanceof GapPWM )
+			{
+				pwmlist.add(p1.Clone());
+			}
 			double auc=0;
 			if(evaluator.SearchEngine.TotalLen/evaluator.SearchEngine.getSeqNum()<500)
 				auc=evaluator.calcAUC(p1, evaluator.BGSearchEngine);
@@ -977,6 +1043,10 @@ public class PWMevaluator {
 			while(iter.hasNext())
 			{
 				PWM p1=iter.next();
+				if(dpwmflag&&p1 instanceof GapPWM )
+				{
+					pwmlist.add(p1.Clone());
+				}
 				HashMap<String,Double> multiscore=evaluator.calc_mutliscore(p1, evaluator.BGSearchEngine);
 				writer.write(p1.Name);
 				String scoreresult="";
@@ -1002,11 +1072,21 @@ public class PWMevaluator {
 			while(iter.hasNext())
 			{
 				PWM p1=iter.next();
+				if(dpwmflag&&p1 instanceof GapPWM )
+				{
+					pwmlist.add(p1.Clone());
+				}
 				double corr=0;
 					corr=evaluator.CalcCorrelation(p1);
 				p1.Score=corr;
 				writer.write(p1.Name+"\t"+corr+"\n");
 				System.out.println("Pearson Correlation PBM:"+corr);
+			}
+			//compute the rank correlation
+			iter=pwmlist.iterator();
+			while(iter.hasNext())
+			{
+				PWM p1=iter.next();
 			}
 		}
 		

@@ -85,7 +85,7 @@ public class GapPWM extends PWM {
 		TransStr.append("DE\t"+Name+"\t"+consensus+"\t"+String.valueOf(this.Score)+"\n");
 		TransStr.append("PO\tA\tC\tG\tT\n");
 		for (int i = 0; i < this.columns(); i++) {
-			TransStr.append(i+1);
+			TransStr.append(i);
 			TransStr.append('\t');
 			for (int j = 0; j< 4; j++)
 			{  
@@ -120,6 +120,8 @@ public class GapPWM extends PWM {
 		
 		return TransStr.toString();
 	}
+	
+	
 
 	public static GapPWM parseTransfac(String transfcontent)
 	{
