@@ -15,8 +15,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.SortedSet;
 import java.util.TreeMap;
 
 import org.apache.commons.cli.CommandLine;
@@ -151,21 +153,33 @@ public class PWMevaluator {
 		return sub;
 	}
 	
-	public static TreeMap<String, Double> getKmerCount(List<String> seqs,List<Double> weightList,int len)
+	public static HashMap<String, Double> getKmerCount(List<String> seqs,List<Double> weightList,int len)
 	{
-		TreeMap<String, Double> KmerCount=new TreeMap<String, Double>();
-		TreeMap<String, Integer> KmerCount2=new TreeMap<String, Integer>();
+		HashMap<String, Double> KmerCount=new HashMap<String, Double>(1<<(2*len));
+		HashMap<String, Integer> KmerCount2=new HashMap<String, Integer>(1<<(2*len));
 		int i=0;
+		double topN= 1000000000;
 		Iterator<String> seqsIter=seqs.iterator();
 		while(seqsIter.hasNext())
 		{
 			double weight=1.0;
+			
 			if(weightList!=null)
 				weight=weightList.get(i);
-			String seqstr=seqsIter.next();
+			String seqstr=seqsIter.next().toUpperCase();
+			
+			HashSet<String> occKmer=new HashSet<String>(seqstr.length()-len+1);
+			
 			for (int j = 0; j < seqstr.length()-len+1; j++) {
-				String kmer=seqstr.substring(j,len);
+				String kmer=seqstr.substring(j,j+len);
 				String rckmer=common.getReverseCompletementString(kmer);
+				if(occKmer.contains(kmer) || occKmer.contains(rckmer))
+					continue;
+				else
+				{
+					occKmer.add(kmer);
+					occKmer.add(rckmer);
+				}
 				if(KmerCount.containsKey(kmer))
 				{
 					KmerCount.put(kmer, KmerCount.get(kmer)+weight);
@@ -193,6 +207,8 @@ public class PWMevaluator {
 			}
 				
 				i++;
+				if(i>topN)
+					break;
 		}
 		
 		//normalizing
@@ -579,35 +595,48 @@ public class PWMevaluator {
 	
 	
 	//compute rank correlation
-	public static double CalcSpearmanRankCorr(PWM motif, TreeMap<String,Double> kmercount)
+	public  double CalcSpearmanRankCorr(PWM motif, Map<String,Double> kmercount)
 	{
 		ArrayList<String> rankedKmer=new ArrayList<String>(kmercount.size());
 		ArrayList<Double> PWMScore=new ArrayList<Double>(kmercount.size());
+		double topN=10;
+		
+		
 		HashSet<String> filterRC=new HashSet<String>(kmercount.size());
-		for (Entry<String, Double> entry  : common.entriesSortedByValues(kmercount)) {
+		 SortedSet<Entry<String, Double>> sortedset=common.entriesSortedByValues(kmercount);
+		int skip=sortedset.size()-(int)topN-1;
+		int ii=0;
+		for (Entry<String, Double> entry  : sortedset) {
+			ii++;
+			if(ii<skip)
+				continue;
 			String rckmer=common.getReverseCompletementString(entry.getKey());
 			if(filterRC.contains(rckmer))
 				continue;
 			filterRC.add(entry.getKey());
+			System.out.println(entry);
 		    rankedKmer.add(entry.getKey());
 		    double score=motif.scoreWeightMatrix(entry.getKey());
 		    double score2=motif.scoreWeightMatrix(rckmer);
 		    if(score2>score)
 		    	score=score2;
 		    PWMScore.add(score);
+
 		}
+		
+	
 		
 		
 		 ArrayList<Double> sortedValues = new ArrayList<Double>(PWMScore);
 		    Collections.sort(sortedValues);
-		 
+		   
 		    double[] ranks = new double[sortedValues.size()];
 		    
 		    double[] ranks_null = new double[sortedValues.size()];
 		 
 		    for (int i=0; i<PWMScore.size(); i++)
 		    {
-		        ranks[i]=((double)sortedValues.indexOf(PWMScore.get(i)));
+		        ranks[i]=((double) Collections.binarySearch(sortedValues, PWMScore.get(i)));//indexOf(PWMScore.get(i)));
 		        ranks_null[i]=((double)i);
 		    }
 		 
@@ -619,13 +648,13 @@ public class PWMevaluator {
 	public double CalcCorrelation(PWM motif)
 	{
 		TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
-        
+     double topN=   SearchEngine.ForwardStrand.size()*FDR;
    	 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
    	 Iterator<FastaLocation> iter=falocs.iterator();
    	 int lastseq=-1;
    	 double seqcount=0;
    	 double maxseq_score=	Double.NEGATIVE_INFINITY;
-   	 double[] scores=new double[SearchEngine.seqWeighting.size()];
+   	 double[] scores=new double[(int)topN];
    	 int seqid=0;
    	 while(iter.hasNext())
    	 {
@@ -647,11 +676,13 @@ public class PWMevaluator {
    			 maxseq_score=currloc.Score;
 
    		 }
+   		 if(seqcount>topN-1)
+   			 break;
    	 }
    	Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
 		scores[seqid]=Math.exp(maxseq_score); //Math.exp
 			
-		double corr=common.getPearsonCorrelation(scores,ArrayUtils.toPrimitive(SearchEngine.seqWeighting.toArray(new Double[1])));
+		double corr=common.getPearsonCorrelation(scores,ArrayUtils.toPrimitive(SearchEngine.seqWeighting.subList(0, (int)topN).toArray(new Double[1])));
    	
     return corr;
 	}
@@ -1008,6 +1039,26 @@ public class PWMevaluator {
 		
 		 
 		try {
+			ArrayList<PWM> restorepwmlist=null;
+			if(dpwmflag)
+			{
+				restorepwmlist=new ArrayList<PWM>();
+				List<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+				if(pwmlist.size()>topN)
+					pwmlist= pwmlist.subList(0, topN);
+				Iterator<PWM> iter=pwmlist.iterator();
+				while(iter.hasNext())
+				{
+					PWM p1=iter.next();
+					if(p1 instanceof GapPWM )
+					{
+						PWM p2=p1.Clone();
+						
+						restorepwmlist.add(p2);
+					}
+				}
+				
+			}
 			
 			if(genrand)
 			{
@@ -1034,16 +1085,17 @@ public class PWMevaluator {
 		List<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
 		if(pwmlist.size()>topN)
 			pwmlist= pwmlist.subList(0, topN);
+		
+		if(restorepwmlist!=null)
+			pwmlist.addAll(restorepwmlist);
+		
 		Iterator<PWM> iter=pwmlist.iterator();
 		writer.write("AUC Result:\n");
 		TreeMap<Double,PWM> sortedPWMs=new TreeMap<Double,PWM>();
 		while(iter.hasNext())
 		{
 			PWM p1=iter.next();
-			if(dpwmflag&&p1 instanceof GapPWM )
-			{
-				pwmlist.add(p1.Clone());
-			}
+
 			double auc=0;
 			if(evaluator.SearchEngine.TotalLen/evaluator.SearchEngine.getSeqNum()<500)
 				auc=evaluator.calcAUC(p1, evaluator.BGSearchEngine);
@@ -1081,15 +1133,14 @@ public class PWMevaluator {
 			List<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
 			if(pwmlist.size()>topN)
 				pwmlist= pwmlist.subList(0, topN);
+			if(restorepwmlist!=null)
+				pwmlist.addAll(restorepwmlist);
 			Iterator<PWM> iter=pwmlist.iterator();
 			writer.write("MultiScore Result:\n");
 			while(iter.hasNext())
 			{
 				PWM p1=iter.next();
-				if(dpwmflag&&p1 instanceof GapPWM )
-				{
-					pwmlist.add(p1.Clone());
-				}
+
 				HashMap<String,Double> multiscore=evaluator.calc_mutliscore(p1, evaluator.BGSearchEngine);
 				writer.write(p1.Name);
 				String scoreresult="";
@@ -1110,34 +1161,33 @@ public class PWMevaluator {
 			List<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
 			if(pwmlist.size()>topN)
 				pwmlist= pwmlist.subList(0, topN);
+			if(restorepwmlist!=null)
+				pwmlist.addAll(restorepwmlist);
 			Iterator<PWM> iter=pwmlist.iterator();
 			writer.write("Correlation Result:\n");
 			while(iter.hasNext())
 			{
 				PWM p1=iter.next();
-				if(dpwmflag&&p1 instanceof GapPWM )
-				{
-					pwmlist.add(p1.Clone());
-				}
+
 				double corr=0;
 					corr=evaluator.CalcCorrelation(p1);
 				p1.Score=corr;
 				writer.write(p1.Name+"\t"+corr+"\n");
-				System.out.println("Pearson Correlation PBM:"+corr);
+				System.out.println(p1.Name+" Pearson Correlation PBM:"+corr);
 			}
 			//compute the rank correlation
-			iter=pwmlist.iterator();
-			while(iter.hasNext())
-			{
-				PWM p1=iter.next();
-				TreeMap<String,Double> Kmercount=getKmerCount(evaluator.SearchEngine.ForwardStrand, evaluator.SearchEngine.seqWeighting, p1.columns());
-				double corr=0;
-				corr=CalcSpearmanRankCorr(p1, Kmercount);
-				p1.Score=corr;
-				writer.write(p1.Name+"\t"+corr+"\n");
-				System.out.println("Spearman Correlation PBM:"+corr);
-				
-			}
+//			iter=pwmlist.iterator();
+//			while(iter.hasNext())
+//			{
+//				PWM p1=iter.next();
+//				Map<String,Double> Kmercount=getKmerCount(evaluator.SearchEngine.ForwardStrand, evaluator.SearchEngine.seqWeighting, p1.columns());
+//				double corr=0;
+//				corr=evaluator.CalcSpearmanRankCorr(p1, Kmercount);
+//				p1.Score=corr;
+//				writer.write(p1.Name+"\t"+corr+"\n");
+//				System.out.println(p1.Name+" Spearman Correlation PBM:"+corr);
+//				
+//			}
 		}
 		
 		
