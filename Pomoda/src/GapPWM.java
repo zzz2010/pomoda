@@ -43,7 +43,11 @@ public class GapPWM extends PWM {
 		StringBuffer sb=new StringBuffer(site);
 		for (int i = 1; i < Num_Group+1; i++) {
 			HashMap<String,Double> depgroup=Dgroup_DmerProb.get(i);
-			String first=depgroup.keySet().iterator().next();
+			String first="";
+			Iterator<String> iter=depgroup.keySet().iterator();
+			first=iter.next();
+			if(first.length()==1)
+				first=iter.next();
 			int numKmer=(int)Math.pow(4, first.length());
 			ArrayList<Double> probs=new ArrayList<Double>(numKmer);
 			for (int j = 0; j < numKmer; j++) {

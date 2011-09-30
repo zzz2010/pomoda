@@ -181,7 +181,11 @@ RenderingHints.VALUE_ANTIALIAS_ON);
                 		 continue;
                 	 
                 	 HashMap<String,Double> dprobs=wm.Dgroup_DmerProb.get(wm.GroupId[pos]);
-                	 int groupsize=dprobs.keySet().iterator().next().length();
+                	 int groupsize=0;//dprobs.keySet().iterator().next().length();
+                	 for (int i = pos+1; i < wm.columns(); i++) {
+                		 if(wm.GroupId[pos]==wm.GroupId[i])
+                			 groupsize++;
+                	 }
                 	 String[] Nstrs=new  String[groupsize-1];
                 	 String temp="";
                 	 int gid=0;

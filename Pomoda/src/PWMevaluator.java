@@ -11,9 +11,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeMap;
 
@@ -573,6 +575,47 @@ public class PWMevaluator {
 		HGscore=(falocs.size()-this.SearchEngine.TotalLen*p)/Math.sqrt(this.SearchEngine.TotalLen*p*(1-p));
 		return HGscore;
 	}
+	
+	
+	
+	//compute rank correlation
+	public static double CalcSpearmanRankCorr(PWM motif, TreeMap<String,Double> kmercount)
+	{
+		ArrayList<String> rankedKmer=new ArrayList<String>(kmercount.size());
+		ArrayList<Double> PWMScore=new ArrayList<Double>(kmercount.size());
+		HashSet<String> filterRC=new HashSet<String>(kmercount.size());
+		for (Entry<String, Double> entry  : common.entriesSortedByValues(kmercount)) {
+			String rckmer=common.getReverseCompletementString(entry.getKey());
+			if(filterRC.contains(rckmer))
+				continue;
+			filterRC.add(entry.getKey());
+		    rankedKmer.add(entry.getKey());
+		    double score=motif.scoreWeightMatrix(entry.getKey());
+		    double score2=motif.scoreWeightMatrix(rckmer);
+		    if(score2>score)
+		    	score=score2;
+		    PWMScore.add(score);
+		}
+		
+		
+		 ArrayList<Double> sortedValues = new ArrayList<Double>(PWMScore);
+		    Collections.sort(sortedValues);
+		 
+		    double[] ranks = new double[sortedValues.size()];
+		    
+		    double[] ranks_null = new double[sortedValues.size()];
+		 
+		    for (int i=0; i<PWMScore.size(); i++)
+		    {
+		        ranks[i]=((double)sortedValues.indexOf(PWMScore.get(i)));
+		        ranks_null[i]=((double)i);
+		    }
+		 
+		double spearman=common.getPearsonCorrelation(ranks, ranks_null);
+		
+		return spearman;
+	}
+	
 	public double CalcCorrelation(PWM motif)
 	{
 		TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
@@ -1087,6 +1130,13 @@ public class PWMevaluator {
 			while(iter.hasNext())
 			{
 				PWM p1=iter.next();
+				TreeMap<String,Double> Kmercount=getKmerCount(evaluator.SearchEngine.ForwardStrand, evaluator.SearchEngine.seqWeighting, p1.columns());
+				double corr=0;
+				corr=CalcSpearmanRankCorr(p1, Kmercount);
+				p1.Score=corr;
+				writer.write(p1.Name+"\t"+corr+"\n");
+				System.out.println("Spearman Correlation PBM:"+corr);
+				
 			}
 		}
 		
