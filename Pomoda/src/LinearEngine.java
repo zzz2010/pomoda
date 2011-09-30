@@ -104,9 +104,12 @@ public class LinearEngine {
    			    	  if(comps.length<2)
    			    		  continue;
    			    	  String seqstr=comps[1].replace("N", "");
-   			    	seqWeighting.add(Double.parseDouble(comps[0]));
-   			    	if(trim)
+   			    	seqWeighting.add(Double.parseDouble(comps[0])/10000);
+   			    	if(trim&&seqstr.length()>35)
+   			    	{
+   			    		
    			    		ForwardStrand.add(seqstr.substring(0,35));
+   			    	}
    			    	else
    			    		ForwardStrand.add(seqstr);
    				  //ReverseStrand.add(common.getReverseCompletementString( seqstr));
