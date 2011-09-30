@@ -455,7 +455,7 @@ public class PWM extends SimpleWeightMatrix {
 			sub.core_motiflen=core_motiflen-Math.max(0, start-head)-Math.max(0, this.columns()-end-tail);
 			sub.head=Math.max(0, head-start);
 			sub.tail=Math.max(0, tail-(this.columns()-end));
-			sub.Name=sub.Name;
+			sub.Name=this.Name+"_clone";
 			sub.Score=this.Score;
 			sub.strand_en=strand_en;
 			sub.pos_en=pos_en;
