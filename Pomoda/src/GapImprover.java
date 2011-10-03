@@ -1659,6 +1659,8 @@ public class GapImprover {
 			}
 		}
 		
+		System.exit(0);
+		
 		
 	}
 
