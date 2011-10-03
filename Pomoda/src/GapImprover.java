@@ -904,6 +904,8 @@ public class GapImprover {
 				siteWeight=SearchEngine.seqWeighting;
 			
 		}
+		if(sites.size()<3)
+			return GapPWM.createGapPWM(motif, new HashMap<HashSet<Integer>, HashMap<String,Double>>(),0);;
 		PWM dataPWM=null;
 		try {
 			if(SearchEngine.seqWeighting!=null)
@@ -941,6 +943,9 @@ public class GapImprover {
 		}
 
 		System.out.println("Conserved Bases:"+conBases);
+		if(conBases.size()>(motif.columns()+FlankLen-2))
+			return GapPWM.createGapPWM(motif, new HashMap<HashSet<Integer>, HashMap<String,Double>>(),0);;
+			
 /******************************************************************************************/		
 		//transate : remove the Conserved Columns and do again.
 		
