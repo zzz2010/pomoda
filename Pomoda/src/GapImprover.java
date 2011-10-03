@@ -1069,7 +1069,7 @@ public class GapImprover {
 					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight);//null mean not considering BG
 				else
 					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight);//null mean not considering BG
-				if(combinNum<=100)
+				if(combinNum<=100||threadNum==1)
 					t1.run();
 				else
 				{
@@ -1088,7 +1088,7 @@ public class GapImprover {
 
 			
 //			 Wait until all threads are finish
-			if(combinNum>100)
+			if(combinNum>100&&threadNum!=1)
 			{
 			executor.shutdownAfterProcessingCurrentlyQueuedTasks();
 			executor.awaitTerminationAfterShutdown();
@@ -1595,15 +1595,17 @@ public class GapImprover {
 						System.out.println("Original Motif Correlation with Signal:"+corr1);
 						
 						double corr2=GImprover.CorrelationTest(gpwm);
-						System.out.println("Improved MotifCorrelation with Signal:"+corr2);
+						System.out.println("Improved Motif Correlation with Signal:"+corr2);
 					}
 					
 				}
+				System.out.println("Writing the DPWM file");
 				for(Double key:sortedPWMs.descendingKeySet())
 				{
 					writer.write(sortedPWMs.get(key).toString());
 				}
 				writer.close();
+				System.out.println("Finish Writing the DPWM file");
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
