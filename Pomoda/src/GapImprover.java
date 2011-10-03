@@ -227,7 +227,8 @@ public class GapImprover {
 		 LinkedList< HashSet<Integer> > queue=new LinkedList< HashSet<Integer> >();
 		for(GapBGModelingThread t2:list)
 		{
-			if(t2.KL_Divergence<baseScore*(1-KLthresh))
+			
+			if((baseScore-t2.KL_Divergence)>(KLthresh*t2.depend_Pos.size()))
 			{
 				//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
@@ -790,11 +791,13 @@ public class GapImprover {
 	
 	public void cleanupThread(LinkedList<GapBGModelingThread> threadsPool)
 	{
-		double thresh=GapBGModelingThread.KL_scorethresh*(1-KLthresh);
+		
+	
 	         Iterator<GapBGModelingThread> iter=threadsPool.iterator();
 	         while(iter.hasNext())
 	         {
 	        	 GapBGModelingThread t1=iter.next();
+	        		double thresh=GapBGModelingThread.KL_scorethresh-KLthresh*t1.depend_Pos.size();
 	        	 	if(t1.KL_Divergence>thresh)
 	        	 		iter.remove();
 	         }
@@ -942,7 +945,7 @@ public class GapImprover {
 					conBases.add(start);
 			}
 		}
-
+		motif.Prior_EZ=conBases.size();
 		System.out.println("Conserved Bases:"+conBases);
 		if(conBases.size()>(motif.columns()+FlankLen-2))
 			return GapPWM.createGapPWM(motif, new HashMap<HashSet<Integer>, HashMap<String,Double>>(),0);;
@@ -1582,7 +1585,8 @@ public class GapImprover {
 					if(GImprover.removeBG)
 						GImprover.SearchEngine.EnableBackground(GImprover.background);
 					GapPWM gpwm=GImprover.fillDependency2(rawpwm);
-					gpwm=GImprover.refineGapPWM(gpwm);
+					if(rawpwm.Prior_EZ<5)//the conserved bases number less than 5
+						gpwm=GImprover.refineGapPWM(gpwm);
 					gpwm.Name="GPimpover_"+rawpwm.Name;
 					GImprover.SearchEngine.DisableBackground();
 					System.out.print("Original Motif:");
