@@ -46,7 +46,7 @@ public class PWM extends SimpleWeightMatrix {
 	public int tail;
 	public double inst_coverage=1;
 	public double inst_FDR=1;
-	double infothresh=0.4;
+	static double infothresh=0.4;
 	public double Prior_EZ=0;
 	//public ArrayList<Double> debuglist=new ArrayList<Double>(); 
 	public double Score;

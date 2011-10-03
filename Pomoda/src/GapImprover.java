@@ -417,7 +417,8 @@ public class GapImprover {
 				//debug
 				//snull.add(max_currloc.Score+Math.log(0.25));
 			}
-			
+			if(sites==null||sites.size()<3)
+				return motif;
 			PWM dataPWM=null;
 			
 				try {
@@ -1559,6 +1560,7 @@ public class GapImprover {
 		}
 		
 		GImprover.initialize();
+		PWM.infothresh=0;
 		LinkedList<PWM> pwmlist=null;
 		if(!GImprover.is_bsitedata)
 		{
@@ -1627,6 +1629,8 @@ public class GapImprover {
 				gpwm.Name="GPimpover_sitePWM";
 				GImprover.SearchEngine.DisableBackground();
 				writer.write(gpwm.toString());
+				
+				
 				PWM dataPWM=new PWM(GImprover.SearchEngine.ForwardStrand.toArray(new String[1]));
 				dataPWM.Name="sitePWM";
 				writer.write(dataPWM.toString());
@@ -1642,7 +1646,7 @@ public class GapImprover {
 					System.out.println("Original Motif Correlation with Signal:"+corr1);
 					
 					double corr2=GImprover.CorrelationTest(gpwm);
-					System.out.println("Improved MotifCorrelation with Signal:"+corr2);
+					System.out.println("Improved Motif Correlation with Signal:"+corr2);
 				}
 				writer.close();
 				
