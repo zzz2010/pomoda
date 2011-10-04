@@ -228,7 +228,7 @@ public class GapImprover {
 		for(GapBGModelingThread t2:list)
 		{
 			
-			if((baseScore-t2.KL_Divergence)>(KLthresh*t2.depend_Pos.size()))
+			if((baseScore-t2.KL_Divergence)>(KLthresh*baseScore))
 			{
 				//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
