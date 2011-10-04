@@ -457,9 +457,11 @@ public class GapImprover {
 				t1.run();
 				motif.Dgroup_DmerProb.put(dgroupId,t1.DprobMap);
 			}
-			for (int i = 0; i < dataPWM.columns(); i++) {
-				motif.setWeights(i, dataPWM.m_matrix[i]);
-			}
+			
+			//dont revise PWM¡¡content
+//			for (int i = 0; i < dataPWM.columns(); i++) {
+//				motif.setWeights(i, dataPWM.m_matrix[i]);
+//			}
 			
 			
 		}
@@ -937,7 +939,7 @@ public class GapImprover {
 			if(i<0||i>=motif.columns())
 				entropy=2;
 			else
-				entropy=DistributionTools.totalEntropy(dataPWM.getColumn(i-motif.head+FlankLen)) ;//use dataPWM to determine conserved base
+				entropy=DistributionTools.totalEntropy(motif.getColumn(i-motif.head+FlankLen)) ;//use motif to determine conserved base
 			if(entropy<entropyThresh)
 			{
 				
@@ -1081,13 +1083,13 @@ public class GapImprover {
 				}
 	
 				threadPool.add(t1);
-				if(threadPool.size()>10000&&threadPool.size()%10000==0)
-				{
-					Thread.sleep(100);
-					System.out.println("before:"+threadPool.size());
-					cleanupThread(threadPool);
-					System.out.println("after:"+threadPool.size());
-				}
+//				if(threadPool.size()>10000&&threadPool.size()%10000==0)
+//				{
+//					Thread.sleep(100);
+//					System.out.println("before:"+threadPool.size());
+//					cleanupThread(threadPool);
+//					System.out.println("after:"+threadPool.size());
+//				}
 			}
 
 			
