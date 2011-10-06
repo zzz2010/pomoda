@@ -645,6 +645,64 @@ public class PWMevaluator {
 		return spearman;
 	}
 	
+	
+	public double CalcRankCorrelation(PWM motif)
+	{
+		TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
+    
+   	 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
+   	 Iterator<FastaLocation> iter=falocs.iterator();
+   	 int lastseq=-1;
+   	 double seqcount=0;
+   	 double maxseq_score=	Double.NEGATIVE_INFINITY;
+   	 double[] scores=new double[SearchEngine.ForwardStrand.size()];
+   	 int seqid=0;
+   	 while(iter.hasNext())
+   	 {
+   		 FastaLocation currloc=iter.next();
+   		 if(lastseq!=currloc.getSeqId())
+   		 {
+   			 seqcount+=1;
+   			 if(lastseq!=-1)
+   			 {
+   				 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
+   				scores[seqid]=maxseq_score;//Math.exp
+   				seqid++;
+   			 }
+   				 lastseq=currloc.getSeqId();
+   			 maxseq_score=currloc.Score;
+   		 }
+   		 if(maxseq_score<currloc.Score)
+   		 {
+   			 maxseq_score=currloc.Score;
+
+   		 }
+
+   	 }
+   	Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 1);
+		scores[seqid]=maxseq_score; //Math.exp
+			
+		double[] sortedValues =scores.clone();
+		Arrays.sort(sortedValues);
+		  
+		   
+		    double[] ranks = new double[sortedValues.length];
+		    
+		    double[] ranks_null = new double[sortedValues.length];
+		 
+		    for (int i=0; i<sortedValues.length; i++)
+		    {
+		        ranks[i]=((double) Arrays.binarySearch(sortedValues, scores[i]));//indexOf(PWMScore.get(i)));
+		        ranks_null[i]=(sortedValues.length-(double)i);
+		    }
+		 
+		double spearman=common.getPearsonCorrelation(ranks, ranks_null);
+		
+		
+   	
+    return spearman;
+	}
+	
 	public double CalcCorrelation(PWM motif)
 	{
 		TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
@@ -923,6 +981,7 @@ public class PWMevaluator {
 		options.addOption("dpwm", false,"compare dpwm and its pwm version");
 		options.addOption("convert", false, "convert input PWM file to the transfac format");
 		options.addOption("roc", false, "compute AUC and draw ROC curve for the given pwm file");
+		options.addOption("corr", false, "compute rank correlation between sequence and PWM score for the given pwm file");
 		options.addOption("pbm", false, "input file is PBM format, and will compute signal correlation");
 		options.addOption("multiscore", false, "compute SN,PPV,PC,ASP,CC for the given pwm file");
 		options.addOption("match", true, "find similar motifs in known PWM library (path to the library, e.g., jaspar.pwm)");
@@ -939,6 +998,7 @@ public class PWMevaluator {
 		PWMevaluator evaluator=new PWMevaluator();
 		boolean rocflag=false;
 		boolean dpwmflag=false;
+		boolean corrflag=false;
 		boolean genrand=false;
 		boolean multiscore_flag=false;
 		boolean convertflag=false;
@@ -990,6 +1050,10 @@ public class PWMevaluator {
 			if(cmd.hasOption("roc"))
 			{
 				rocflag=true;
+			}
+			if(cmd.hasOption("corr"))
+			{
+				corrflag=true;
 			}
 			if(cmd.hasOption("dpwm"))
 			{
@@ -1154,6 +1218,7 @@ public class PWMevaluator {
 			
 		}
 		
+		
 		if(evaluator.PBMflag)
 		{
 			evaluator.initialize();
@@ -1190,6 +1255,29 @@ public class PWMevaluator {
 //			}
 		}
 		
+		
+		if(corrflag)
+		{
+			evaluator.initialize();
+			
+			List<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+			if(pwmlist.size()>topN)
+				pwmlist= pwmlist.subList(0, topN);
+			if(restorepwmlist!=null)
+				pwmlist.addAll(restorepwmlist);
+			Iterator<PWM> iter=pwmlist.iterator();
+			writer.write("Rank Correlation Result:\n");
+			while(iter.hasNext())
+			{
+				PWM p1=iter.next();
+
+				double corr=0;
+					corr=evaluator.CalcRankCorrelation(p1);
+				p1.Score=corr;
+				writer.write(p1.Name+"\t"+corr+"\n");
+				System.out.println(p1.Name+" Spearman Correlation:"+corr);
+			}
+		}
 		
 		if(convertflag)
 		{
