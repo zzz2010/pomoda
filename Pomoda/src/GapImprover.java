@@ -1032,7 +1032,12 @@ public class GapImprover {
 				t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight));//null mean not considering BG
 			else
 				 t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight));//null mean not considering BG
+			if(combinNum<=100||threadNum==1)
+				t1.run();
+			else
+			{
 			executor.execute(t1);
+			}
 			threadPool.add(t1);
 			
 			
