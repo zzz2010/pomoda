@@ -74,7 +74,8 @@ public class GapImprover {
 	
 	public double KL_Divergence_empirical(List<String> sites,PWM motif,int start)
 	{
-		
+		if(sites==null||sites.size()==0)
+			return 10000;
 		double KLsum=0;
 		HashMap<String, Integer> sitecount=new HashMap<String, Integer>();
 		Iterator<String> iter=sites.iterator();
@@ -101,7 +102,9 @@ public class GapImprover {
 		{
 			int count=sitecount.get(key);
 			double p=(double)count/totalCount;
-			double motif_logP=motif.scoreWeightMatrix(key);
+			double motif_logP=0;
+			if(key.length()==motif.core_motiflen)
+				motif_logP=motif.scoreWeightMatrix(key);
 			if(Double.isInfinite(motif_logP))
 				continue;
 		
@@ -115,7 +118,8 @@ public class GapImprover {
 
 	public double KL_Divergence_empirical(List<String> sites,List<Double> SiteWeight,PWM motif,int start)
 	{
-		
+		if(sites==null||sites.size()==0)
+			return 10000;
 		double KLsum=0;
 		HashMap<String, Double> sitecount=new HashMap<String, Double>();
 		Iterator<String> iter=sites.iterator();
@@ -144,7 +148,9 @@ public class GapImprover {
 		{
 			Double count=sitecount.get(key);
 			double p=(double)count/totalCount;
-			double motif_logP=motif.scoreWeightMatrix(key);
+			double motif_logP=0;
+			if(key.length()==motif.core_motiflen)
+				motif_logP=motif.scoreWeightMatrix(key);
 			if(Double.isInfinite(motif_logP))
 				continue;
 		
