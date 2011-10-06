@@ -103,7 +103,7 @@ public class GapImprover {
 			int count=sitecount.get(key);
 			double p=(double)count/totalCount;
 			double motif_logP=0;
-			if(key.length()==motif.core_motiflen)
+			if(key.length()==motif.core_motiflen&&key.length()>1)
 				motif_logP=motif.scoreWeightMatrix(key);
 			if(Double.isInfinite(motif_logP))
 				continue;
@@ -149,7 +149,7 @@ public class GapImprover {
 			Double count=sitecount.get(key);
 			double p=(double)count/totalCount;
 			double motif_logP=0;
-			if(key.length()==motif.core_motiflen)
+			if(key.length()==motif.core_motiflen&&key.length()>1)
 				motif_logP=motif.scoreWeightMatrix(key);
 			if(Double.isInfinite(motif_logP))
 				continue;
