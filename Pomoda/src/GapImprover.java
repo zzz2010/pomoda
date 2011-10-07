@@ -333,7 +333,10 @@ public class GapImprover {
 		}
 				
 		if(descSum<baseScore*KLthresh)
+		{
+			System.out.println("No dependency found!");
 			return new HashMap<HashSet<Integer>,HashMap<String,Double>>();
+		}
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
