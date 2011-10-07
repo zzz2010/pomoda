@@ -290,6 +290,7 @@ public class LinearEngine {
 //			    			String	 bgstr1=DistributionTools.generateSymbolList(ud, 400).seqString();
 //			    			String	 bgstr2=DistributionTools.generateSymbolList(ud, 400).seqString();
 			    			 seqstr=seqstr.replace("N", "");
+			    			 seqstr=seqstr.replace("-", "N");
 			    			 ForwardStrand.add(seqstr);
 			    			 TotalLen+=seqstr.length();
 			    			 accSeqLen.add(TotalLen);

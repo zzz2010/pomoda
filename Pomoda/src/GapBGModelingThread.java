@@ -162,7 +162,8 @@ public class GapBGModelingThread extends Thread {
 					int dpos=sorteddpos[k]-gapStart;
 					dmer+=gapstrj.charAt(dpos);
 				}
-
+				if(dmer.indexOf('N')>-1)
+					continue;
 				if(depend_Pos.size()>1)
 				{
 				int hash=common.getHashing(dmer, 0, depend_Pos.size());
