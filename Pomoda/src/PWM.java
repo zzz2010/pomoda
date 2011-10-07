@@ -269,7 +269,8 @@ public class PWM extends SimpleWeightMatrix {
 	
 	public double getLogWeight(int col, int symid)
 	{
-
+		if(symid<0)
+			return Math.log(0.25);
 		return log_matrix[col][symid];
 		
 	}
