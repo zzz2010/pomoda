@@ -55,7 +55,7 @@ public class GapImprover {
 	public int FlankLen=0;
 	public int threadNum=4;
 	public int max_gaplen=8;
-	public double KLthresh=0.01;
+	public double KLthresh=0.05;
 	
 	public BGModel background;
 	public GapImprover(Pomoda motiffinder)
@@ -234,7 +234,7 @@ public class GapImprover {
 		for(GapBGModelingThread t2:list)
 		{
 			
-			if((baseScore-t2.KL_Divergence)>(KLthresh*baseScore))
+			if((baseScore-t2.KL_Divergence)>0)
 			{
 				//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
@@ -323,17 +323,23 @@ public class GapImprover {
 			
 		}
 		
+		double descSum=0;
 		if(bestDgroups.size()>0)
 		for(Integer id : bestDgroups)
 		{
 			System.out.println("max KL desc:"+positiveThread.get(id).toString());
+			descSum+=positiveThread.get(id).KL_Divergence;
 			Dmap.put(positiveThread.get(id).depend_Pos,positiveThread.get(id).DprobMap);
 		}
 				
+		if(descSum<baseScore*KLthresh)
+			return new HashMap<HashSet<Integer>,HashMap<String,Double>>();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		
 		return Dmap;
 	}
 	
