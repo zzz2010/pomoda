@@ -362,28 +362,78 @@ public class GapImprover {
 		{
 			if(!OOPS)
 			{
-				double pwmThresh=motif.getThresh(sampling_ratio, FDR, background,false);
-				LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(motif, pwmThresh);
+				SearchEngine.EnableBackground(background);
+				LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(motif,2.99573227); //
 				Iterator<FastaLocation> iter=falocs.iterator();
-				while(iter.hasNext())
+				 int lastseq=-1;
+				 double highthresh=9.21034037;//;
+	        	 double seqcount=0;
+	        	 double maxseq_score=	Double.NEGATIVE_INFINITY;
+	        	 FastaLocation max_currloc=null;
+	        	 //take the best occurrences above 1.5 and all sites above 3.0
+	        	 while(iter.hasNext())
+	        	 {
+	        		 FastaLocation currloc=iter.next();
+	        		 if(lastseq!=currloc.getSeqId())
+	        		 {
+	        			 seqcount+=1;
+	        			
+	        			 if(lastseq!=-1&&maxseq_score<=highthresh)
+	        			 {
+	     				String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+	    				if(max_currloc.ReverseStrand)
+	    					site=common.getReverseCompletementString(site);
+	    				if(site!=null)
+	    				{
+	    					sites.add(site.toUpperCase());
+	    					if(SearchEngine.seqWeighting!=null)
+	    						siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
+	    				}
+	    				
+	    				//debug
+	    				//snull.add(max_currloc.Score+Math.log(0.25));
+	        			 }
+	        			 lastseq=currloc.getSeqId(); 
+	        			 maxseq_score=currloc.Score;
+	        			 max_currloc=currloc;
+	        		 }
+	        		 if(maxseq_score<currloc.Score)
+	        		 {
+	        			 maxseq_score=currloc.Score;
+	        			 max_currloc=currloc;
+	        		 }
+	        		 if(currloc.Score>highthresh)
+	        		 {
+		     				String site=SearchEngine.getSite(currloc.getSeqId(), currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+		    				if(max_currloc.ReverseStrand)
+		    					site=common.getReverseCompletementString(site);
+		    				if(site!=null)
+		    				{
+		    					sites.add(site.toUpperCase());
+		    					if(SearchEngine.seqWeighting!=null)
+		    						siteWeight.add(SearchEngine.seqWeighting.get(currloc.getSeqId()));
+		    				} 
+	        		 }
+	        	 }
+	        	 //last seq
+	 			String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+				if(max_currloc.ReverseStrand)
+					site=common.getReverseCompletementString(site);
+				if(site!=null)
 				{
-					FastaLocation currloc=iter.next();
-					String site=SearchEngine.getSite(currloc.getSeqId(), currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
-					if(currloc.ReverseStrand)
-						site=common.getReverseCompletementString(site);
-					if(site!=null)
-					{
-						sites.add(site.toUpperCase());	
-						if(SearchEngine.seqWeighting!=null)
-							siteWeight.add(SearchEngine.seqWeighting.get(currloc.getSeqId()));
-					}
+				sites.add(site.toUpperCase());
+				if(SearchEngine.seqWeighting!=null)
+					siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
 				}
 			}
 			else
 			{
 				 LinkedList<FastaLocation> falocs =null;
 				 if(removeBG)
+				 {
+					 SearchEngine.EnableBackground(background);
 					 falocs=SearchEngine.searchPattern(motif, 0); //enable background in searching
+				 }
 				 else
 					 falocs=SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
 	        	 Iterator<FastaLocation> iter=falocs.iterator();
@@ -439,6 +489,7 @@ public class GapImprover {
 			}
 			if(sites==null||sites.size()<3)
 				return motif;
+			System.out.println("Number of refined Sites:"+sites.size());
 			PWM dataPWM=null;
 			
 				try {
@@ -847,10 +898,10 @@ public class GapImprover {
 			{
 				//double pwmThresh=motif.getThresh(sampling_ratio, FDR, background,false);
 				SearchEngine.EnableBackground(background);
-				LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(motif, 2.99573227);
+				LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(motif,2.99573227); //
 				Iterator<FastaLocation> iter=falocs.iterator();
 				 int lastseq=-1;
-				 double highthresh=9.21034037;
+				 double highthresh=9.21034037;//;
 	        	 double seqcount=0;
 	        	 double maxseq_score=	Double.NEGATIVE_INFINITY;
 	        	 FastaLocation max_currloc=null;
@@ -983,6 +1034,8 @@ public class GapImprover {
 				siteWeight=SearchEngine.seqWeighting;
 			
 		}
+		
+		System.out.println("Number of Sites:"+sites.size());
 		if(sites.size()<3)
 			return GapPWM.createGapPWM(motif, new HashMap<HashSet<Integer>, HashMap<String,Double>>(),0);;
 		PWM dataPWM=null;
