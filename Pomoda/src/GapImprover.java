@@ -1485,6 +1485,7 @@ public class GapImprover {
 		options.addOption("flank", true, "the number of flanking positions around PWM to include(default 0)");
 		options.addOption("ratio",true, "sampling ratio (default 1)");
 		options.addOption("threadnum",true, "number of threads to use(default :4)");
+		options.addOption("paranum",true, "free parameter number for each position(default :3)");
 		options.addOption("thresh",true, "minimum entropy threshold for considering a position as a gap(default 1)");
 		options.addOption("KLthresh",true, "at least percentage of descrease to claim as a dependency (default 0.01)");
 		options.addOption("oops",false,"whether assuming only one occurrence per sequence (default false)");
@@ -1527,6 +1528,11 @@ public class GapImprover {
 			{
 				GImprover.threadNum=Integer.parseInt(cmd.getOptionValue("threadnum"));
 			}
+			if(cmd.hasOption("paranum"))
+			{
+				GapBGModelingThread.ParaNum=Integer.parseInt(cmd.getOptionValue("paranum"));
+			}
+
 			if(cmd.hasOption("c"))
 			{
 				GImprover.ctrlFasta=cmd.getOptionValue("c");
