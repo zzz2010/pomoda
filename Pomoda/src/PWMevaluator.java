@@ -703,6 +703,50 @@ public class PWMevaluator {
     return spearman;
 	}
 	
+	
+	public double CalcAvgLogLiklihood(PWM motif)
+	{
+	
+	 double bgscore=motif.core_motiflen*Math.log(0.25);
+   	 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
+   	 Iterator<FastaLocation> iter=falocs.iterator();
+   	 int lastseq=-1;
+   	 double seqcount=0;
+   	 double maxseq_score=	Double.NEGATIVE_INFINITY;
+   	 double[] scores=new double[SearchEngine.ForwardStrand.size()];
+   	 int seqid=0;
+   	 double sumscore=0;
+   	 while(iter.hasNext())
+   	 {
+   		 FastaLocation currloc=iter.next();
+   		 if(lastseq!=currloc.getSeqId())
+   		 {
+   			 seqcount+=1;
+   			 if(lastseq!=-1)
+   			 {
+   				
+   				scores[seqid]=maxseq_score;
+   				sumscore+=maxseq_score-bgscore;
+   				seqid++;
+   			 }
+   				 lastseq=currloc.getSeqId();
+   			 maxseq_score=currloc.Score;
+   		 }
+   		 if(maxseq_score<currloc.Score)
+   		 {
+   			 maxseq_score=currloc.Score;
+
+   		 }
+
+   	 }
+   	
+		scores[seqid]=maxseq_score; //Math.exp
+		sumscore+=maxseq_score-bgscore;
+			
+		
+    return sumscore/seqcount;
+	}
+	
 	public double CalcCorrelation(PWM motif)
 	{
 		TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
@@ -1276,6 +1320,20 @@ public class PWMevaluator {
 				p1.Score=corr;
 				writer.write(p1.Name+"\t"+corr+"\n");
 				System.out.println(p1.Name+" Spearman Correlation:"+corr);
+			}
+			
+			
+			iter=pwmlist.iterator();
+			writer.write("Averge LogLiklihood Result:\n");
+			while(iter.hasNext())
+			{
+				PWM p1=iter.next();
+
+				double corr=0;
+					corr=evaluator.CalcAvgLogLiklihood(p1);
+				p1.Score=corr;
+				writer.write(p1.Name+"\t"+corr+"\n");
+				System.out.println(p1.Name+" Averge LogLiklihood:"+corr);
 			}
 		}
 		
