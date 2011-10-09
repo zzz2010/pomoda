@@ -15,6 +15,7 @@ import org.biojava.bio.symbol.IllegalSymbolException;
 public class GapBGModelingThread extends Thread {
 	
 	public static double KL_scorethresh=Double.MAX_VALUE;
+	public static int ParaNum=3;
 	List<String> Sites=null;
 	public int gapStart;
 	public int gapEnd;
@@ -174,7 +175,7 @@ public class GapBGModelingThread extends Thread {
 			}
 		
 			//the number of free parameter is 3d not 4d-1
-			int num_top=3*depend_Pos.size();//
+			int num_top=ParaNum*depend_Pos.size();//
 			if(depend_Pos.size()>1)
 			{
 				dmerCount=common.Normalize(dmerCount);
