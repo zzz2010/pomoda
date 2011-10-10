@@ -47,6 +47,8 @@ import org.biojava.bio.symbol.AlphabetManager;
 import org.biojava.bio.symbol.SimpleAlphabet;
 import org.biojava.bio.symbol.Symbol;
 
+import cern.colt.Arrays;
+
 
 public class WMPanel extends JPanel {
 	 private GapPWM wm;
@@ -337,11 +339,11 @@ null) ? "" : (" (" + message + ")")));
     			{
     				outputPrefix=cmd.getOptionValue("prefix");
     			}
-    
+    			System.out.println(Arrays.toString(args) );
     		} catch (ParseException e) {
     			// TODO Auto-generated catch block
     			HelpFormatter formatter = new HelpFormatter();
-    			formatter.printHelp( "FastaMask", options );
+    			formatter.printHelp( "DMotifLogo", options );
     			return;
     		}
     	 LinkedList<PWM> pwms=common.LoadPWMFromFile(inputPWMfile);
