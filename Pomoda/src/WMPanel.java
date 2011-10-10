@@ -203,23 +203,42 @@ RenderingHints.VALUE_ANTIALIAS_ON);
                 	  SimpleAlphabet  groupAlphabet=new SimpleAlphabet();
                 	  groupAlphabet.setName("joinDNA");
                 	  
-                	  for (int i = 0; i < Math.pow(4, groupsize); i++) {	
-                		   temp="";
-                		   int aid=i;
-                		  for (int j = 0; j < groupsize; j++) {
-							temp+=ACGT[aid%4];
-							aid/=4;
-							if(j<groupsize-1)
-							temp+=Nstrs[j];
-						}
-                		  Symbol sym = AlphabetManager.createSymbol(temp,Annotation.EMPTY_ANNOTATION);
-                		  groupAlphabet.addSymbol(sym);
-                	  }
+//                	  for (int i = 0; i < Math.pow(4, groupsize); i++) {	
+//                		   temp="";
+//                		   int aid=i;
+//                		  for (int j = 0; j < groupsize; j++) {
+//							temp+=ACGT[aid%4];
+//							aid/=4;
+//							if(j<groupsize-1)
+//							temp+=Nstrs[j];
+//						}
+//                		  Symbol sym = AlphabetManager.createSymbol(temp,Annotation.EMPTY_ANNOTATION);
+//                		  groupAlphabet.addSymbol(sym);
+//                	  }
+                	 for(String key :dprobs.keySet())
+                	 {
+                		 temp="";
+                		 for (int j = 0; j < groupsize; j++) {
+                			 if(key.equalsIgnoreCase("N"))
+                				 temp+="~";
+                			 else
+ 							temp+=key.charAt(j);
+ 							
+ 							if(j<groupsize-1)
+ 							temp+=Nstrs[j];
+ 						}
+                		 Symbol sym = AlphabetManager.createSymbol(temp,Annotation.EMPTY_ANNOTATION);
+               		  groupAlphabet.addSymbol(sym);
+                	 }
                 	   groupAlphabet.putTokenization("token", new NameTokenization(groupAlphabet));
                 	  dist = DistributionFactory.DEFAULT.createDistribution(groupAlphabet);
-
+                	  double sumweight=0;
+                	  for(Double v:dprobs.values())
+                	  {
+                		  sumweight+=v;
+                	  }
                 	  Iterator<Symbol> iter=groupAlphabet.iterator();
-                	  double sum=0;
+                	  double totalEntropy=0;
                 	  while(iter.hasNext())
                 	  {
                 		  Symbol sym=iter.next();
@@ -227,12 +246,16 @@ RenderingHints.VALUE_ANTIALIAS_ON);
                 		  nwidth=sym.getName().length();
                 		String key=sym.getName().replace(" ", "");  
                 		if(dprobs.containsKey(key))
+                		{
                 			weight=dprobs.get(key);
-                		sum+=weight;
-                		dist.setWeight(sym, weight);
+                		totalEntropy+=-weight*Math.log(weight);
+                		}
+                		else
+                			totalEntropy+=-weight*Math.log(weight)*(Math.pow(4, groupsize)-groupAlphabet.size()+1);
+                		dist.setWeight(sym, weight/sumweight); //treat N as only one instance, renormalized the weight
 					}
-                	  
-                	  groupBits.put(wm.GroupId[pos], DistributionTools.bitsOfInformation(dist)) ;
+                	  double informcontent= 2*groupsize- totalEntropy/Math.log(2.0);
+                	  groupBits.put(wm.GroupId[pos], informcontent) ;
                 	  visited.add(wm.GroupId[pos]);
                  }
                 

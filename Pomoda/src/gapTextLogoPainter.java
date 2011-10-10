@@ -190,9 +190,11 @@ public class gapTextLogoPainter implements LogoPainter {
 
       try {
     	  int a=common.acgt(s.charAt(j));
-    	  if(a>-1)//not gap
+    	  if(a>-1&&a<4)//not gap
         g2.setPaint(style.fillPaint(DNATools.forIndex(a)));
-    	  else
+    	  else if(s.charAt(j)!=' ')
+    		  g2.setPaint(Color.gray);
+      else
     		  g2.setPaint(Color.white);
       } catch (Exception ire) {
     	  g2.setPaint(Color.black);
