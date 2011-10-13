@@ -26,7 +26,7 @@ import org.biojava.bio.seq.DNATools;
 import org.biojava.bio.symbol.IllegalAlphabetException;
 import org.biojava.bio.symbol.IllegalSymbolException;
 
-import com.lowagie.text.pdf.parser.Matrix;
+
 
 import cern.colt.Arrays;
 import EDU.oswego.cs.dl.util.concurrent.BoundedBuffer;
