@@ -25,8 +25,10 @@ public class GapBGModelingThread extends Thread {
 	public PWM gapPWM=null;
 	//public ArrayList<Double>  debuglist=new ArrayList<Double>();
 	public double KL_Divergence;
+	public double[] dmerCount=null;
 	public ArrayList<Double> seqWeighting=null;
 	public HashMap<String,Double> DprobMap;
+	public TreeMap<Double,KeyValuePair<Integer, String>> PendingParas=null;
 	public BGModel background;
 	
 	public GapBGModelingThread(int gapstart, int gapend, List<String> sites,HashSet<Integer> depend_pos,BGModel bg,ArrayList<Double> seqWeight)
@@ -150,7 +152,7 @@ public class GapBGModelingThread extends Thread {
 			int dmerSize=1<<(depend_Pos.size() *2);
 			
 			
-			double[] dmerCount=new double[dmerSize];
+			dmerCount=new double[dmerSize];
 			double[] Pt = new double[dmerSize];
 			Integer[] sorteddpos=depend_Pos.toArray(new Integer[1]);
 			Arrays.sort(sorteddpos);
@@ -216,7 +218,7 @@ public class GapBGModelingThread extends Thread {
 				TreeMap<Double,Integer> sorted_column=new TreeMap<Double,Integer>();
 				for (int j = 0; j< dmerSize; j++)
 				{  
-					double weight=Pt[j]-(j%num_top)*common.DoubleMinNormal;
+					double weight=Pt[j]*(1-(j%num_top)*common.DoubleMinNormal);
 					if(weight<0)
 						weight=0;
 					sorted_column.put(weight, j);
@@ -301,16 +303,21 @@ public class GapBGModelingThread extends Thread {
 				DprobMap.clear();
 
 			}
-			//clean
-			dmerCount=null;
-			Pt=null;
-//			try {
-//				Thread.sleep(1);
-//			} catch (InterruptedException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
+			if(depend_Pos.size()>1)
+			{
+				PendingParas=new TreeMap<Double, KeyValuePair<Integer,String>>();
+				TreeMap<Double,KeyValuePair<Integer, String>> paraslist=GapImprover.getFreeParaQueue( dmerCount,-this.hashCode());
+				int k=0;  //take |dmerCount|-topNum
+				for(Double key:paraslist.keySet())
+				{
+					k++;
+					if(dmerCount.length-k==num_top)
+						break;
+					PendingParas.put(key, paraslist.get(key));
+				}
+			}
 
+			
 	}
 			
 	public void run3() {
