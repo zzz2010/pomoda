@@ -117,6 +117,8 @@ public class WMPanel extends JPanel {
 		for(Entry<Integer, ArrayList<Integer>> pair:groupList.entrySet())
 		{
 			ArrayList<Integer> poslist=pair.getValue();
+			if(poslist.size()==1)
+				continue;
 			int lastx=-1;
 			if(sortedBit!=null)
 			gid=Collections.binarySearch(sortedBit, groupBits.get(pair.getKey()))+1;
@@ -172,98 +174,92 @@ RenderingHints.VALUE_ANTIALIAS_ON);
                  }
                  else
                  {	
-                	 if(groupList.containsKey(wm.GroupId[pos]))
-                		 groupList.get(wm.GroupId[pos]).add(pos);
-                	 else
-                	 {
-                		 groupList.put(wm.GroupId[pos], new ArrayList<Integer>());
-                		 groupList.get(wm.GroupId[pos]).add(pos);
-                	 }
-                	 if(visited.contains(wm.GroupId[pos]))
-                		 continue;
+	                	 if(groupList.containsKey(wm.GroupId[pos]))
+	                		 groupList.get(wm.GroupId[pos]).add(pos);
+	                	 else
+	                	 {
+	                		 groupList.put(wm.GroupId[pos], new ArrayList<Integer>());
+	                		 groupList.get(wm.GroupId[pos]).add(pos);
+	                	 }
+	                	 if(visited.contains(wm.GroupId[pos]))
+	                		 continue;
                 	 
-                	 HashMap<String,Double> dprobs=wm.Dgroup_DmerProb.get(wm.GroupId[pos]);
-                	 int groupsize=0;//dprobs.keySet().iterator().next().length();
-                	 for (int i = 0; i < wm.columns(); i++) {
-                		 if(wm.GroupId[pos]==wm.GroupId[i])
-                			 groupsize++;
-                	 }
-                	 String[] Nstrs=new  String[groupsize-1];
-                	 String temp="";
-                	 int gid=0;
-                	 for (int i = pos+1; i < wm.columns(); i++) {
-                		 if(wm.GroupId[pos]!=wm.GroupId[i])
-                			 temp+=" ";
-                		 else
-                		 {
-                			 Nstrs[gid]=temp;
-                			 temp="";
-                			 gid++;
-                		 }
-					}
+	                	 HashMap<String,Double> dprobs=wm.Dgroup_DmerProb.get(wm.GroupId[pos]);
+	                	 int groupsize=0;//dprobs.keySet().iterator().next().length();
+	                	 for (int i = 0; i < wm.columns(); i++) {
+	                		 if(wm.GroupId[pos]==wm.GroupId[i])
+	                			 groupsize++;
+	                	 }
+	                	 String[] Nstrs=new  String[groupsize-1];
+	                	 String temp="";
+	                	 int gid=0;
+	                	 for (int i = pos+1; i < wm.columns(); i++) {
+	                		 if(wm.GroupId[pos]!=wm.GroupId[i])
+	                			 temp+=" ";
+	                		 else
+	                		 {
+	                			 Nstrs[gid]=temp;
+	                			 temp="";
+	                			 gid++;
+	                		 }
+						}
                 	  
-                	  SimpleAlphabet  groupAlphabet=new SimpleAlphabet();
-                	  groupAlphabet.setName("joinDNA");
+	                	  SimpleAlphabet  groupAlphabet=new SimpleAlphabet();
+	                	  groupAlphabet.setName("joinDNA");
                 	  
-//                	  for (int i = 0; i < Math.pow(4, groupsize); i++) {	
-//                		   temp="";
-//                		   int aid=i;
-//                		  for (int j = 0; j < groupsize; j++) {
-//							temp+=ACGT[aid%4];
-//							aid/=4;
-//							if(j<groupsize-1)
-//							temp+=Nstrs[j];
-//						}
-//                		  Symbol sym = AlphabetManager.createSymbol(temp,Annotation.EMPTY_ANNOTATION);
-//                		  groupAlphabet.addSymbol(sym);
-//                	  }
-                	 for(String key :dprobs.keySet())
-                	 {
-                		 temp="";
-                		 for (int j = 0; j < groupsize; j++) {
-                			 if(key.equalsIgnoreCase("N"))
-                				 temp+="~";
-                			 else
- 							temp+=key.charAt(j);
- 							
- 							if(j<groupsize-1)
- 							temp+=Nstrs[j];
- 						}
-                		 Symbol sym = AlphabetManager.createSymbol(temp,Annotation.EMPTY_ANNOTATION);
-               		  groupAlphabet.addSymbol(sym);
-                	 }
-                	   groupAlphabet.putTokenization("token", new NameTokenization(groupAlphabet));
-                	  dist = DistributionFactory.DEFAULT.createDistribution(groupAlphabet);
-                	  double sumweight=0;
-                	  for(Double v:dprobs.values())
-                	  {
-                		  sumweight+=v;
-                	  }
-                	  Iterator<Symbol> iter=groupAlphabet.iterator();
-                	  double totalEntropy=0;
-                	  while(iter.hasNext())
-                	  {
-                		  Symbol sym=iter.next();
-                		  double weight=dprobs.get("N");
-                		  nwidth=sym.getName().length();
-                		String key=sym.getName().replace(" ", "");  
-                		if(dprobs.containsKey(key))
-                		{
-                			weight=dprobs.get(key);
-                		totalEntropy+=-weight*Math.log(weight);
-                		}
-                		else
-                			totalEntropy+=-weight*Math.log(weight)*(Math.pow(4, groupsize)-groupAlphabet.size()+1);
-                		dist.setWeight(sym, weight/sumweight); //treat N as only one instance, renormalized the weight
-					}
-                	  double informcontent= 2*groupsize- totalEntropy/Math.log(2.0);
-                	  groupBits.put(wm.GroupId[pos], informcontent) ;
-                	  visited.add(wm.GroupId[pos]);
+
+	                	 for(String key :dprobs.keySet())
+	                	 {
+	                		 temp="";
+	                		 for (int j = 0; j < groupsize; j++) {
+	                			 if(key.equalsIgnoreCase("N"))
+	                				 temp+="~";
+	                			 else
+	 							temp+=key.charAt(j);
+	 							
+	 							if(j<groupsize-1)
+	 							temp+=Nstrs[j];
+	 						}
+	                		 Symbol sym = AlphabetManager.createSymbol(temp,Annotation.EMPTY_ANNOTATION);
+	               		  groupAlphabet.addSymbol(sym);
+	                	 }
+	                	   groupAlphabet.putTokenization("token", new NameTokenization(groupAlphabet));
+	                	  dist = DistributionFactory.DEFAULT.createDistribution(groupAlphabet);
+	                	  double sumweight=0;
+	                	  for(Double v:dprobs.values())
+	                	  {
+	                		  sumweight+=v;
+	                	  }
+	                	  Iterator<Symbol> iter=groupAlphabet.iterator();
+	                	  double totalEntropy=0;
+	                	  double sumprob=0;
+	                	  while(iter.hasNext())
+	                	  {
+	                		  Symbol sym=iter.next();
+	                		  double weight=dprobs.get("N");
+	                		  nwidth=sym.getName().length();
+	                		String key=sym.getName().replace(" ", "");  
+	                		if(dprobs.containsKey(key))
+	                		{
+	                			weight=dprobs.get(key);
+	                		totalEntropy+=-weight*Math.log(weight);
+	                		sumprob+=weight;
+	                		}
+	                		else
+	                		{
+	                			totalEntropy+=-weight*Math.log(weight)*(Math.pow(4, groupsize)-groupAlphabet.size()+1);
+	                			sumprob+=weight*(Math.pow(4, groupsize)-groupAlphabet.size()+1);
+	                		}
+	                		dist.setWeight(sym, weight/sumweight); //treat N as only one instance, renormalized the weight
+						}
+	                	  double informcontent= 2*groupsize- totalEntropy/Math.log(2.0);
+	                	  groupBits.put(wm.GroupId[pos], informcontent) ;
+	                	  visited.add(wm.GroupId[pos]);
                  }
                 
                  DistributionLogo dl = new DistributionLogo();
                  if(nwidth>1)
-                	 dl.setScaleByInformation(false);
+                	 	dl.setScaleByInformation(false);
                  dl.setRenderingHints(hints);
                  dl.setBackground(Color.white);
                  

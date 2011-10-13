@@ -30,4 +30,12 @@ public class KeyValuePair<K,V> implements Entry<K, V> {
 		return arg0;
 	}
 
+	@Override
+	public String toString() {
+		// TODO Auto-generated method stub
+		return key.toString()+":"+value.toString();
+	}
+	
+	
+
 }
