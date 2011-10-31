@@ -3540,7 +3540,7 @@ public class Pomoda {
 		options.addOption("c", true, "control fasta file");
 		options.addOption("seedfile", true, "seed PWM file");
 		options.addOption("bgmodel", true, "background model file");
-		options.addOption("dnase", true, "dnase data file");
+//		options.addOption("dnase", true, "dnase data file");
 		options.addOption("strand", false, "only scan on one strand");
 		options.addOption("mincount", true, "min count for extention");
 		options.addOption("prefix", true, "output directory");
@@ -3548,15 +3548,15 @@ public class Pomoda {
 		options.addOption("seedlen", true, "kmer seed motif length (default 5)");
 		options.addOption("ratio",true, "sampling ratio (default 0.8)");
 		options.addOption("n",true, "number of motifs in final report (default 5)");
-		options.addOption("rs",true, "counting resolution (default 40 bp)");
-		options.addOption("supp",true, "minimum support ratio, the percentage of peaks contains motif (default 0.05)");
+//		options.addOption("rs",true, "counting resolution (default 40 bp)");
+		options.addOption("supp",true, "minimum support ratio, the percentage of sequence contains motif (default 0.05)");
 		options.addOption("maxlen",true,"maxmimum length of the motif (default 15)");
 		options.addOption("minlen",true,"minimum length of the motif (default 7)");
-		options.addOption("maxw",true, "maximum size of motif binding region (default 600bp)");
+//		options.addOption("maxw",true, "maximum size of motif binding region (default 600bp)");
 		options.addOption("mask",false,"whether marking the top motif location in order to find co-motif");
-		options.addOption("oops",false,"whether assuming only one occurrence per sequence");
+		options.addOption("zoops",false,"whether assuming only zero or one occurrence per sequence");
 		options.addOption("FDR",true,"fasle positive rate (default 0.01)");
-		options.addOption("clustthresh",true,"overlap threshold for clustering (default 0.1)" );
+		options.addOption("clustthresh",true,"overlap threshold for redundance filtering (default 0.1)" );
 		
 		CommandLineParser parser = new GnuParser();
 		Pomoda motifFinder=new Pomoda();
