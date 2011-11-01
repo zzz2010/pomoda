@@ -1731,7 +1731,7 @@ public class GapImprover {
 		 * 
 		 * 
 		 */
-		int num_top=1;
+		int num_top=100;
 		TreeMap<Double,Integer> sorted_column=new TreeMap<Double,Integer>();
 		for (int j = 0; j< probArr.length; j++)
 		{  
@@ -1755,7 +1755,7 @@ public class GapImprover {
 		if(k<probArr.length-1) // the first one always 0, as least vaule is the same as the rest average of removing one 
 		{
 			delta_k+=(l_k-P_k)*Math.log((l_k-P_k)/(probArr.length-k-1));
-		queue.put(delta_k+(k*colid%num_top)*common.DoubleMinNormal, new KeyValuePair<Integer, String>(colid,kmer));
+		queue.put(delta_k+((k+colid)%num_top)*common.DoubleMinNormal, new KeyValuePair<Integer, String>(colid,kmer));
 		}
 	}
 		

@@ -311,12 +311,13 @@ public class GapBGModelingThread extends Thread {
 				for(Double key:paraslist.keySet())
 				{
 					k++;
-					if(dmerCount.length-k==num_top)
+					if(paraslist.size()-PendingParas.size()==num_top)
 						break;
 					PendingParas.put(key, paraslist.get(key));
 				}
-			}
 
+			}
+      
 			
 	}
 			
