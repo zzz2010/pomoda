@@ -606,10 +606,11 @@ public class GapImprover {
 						dprobMap.put(common.Hash2ACGT(i, 1), m_matrix[col][i]);
 					}
 				}
+				System.out.println("recycling :"+dPos);
 				
 				Dmap.put(dPos, dprobMap);
 			}
-			
+			System.out.println("recycling enhance KL:"+recyclingEnhance);
 			
 //////////////////////////parameters recycling////////////////////////	
 			for(Integer id : bestDgroups)
