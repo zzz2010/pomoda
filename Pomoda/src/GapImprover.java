@@ -688,7 +688,7 @@ public class GapImprover {
 				
 				t1.run();
 				/////////////////parameters recycling/////////////////
-				int num_top=motif.Dgroup_DmerProb.size()-1;
+				int num_top=motif.Dgroup_DmerProb.get(dgroupId).size()-1;
 				TreeMap<Double,Integer> sorted_column=new TreeMap<Double,Integer>();
 				for (int j = 0; j< t1.dmerCount.length; j++)
 				{  
@@ -700,10 +700,10 @@ public class GapImprover {
 				//sort the dmer by desc prob£¬ and take top 3d as the dependency model 
 				int k=0;
 				double sumprob=0;
+				
 				for(Double key:sorted_column.descendingKeySet())
 				{
 					k++;
-					if(t1.DprobMap.size()<=k)
 						t1.DprobMap.put(common.Hash2ACGT(sorted_column.get(key), dpos.size()), key);
 					sumprob+=key;
 
