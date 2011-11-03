@@ -649,7 +649,11 @@ public class GapImprover {
 		//get a set of instance strings, assume they are all real binding site
 		LinkedList<String> sites=new LinkedList<String>();
 		ArrayList<Double> siteWeight=null;
+		//need to ignore the flanklen in the refine query sites
+		int oldflank=FlankLen;
+		FlankLen=0;
 		KeyValuePair<LinkedList<String>, ArrayList<Double>> retpair=querySites(motif);
+		FlankLen=oldflank;
 		sites=retpair.key;
 		siteWeight=retpair.value;
 		
