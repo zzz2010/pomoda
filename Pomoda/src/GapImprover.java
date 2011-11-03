@@ -2148,10 +2148,10 @@ public class GapImprover {
 		sites=sites2;
 /******************************************************************************************/			
 		
-		if(FlankLen==0)
-			gapPWM=GapPWM.createGapPWM(motif.subPWM( motif.head,motif.head+motif.core_motiflen), Dmap,FlankLen);
-		else
-			gapPWM=GapPWM.createGapPWM(dataPWM.subPWM(FlankLen,dataPWM.columns()-FlankLen), Dmap,FlankLen);
+		//if(FlankLen==0)
+			gapPWM=GapPWM.createGapPWM(motif.subPWM( motif.head,motif.head+motif.core_motiflen), Dmap,0);
+		//else
+			//gapPWM=GapPWM.createGapPWM(dataPWM.subPWM(FlankLen,dataPWM.columns()-FlankLen), Dmap,FlankLen);
 //		if(gapPWM.core_motiflen!=motif.core_motiflen&&sites.size()>0)
 //		{
 //			motif=new PWM(sites.toArray(new String[1]));
@@ -2542,6 +2542,11 @@ public class GapImprover {
 				for(Double key:sortedPWMs.descendingKeySet())
 				{
 					writer.write(sortedPWMs.get(key).toString());
+					
+					//output the site PWM 
+					PWM dataPWM=sortedPWMs.get(key).subPWM(sortedPWMs.get(key).head, sortedPWMs.get(key).head+sortedPWMs.get(key).core_motiflen);
+					dataPWM.Name="sitePWM";
+					writer.write(dataPWM.toString());
 				}
 				writer.close();
 				System.out.println("Finish Writing the DPWM file");
