@@ -241,7 +241,7 @@ public class GapImprover {
 		for(GapBGModelingThread t2:list)
 		{
 			
-			if((baseScore-t2.KL_Divergence)>0&&t2.chisqPvalue<0.05)
+			if((baseScore-t2.KL_Divergence)>KLthresh&&t2.chisqPvalue<0.05)
 			{
 				//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
@@ -335,11 +335,6 @@ public class GapImprover {
 		for(Integer id : bestDgroups)
 		{
 			System.out.println("max KL desc:"+positiveThread.get(id).toString());
-			if(positiveThread.get(id).KL_Divergence<KLthresh)
-			{
-				System.out.println("filter:"+positiveThread.get(id).toString());
-				continue;
-			}
 			descSum+=positiveThread.get(id).KL_Divergence;
 			Dmap.put(positiveThread.get(id).depend_Pos,positiveThread.get(id).DprobMap);
 		}
@@ -399,7 +394,7 @@ public class GapImprover {
 		for(GapBGModelingThread t2:list)
 		{
 			
-			if((baseScore-t2.KL_Divergence)>0&&t2.chisqPvalue<0.05)
+			if((baseScore-t2.KL_Divergence)>KLthresh&&t2.chisqPvalue<0.05)
 			{
 				//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
@@ -627,11 +622,7 @@ public class GapImprover {
 			for(Integer id : bestDgroups)
 			{
 				System.out.println("max KL desc:"+positiveThread.get(id).toString());
-				if(positiveThread.get(id).KL_Divergence<KLthresh)
-				{
-					System.out.println("filter:"+positiveThread.get(id).toString());
-					continue;
-				}
+
 				descSum+=positiveThread.get(id).KL_Divergence;
 				Dmap.put(positiveThread.get(id).depend_Pos,positiveThread.get(id).DprobMap);
 			}
