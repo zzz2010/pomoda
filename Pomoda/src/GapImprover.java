@@ -651,12 +651,21 @@ public class GapImprover {
 		ArrayList<Double> siteWeight=null;
 		//need to ignore the flanklen in the refine query sites
 		int oldflank=FlankLen;
+		int oldhead=motif.head;
+		int oldtail=motif.tail;
+		int oldlen=motif.core_motiflen;
+		motif.core_motiflen=motif.columns();
+		motif.head=0;
+		motif.tail=0;
 		FlankLen=0;
 		KeyValuePair<LinkedList<String>, ArrayList<Double>> retpair=querySites(motif);
 		FlankLen=oldflank;
 		sites=retpair.key;
 		siteWeight=retpair.value;
-		
+		//recover head tail, corelen
+		motif.core_motiflen=oldlen;
+		motif.head=oldhead;
+		motif.tail=oldtail;
 		
 			if(sites==null||sites.size()<3)
 				return motif;
