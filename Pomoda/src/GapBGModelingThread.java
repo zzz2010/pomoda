@@ -8,8 +8,12 @@ import java.util.TreeMap;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.biojava.bio.symbol.IllegalAlphabetException;
 import org.biojava.bio.symbol.IllegalSymbolException;
+
+import umontreal.iro.lecuyer.probdist.ChiSquareDist;
+import umontreal.iro.lecuyer.probdist.ChiSquareDistQuick;
 
 
 public class GapBGModelingThread extends Thread {
@@ -19,6 +23,7 @@ public class GapBGModelingThread extends Thread {
 	List<String> Sites=null;
 	public int gapStart;
 	public int gapEnd;
+	public double chisqPvalue=0;
 	HashMap<String,Double> gapmerCount;
 	public double lamda=1;
 	public HashSet<Integer> depend_Pos;
@@ -138,7 +143,7 @@ public class GapBGModelingThread extends Thread {
 	public String toString()
 	{
 		String ret="";
-		ret=String.valueOf(gapStart)+"-"+String.valueOf(gapEnd)+":"+Arrays.toString(depend_Pos.toArray(new Integer[1]))+'\t'+KL_Divergence+'\t'+lamda; 
+		ret=String.valueOf(gapStart)+"-"+String.valueOf(gapEnd)+":"+Arrays.toString(depend_Pos.toArray(new Integer[1]))+'\t'+KL_Divergence+'\t'+chisqPvalue; 
 		
 		return ret;
 	}
@@ -315,7 +320,7 @@ public class GapBGModelingThread extends Thread {
 						break;
 					PendingParas.put(key, paraslist.get(key));
 				}
-
+				chisqPvalue=1-chisqTest(dmerCount,gapmerCount.size(),gapPWM,sorteddpos);
 			}
       
 			
@@ -673,5 +678,27 @@ public class GapBGModelingThread extends Thread {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
+	}
+	
+	public double chisqTest(double[] dmerprob, int totalcount,PWM motif, Integer[] depend_pos)
+	{
+		double chi=0;
+		double[] estimatedProb=new double[dmerprob.length];
+		Arrays.fill(estimatedProb, 1.0);
+		int dmerlen=depend_pos.length;
+		for (int i = 0; i < dmerprob.length; i++) {
+			String dmerstr=common.Hash2ACGT(i, dmerlen);
+			for (int j = 0; j < dmerstr.length(); j++) {
+				estimatedProb[i]*=motif.m_matrix[depend_pos[j]][common.acgt(dmerstr.charAt(j))];
+			}
+			
+			double temp=estimatedProb[i]-dmerprob[i];
+			chi+=temp*temp/(dmerprob[i]+common.DoubleMinNormal);
+		}
+		chi*=totalcount;
+		double pvalue=ChiSquareDist.cdf( 3*dmerlen,4,chi);
+		
+		
+		return pvalue;
 	}
 }
