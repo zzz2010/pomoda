@@ -404,7 +404,9 @@ public class GapImprover {
 				Iterator<Double> penditer=t2.PendingParas.descendingKeySet().iterator();
 				Iterator<Double> freeParaiter=FreeParaQueue.keySet().iterator();
 				double pend=penditer.next();
-				double free=freeParaiter.next();
+				double free=10000;
+				if(FreeParaQueue.keySet().size()>0)
+					free=freeParaiter.next();
 				while(pend>free)
 				{
 					recyclingEnhance+=pend-free;
@@ -499,7 +501,9 @@ public class GapImprover {
 			Iterator<Double> penditer=PendingParas.descendingKeySet().iterator();
 			Iterator<Double> freeParaiter=FreeParaQueue.keySet().iterator();
 			double pend=penditer.next();
-			double free=freeParaiter.next();
+			double free=10000;
+			if(FreeParaQueue.keySet().size()>0)
+				free=freeParaiter.next();
 			while(pend>free)
 			{
 				recyclingEnhance+=pend-free;
@@ -533,7 +537,9 @@ public class GapImprover {
 			Iterator<Double> penditer=PendingParas.descendingKeySet().iterator();
 			Iterator<Double> freeParaiter=FreeParaQueue.keySet().iterator();
 			double pend=penditer.next();
-			double free=freeParaiter.next();
+			double free=10000;
+			if(FreeParaQueue.keySet().size()>0)
+				free=freeParaiter.next();
 			while(pend>free)
 			{
 				String dmer=PendingParas.get(pend).value;
@@ -2354,6 +2360,7 @@ public class GapImprover {
 		options.addOption("pbm", false, "input file is PBM format (default is fasta format)");
 		options.addOption("pwm", true, "input PWM file");
 		options.addOption("c", true, "control fasta file");
+		options.addOption("version", true, "the version of transformer (1,2,3...)");
 		options.addOption("bgmodel", true, "background model file");
 		options.addOption("site", false, "input sequences are binding sites, no need to provide PWM");
 		options.addOption("prefix", true, "output directory");
@@ -2371,6 +2378,7 @@ public class GapImprover {
 		String inputPWM="";
 		CommandLineParser parser = new GnuParser();
 		GapImprover GImprover=new GapImprover();
+		int version=2;
 		
 		try {
 			CommandLine cmd = parser.parse( options, args);
@@ -2402,6 +2410,10 @@ public class GapImprover {
 			if(cmd.hasOption("threadnum"))
 			{
 				GImprover.threadNum=Integer.parseInt(cmd.getOptionValue("threadnum"));
+			}
+			if(cmd.hasOption("version"))
+			{
+				version=Integer.parseInt(cmd.getOptionValue("version"));
 			}
 			if(cmd.hasOption("paranum"))
 			{
@@ -2487,7 +2499,11 @@ public class GapImprover {
 					System.out.println(rawpwm.Consensus(true));
 					if(GImprover.removeBG)
 						GImprover.SearchEngine.EnableBackground(GImprover.background);
-					GapPWM gpwm=GImprover.fillDependency3(rawpwm);
+					GapPWM gpwm=null;
+					if(version==2)
+						gpwm=GImprover.fillDependency3(rawpwm);
+					if(version==1)
+						gpwm=GImprover.fillDependency2(rawpwm);
 					if(rawpwm.Prior_EZ<5)//the conserved bases number less than 5
 						gpwm=GImprover.refineGapPWM(gpwm);
 					gpwm.Name="GPimpover_"+rawpwm.Name;
