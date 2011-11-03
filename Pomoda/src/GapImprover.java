@@ -241,7 +241,7 @@ public class GapImprover {
 		for(GapBGModelingThread t2:list)
 		{
 			
-			if((baseScore-t2.KL_Divergence)>0)
+			if((baseScore-t2.KL_Divergence)>0&&t2.chisqPvalue<0.05)
 			{
 				//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
@@ -335,6 +335,11 @@ public class GapImprover {
 		for(Integer id : bestDgroups)
 		{
 			System.out.println("max KL desc:"+positiveThread.get(id).toString());
+			if(positiveThread.get(id).KL_Divergence<KLthresh)
+			{
+				System.out.println("filter:"+positiveThread.get(id).toString());
+				continue;
+			}
 			descSum+=positiveThread.get(id).KL_Divergence;
 			Dmap.put(positiveThread.get(id).depend_Pos,positiveThread.get(id).DprobMap);
 		}
@@ -394,7 +399,7 @@ public class GapImprover {
 		for(GapBGModelingThread t2:list)
 		{
 			
-			if((baseScore-t2.KL_Divergence)>0)
+			if((baseScore-t2.KL_Divergence)>0&&t2.chisqPvalue<0.05)
 			{
 				//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
@@ -622,16 +627,21 @@ public class GapImprover {
 			for(Integer id : bestDgroups)
 			{
 				System.out.println("max KL desc:"+positiveThread.get(id).toString());
+				if(positiveThread.get(id).KL_Divergence<KLthresh)
+				{
+					System.out.println("filter:"+positiveThread.get(id).toString());
+					continue;
+				}
 				descSum+=positiveThread.get(id).KL_Divergence;
 				Dmap.put(positiveThread.get(id).depend_Pos,positiveThread.get(id).DprobMap);
 			}
 		}
 				
-		if(bestScore<baseScore*KLthresh)
-		{
-			System.out.println("No dependency found!");
-			return new HashMap<HashSet<Integer>,HashMap<String,Double>>();
-		}
+//		if(bestScore<baseScore*KLthresh)
+//		{
+//			System.out.println("No dependency found!");
+//			return new HashMap<HashSet<Integer>,HashMap<String,Double>>();
+//		}
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1247,29 +1257,29 @@ public class GapImprover {
 		}
 		if(dataPWM==null)
 			dataPWM=motif;
-		if(motif==null)
+		if(motif==null||FlankLen>0)
 			motif=dataPWM;
 	
 		
 		//detect  conserved bases
 		HashSet<Integer> conBases=new HashSet<Integer>();
 		int start=-1;
-		for (int i = motif.head-FlankLen; i < motif.head+motif.core_motiflen+FlankLen; i++) {
+		for (int i = motif.head; i < motif.head+motif.core_motiflen; i++) {
 			double entropy=0;
 			if(i<0||i>=motif.columns())
 				entropy=2;
 			else
-				entropy=DistributionTools.totalEntropy(motif.getColumn(i-motif.head+FlankLen)) ;//use motif to determine conserved base
+				entropy=DistributionTools.totalEntropy(motif.getColumn(i-motif.head)) ;//use motif to determine conserved base
 			if(entropy<entropyThresh)
 			{
 				
-					start=i-motif.head+FlankLen;
+					start=i-motif.head;
 					conBases.add(start);
 			}
 		}
 		motif.Prior_EZ=conBases.size();
 		System.out.println("Conserved Bases:"+conBases);
-		if(conBases.size()>(motif.columns()+FlankLen-2))
+		if(conBases.size()>(motif.columns()-2))
 			return GapPWM.createGapPWM(motif, new HashMap<HashSet<Integer>, HashMap<String,Double>>(),0);;
 			
 /******************************************************************************************/		
@@ -1814,7 +1824,7 @@ public class GapImprover {
 		}
 		if(dataPWM==null)
 			dataPWM=motif;
-		if(motif==null)
+		if(motif==null||FlankLen>0)
 			motif=dataPWM;
 	
 		//sorted Free parameter queue
@@ -1822,15 +1832,15 @@ public class GapImprover {
 		//detect  conserved bases
 		HashSet<Integer> conBases=new HashSet<Integer>();
 		int start=-1;
-		for (int i = motif.head-FlankLen; i < motif.head+motif.core_motiflen+FlankLen; i++) {
+		for (int i = motif.head; i < motif.head+motif.core_motiflen; i++) {
 			double entropy=0;
 			if(i<0||i>=motif.columns())
 				entropy=2;
 			else
-				entropy=DistributionTools.totalEntropy(motif.getColumn(i-motif.head+FlankLen)) ;//use motif to determine conserved base
+				entropy=DistributionTools.totalEntropy(motif.getColumn(i-motif.head)) ;//use motif to determine conserved base
 			if(entropy<entropyThresh)
 			{				
-					start=i-motif.head+FlankLen;
+					start=i-motif.head;
 					conBases.add(start);					
 					TreeMap<Double,KeyValuePair<Integer, String>> paraslist=getFreeParaQueue( motif.m_matrix[start],start);
 					for(Double key : paraslist.keySet())
@@ -1842,7 +1852,7 @@ public class GapImprover {
 		}
 		motif.Prior_EZ=conBases.size();
 		System.out.println("Conserved Bases:"+conBases);
-		if(conBases.size()>(motif.columns()+FlankLen-2))
+		if(conBases.size()>(motif.columns()-2))
 			return GapPWM.createGapPWM(motif, new HashMap<HashSet<Integer>, HashMap<String,Double>>(),0);
 			
 /******************************************************************************************/		
