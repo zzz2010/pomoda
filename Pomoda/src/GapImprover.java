@@ -414,9 +414,12 @@ public class GapImprover {
 
 					recyclingEnhance+=pend-free;
 					  
+					if(!penditer.hasNext()||!freeParaiter.hasNext())
+						break;
 					  free=freeParaiter.next();
 					while(freeParaiter.hasNext()&&t2.depend_Pos.contains(FreeParaQueue.get(free).key))
 							free=freeParaiter.next();
+					
 					  pend=penditer.next();
 				}
 				
@@ -519,6 +522,8 @@ public class GapImprover {
 			while(pend>free)
 			{
 				recyclingEnhance+=pend-free;
+				if(!penditer.hasNext()||!freeParaiter.hasNext())
+					break;
 				  pend=penditer.next();
 				  free=freeParaiter.next();
 				while(freeParaiter.hasNext()&&All_depend_Pos.contains(FreeParaQueue.get(free).key))
@@ -581,6 +586,9 @@ public class GapImprover {
 				delectedPara.get(colid).add(common.getHashing(fpair.getValue(),0,fpair.getValue().length()));
 				
 				recyclingEnhance+=pend-free;
+				
+				if(!penditer.hasNext()||!freeParaiter.hasNext())
+					break;
 				  pend=penditer.next();
 				  free=freeParaiter.next();
 				while(freeParaiter.hasNext()&&All_depend_Pos.contains(FreeParaQueue.get(free).key))
