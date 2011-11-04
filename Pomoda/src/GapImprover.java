@@ -720,14 +720,14 @@ public class GapImprover {
 				//sort the dmer by desc prob£¬ and take top 3d as the dependency model 
 				int k=0;
 				double sumprob=0;
-				
+				t1.DprobMap.clear();
 				for(Double key:sorted_column.descendingKeySet())
 				{
 					k++;
 						t1.DprobMap.put(common.Hash2ACGT(sorted_column.get(key), dpos.size()), key);
 					sumprob+=key;
 
-					if(t1.DprobMap.size()==(num_top+1))// N already inside
+					if(t1.DprobMap.size()==(num_top))//
 						break;
 				}
 				t1.DprobMap.put("N", (1-sumprob)/(t1.dmerCount.length-num_top));
