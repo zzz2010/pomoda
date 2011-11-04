@@ -357,7 +357,7 @@ public class GapImprover {
 	
 	
 	// enable parameters recycling
-	public HashMap<HashSet<Integer>,HashMap<String,Double>> FindBest2(List<GapBGModelingThread> list,TreeMap<Double,KeyValuePair<Integer, String>> FreeParaQueue,double[][] m_matrix)
+	public HashMap<HashSet<Integer>,HashMap<String,Double>> FindBest2(List<GapBGModelingThread> list,TreeMap<Double,KeyValuePair<Integer, String>> FreeParaQueue,double[][] m_matrix, int[] translate)
 	{
 
 		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>,HashMap<String,Double>>();
@@ -407,11 +407,17 @@ public class GapImprover {
 				double free=10000;
 				if(FreeParaQueue.keySet().size()>0)
 					free=freeParaiter.next();
+				while(freeParaiter.hasNext()&&t2.depend_Pos.contains(FreeParaQueue.get(free).key))
+					free=freeParaiter.next();
 				while(pend>free)
 				{
+
 					recyclingEnhance+=pend-free;
-					  pend=penditer.next();
+					  
 					  free=freeParaiter.next();
+					while(freeParaiter.hasNext()&&t2.depend_Pos.contains(FreeParaQueue.get(free).key))
+							free=freeParaiter.next();
+					  pend=penditer.next();
 				}
 				
 				positiveThread.add(t2);
@@ -494,8 +500,10 @@ public class GapImprover {
 //////////////////////////parameters recycling////////////////////////
 			double recyclingEnhance=0;
 			TreeMap<Double,KeyValuePair<Integer, String>> PendingParas=new TreeMap<Double,KeyValuePair<Integer, String>>();
+			HashSet<Integer> All_depend_Pos=new HashSet<Integer>();
 			for(Integer tid:topElm)
 			{
+				All_depend_Pos.addAll(positiveThread.get(tid).depend_Pos);
 				PendingParas.putAll(positiveThread.get(tid).PendingParas);
 			}
 			Iterator<Double> penditer=PendingParas.descendingKeySet().iterator();
@@ -503,12 +511,18 @@ public class GapImprover {
 			double pend=penditer.next();
 			double free=10000;
 			if(FreeParaQueue.keySet().size()>0)
+			{
 				free=freeParaiter.next();
+				while(freeParaiter.hasNext()&&All_depend_Pos.contains(FreeParaQueue.get(free).key))
+					free=freeParaiter.next();
+			}
 			while(pend>free)
 			{
 				recyclingEnhance+=pend-free;
 				  pend=penditer.next();
 				  free=freeParaiter.next();
+				while(freeParaiter.hasNext()&&All_depend_Pos.contains(FreeParaQueue.get(free).key))
+						free=freeParaiter.next();
 			}
 			
 //////////////////////////parameters recycling////////////////////////			
@@ -529,9 +543,11 @@ public class GapImprover {
 			double recyclingEnhance=0;
 			TreeMap<Double,KeyValuePair<Integer, String>> PendingParas=new TreeMap<Double,KeyValuePair<Integer, String>>();
 			HashMap<Integer,Integer> hashcode2ThreadId=new HashMap<Integer, Integer>();
+			HashSet<Integer> All_depend_Pos=new HashSet<Integer>();
 			for(Integer tid:bestDgroups)
 			{
 				PendingParas.putAll(positiveThread.get(tid).PendingParas);
+				All_depend_Pos.addAll(positiveThread.get(tid).depend_Pos);
 				hashcode2ThreadId.put(positiveThread.get(tid).hashCode(), tid);
 			}
 			Iterator<Double> penditer=PendingParas.descendingKeySet().iterator();
@@ -539,7 +555,12 @@ public class GapImprover {
 			double pend=penditer.next();
 			double free=10000;
 			if(FreeParaQueue.keySet().size()>0)
+			{
 				free=freeParaiter.next();
+				
+				while(freeParaiter.hasNext()&&All_depend_Pos.contains(FreeParaQueue.get(free).key))
+					free=freeParaiter.next();
+			}
 			while(pend>free)
 			{
 				String dmer=PendingParas.get(pend).value;
@@ -548,15 +569,22 @@ public class GapImprover {
 				positiveThread.get(tid).KL_Divergence+=recyclingEnhance;
 				
 				KeyValuePair<Integer, String> fpair=FreeParaQueue.get(free);
-				if(!delectedPara.containsKey(fpair.key))
+				int colid=fpair.key;
+				if(colid>=0)
+					colid=translate[colid];
+				else
+					colid=0-colid-1;
+				if(!delectedPara.containsKey(colid))
 				{
-					delectedPara.put(fpair.getKey(), new HashSet<Integer>());
+					delectedPara.put(colid, new HashSet<Integer>());
 				}
-				delectedPara.get(fpair.getKey()).add(common.getHashing(fpair.getValue(),0,fpair.getValue().length()));
+				delectedPara.get(colid).add(common.getHashing(fpair.getValue(),0,fpair.getValue().length()));
 				
 				recyclingEnhance+=pend-free;
 				  pend=penditer.next();
 				  free=freeParaiter.next();
+				while(freeParaiter.hasNext()&&All_depend_Pos.contains(FreeParaQueue.get(free).key))
+						free=freeParaiter.next();
 			}
 			//recompute "N" entry
 			for(Integer id : bestDgroups)
@@ -1845,14 +1873,17 @@ public class GapImprover {
 			if(entropy<entropyThresh)
 			{				
 					start=i-motif.head;
-					conBases.add(start);					
-					TreeMap<Double,KeyValuePair<Integer, String>> paraslist=getFreeParaQueue( motif.m_matrix[start],start);
+					conBases.add(start);	
+					
+					//here untranslated column use negative colid, also recycle non-conserved bases later
+					TreeMap<Double,KeyValuePair<Integer, String>> paraslist=getFreeParaQueue( motif.m_matrix[start],-start-1);
 					for(Double key : paraslist.keySet())
 					{
 						FreeParaQueue.put(key, paraslist.get(key));
 					}
 					
 			}
+
 		}
 		motif.Prior_EZ=conBases.size();
 		System.out.println("Conserved Bases:"+conBases);
@@ -1908,6 +1939,16 @@ public class GapImprover {
 			translateTB[i]=Dj;
 			Dj++;
 		}
+		
+		// recycle non-conserved bases using positive colid
+		for (int i = 0; i <  translateTB.length; i++) {
+			TreeMap<Double,KeyValuePair<Integer, String>> paraslist=getFreeParaQueue( motif.m_matrix[translateTB[i]],i);
+			for(Double key : paraslist.keySet())
+			{
+				FreeParaQueue.put(key, paraslist.get(key));
+			}
+		}
+
 /******************************************************************************************/	
 		
 		
@@ -2014,7 +2055,7 @@ public class GapImprover {
 			if(!OOPG)
 			{
 				
-			Dmap.putAll( FindBest2(threadPool.subList(0, threadPool.size()),FreeParaQueue,motif.m_matrix));
+			Dmap.putAll( FindBest2(threadPool.subList(0, threadPool.size()),FreeParaQueue,motif.m_matrix,translateTB));
 			System.out.println("Final:"+threadPool.size());
 			threadPool.clear();
 			}
