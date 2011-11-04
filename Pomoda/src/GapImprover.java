@@ -409,7 +409,7 @@ public class GapImprover {
 					free=freeParaiter.next();
 				while(freeParaiter.hasNext()&&t2.depend_Pos.contains(FreeParaQueue.get(free).key))
 					free=freeParaiter.next();
-				while(pend>free)
+				while(pend>free+10*common.DoubleMinNormal)
 				{
 
 					recyclingEnhance+=pend-free;
@@ -519,7 +519,7 @@ public class GapImprover {
 				while(freeParaiter.hasNext()&&All_depend_Pos.contains(FreeParaQueue.get(free).key))
 					free=freeParaiter.next();
 			}
-			while(pend>free)
+			while(pend>free+10*common.DoubleMinNormal)
 			{
 				recyclingEnhance+=pend-free;
 				if(!penditer.hasNext()||!freeParaiter.hasNext())
@@ -566,7 +566,7 @@ public class GapImprover {
 				while(freeParaiter.hasNext()&&All_depend_Pos.contains(FreeParaQueue.get(free).key))
 					free=freeParaiter.next();
 			}
-			while(pend>free)
+			while(pend>free+10*common.DoubleMinNormal)
 			{
 				String dmer=PendingParas.get(pend).value;
 				int tid=hashcode2ThreadId.get(-PendingParas.get(pend).key);
@@ -766,6 +766,8 @@ public class GapImprover {
 					if(t1.DprobMap.size()==(num_top))//
 						break;
 				}
+				if(sumprob>1)
+					sumprob=1;
 				t1.DprobMap.put("N", (1-sumprob)/(t1.dmerCount.length-num_top));
 				
                 /////////////////parameters recycling/////////////////
