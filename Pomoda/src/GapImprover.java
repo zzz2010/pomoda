@@ -179,6 +179,7 @@ public class GapImprover {
 		else
 			SearchEngine.build_index(this.inputFasta);
 	
+		SearchEngine.num_thread=this.threadNum;
 		background=new BGModel();
 		File file=null;
 		int bg_markov_order=3;
@@ -1664,15 +1665,15 @@ public class GapImprover {
         			
         			 if(lastseq!=-1&&maxseq_score<=highthresh)
         			 {
-     				String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
-    				if(max_currloc.ReverseStrand)
-    					site=common.getReverseCompletementString(site);
-    				if(site!=null)
-    				{
-    					sites.add(site.toUpperCase());
-    					if(SearchEngine.seqWeighting!=null)
-    						siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
-    				}
+	     				String site=SearchEngine.getSite(max_currloc.getSeqId(), max_currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
+	    				if(max_currloc.ReverseStrand)
+	    					site=common.getReverseCompletementString(site);
+	    				if(site!=null)
+	    				{
+	    					sites.add(site.toUpperCase());
+	    					if(SearchEngine.seqWeighting!=null)
+	    						siteWeight.add(SearchEngine.seqWeighting.get(max_currloc.getSeqId()));
+	    				}
     				
     				//debug
     				//snull.add(max_currloc.Score+Math.log(0.25));
@@ -1689,7 +1690,7 @@ public class GapImprover {
         		 if(currloc.Score>highthresh)
         		 {
 	     				String site=SearchEngine.getSite(currloc.getSeqId(), currloc.getSeqPos()-FlankLen, motif.core_motiflen+2*FlankLen);
-	    				if(max_currloc.ReverseStrand)
+	    				if(currloc.ReverseStrand)
 	    					site=common.getReverseCompletementString(site);
 	    				if(site!=null)
 	    				{
