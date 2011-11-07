@@ -247,7 +247,7 @@ RenderingHints.VALUE_ANTIALIAS_ON);
 	                		}
 	                		else
 	                		{
-	                			totalEntropy+=-weight*Math.log(weight)*(Math.pow(4, groupsize)-groupAlphabet.size()+1);
+	                			totalEntropy+=-weight*Math.log(weight+common.DoubleMinNormal)*(Math.pow(4, groupsize)-groupAlphabet.size()+1);
 	                			sumprob+=weight*(Math.pow(4, groupsize)-groupAlphabet.size()+1);
 	                		}
 	                		dist.setWeight(sym, weight/sumweight); //treat N as only one instance, renormalized the weight
