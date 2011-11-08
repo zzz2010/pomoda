@@ -250,7 +250,9 @@ RenderingHints.VALUE_ANTIALIAS_ON);
 	                			totalEntropy+=-weight*Math.log(weight+common.DoubleMinNormal)*(Math.pow(4, groupsize)-groupAlphabet.size()+1);
 	                			sumprob+=weight*(Math.pow(4, groupsize)-groupAlphabet.size()+1);
 	                		}
-	                		dist.setWeight(sym, weight/sumweight); //treat N as only one instance, renormalized the weight
+	                		if(weight<0)
+	                			weight=0;
+	                		dist.setWeight(sym, weight/(sumweight+common.DoubleMinNormal)); //treat N as only one instance, renormalized the weight
 						}
 	                	  double informcontent= 2*groupsize- totalEntropy/Math.log(2.0);
 	                	  groupBits.put(wm.GroupId[pos], informcontent) ;
