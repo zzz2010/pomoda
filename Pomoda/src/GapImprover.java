@@ -1641,6 +1641,7 @@ public class GapImprover {
 	{
 		//get a set of instance strings, assume they are all real binding site
 		LinkedList<String> sites=new LinkedList<String>();
+		
 		ArrayList<Double> siteWeight=null;
 		if(SearchEngine.seqWeighting!=null)
 			siteWeight=new ArrayList<Double>(SearchEngine.ForwardStrand.size());
@@ -1712,6 +1713,8 @@ public class GapImprover {
 			}
 			//debug
 			//snull.add(max_currloc.Score+Math.log(0.25));
+			
+			System.out.println("number of covered sequences: "+seqcount);
 			
 		}
 		else
@@ -2563,8 +2566,33 @@ public class GapImprover {
 				{
 					PWM rawpwm=iter.next();
 					System.out.println(rawpwm.Consensus(true));
+					
+			
 					if(GImprover.removeBG)
 						GImprover.SearchEngine.EnableBackground(GImprover.background);
+					
+					int lastcount=0;
+					int currentcount=10;
+					int loopcount=0;
+					//prior PWM refine loop
+					while((currentcount-lastcount)>1&&loopcount<30)
+					{
+						lastcount=currentcount;
+						loopcount++;
+						KeyValuePair<LinkedList<String>, ArrayList<Double>> retpair=GImprover.querySites(rawpwm);
+						currentcount=retpair.key.size();
+						try {
+							rawpwm=new PWM(retpair.key.toArray(new String[1]));
+						} catch (IllegalAlphabetException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (IllegalSymbolException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+					
+					
 					GapPWM gpwm=null;
 					if(version==2)
 						gpwm=GImprover.fillDependency3(rawpwm);
