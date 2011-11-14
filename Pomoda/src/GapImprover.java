@@ -2574,6 +2574,8 @@ public class GapImprover {
 					int lastcount=0;
 					int currentcount=10;
 					int loopcount=0;
+					int oldflank=GImprover.FlankLen;
+					GImprover.FlankLen=0;
 					//prior PWM refine loop
 					while((currentcount-lastcount)>1&&loopcount<30)
 					{
@@ -2591,7 +2593,7 @@ public class GapImprover {
 							e.printStackTrace();
 						}
 					}
-					
+					GImprover.FlankLen=oldflank;
 					
 					GapPWM gpwm=null;
 					if(version==2)
