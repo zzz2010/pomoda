@@ -2571,6 +2571,7 @@ public class GapImprover {
 					if(GImprover.removeBG)
 						GImprover.SearchEngine.EnableBackground(GImprover.background);
 					
+					String oldname=rawpwm.Name;
 					int lastcount=0;
 					int currentcount=10;
 					int loopcount=0;
@@ -2611,7 +2612,7 @@ public class GapImprover {
 
 					if(rawpwm.Prior_EZ<5)//the conserved bases number less than 5
 						gpwm=GImprover.refineGapPWM(gpwm);
-					gpwm.Name="GPimpover_"+rawpwm.Name;
+					gpwm.Name="GPimpover_"+oldname;
 					GImprover.SearchEngine.DisableBackground();
 					System.out.print("Original Motif:");
 					GImprover.AUCtest(rawpwm);
