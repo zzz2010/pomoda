@@ -2597,9 +2597,18 @@ public class GapImprover {
 					
 					GapPWM gpwm=null;
 					if(version==2)
+					{
 						gpwm=GImprover.fillDependency3(rawpwm);
+						GImprover.FlankLen=0;
+						gpwm=GImprover.fillDependency3(gpwm);
+					}
 					if(version==1)
+					{
 						gpwm=GImprover.fillDependency2(rawpwm);
+						GImprover.FlankLen=0;
+						gpwm=GImprover.fillDependency2(gpwm);
+					}
+
 					if(rawpwm.Prior_EZ<5)//the conserved bases number less than 5
 						gpwm=GImprover.refineGapPWM(gpwm);
 					gpwm.Name="GPimpover_"+rawpwm.Name;
