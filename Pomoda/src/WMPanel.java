@@ -242,7 +242,8 @@ RenderingHints.VALUE_ANTIALIAS_ON);
 	                		if(dprobs.containsKey(key))
 	                		{
 	                			weight=dprobs.get(key);
-	                		totalEntropy+=-weight*Math.log(weight);
+	                			if(weight>0)
+	                				totalEntropy+=-weight*Math.log(weight);
 	                		sumprob+=weight;
 	                		}
 	                		else
