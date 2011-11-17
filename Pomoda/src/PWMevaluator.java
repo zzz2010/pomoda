@@ -1046,6 +1046,7 @@ public class PWMevaluator {
 		boolean genrand=false;
 		boolean multiscore_flag=false;
 		boolean convertflag=false;
+		PWM.infothresh=0;  //without cutting the flanking position
 		
 		LinkedList<PWM> PWMLibrary=null;
 		int topN=1000000;
