@@ -328,12 +328,15 @@ public class GapPWM extends PWM {
 			{
 				double prob=Dgroup_DmerProb.get(i+1).get(dmers[i]);
 				if(prob==0.0)
-					prob=Dgroup_DmerProb.get(i+1).get("N");
+					prob+=common.DoubleMinNormal;
 				score+=Math.log(prob);
 			}
 			else
 			{
-				score+=Math.log(Dgroup_DmerProb.get(i+1).get("N"));
+				double prob=Dgroup_DmerProb.get(i+1).get("N");
+				if(prob==0.0)
+					prob+=common.DoubleMinNormal;
+				score+=Math.log(prob);
 			}
 		}
          
