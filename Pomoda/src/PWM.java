@@ -564,7 +564,7 @@ public class PWM extends SimpleWeightMatrix {
 			bgmodel=BGModel.CreateUniform();
 			
 		}
-		if((num_sampl)>num_path)//zzz
+		if(false)//zzz  (num_sampl)>num_path
 		{
 
 			LinkedList<Map.Entry<Double,String>> inst=GenerateInstanceFromPWMPQ(sampleratio, FDRthresh, bgmodel);
@@ -606,7 +606,7 @@ public class PWM extends SimpleWeightMatrix {
 			//strictly in FDR
 			double thresh=scorelist.get((int)Math.floor(num_sampl*(1-FDRthresh)));
 
-			if(strict)
+			if(strict&&thresh<scorelist.get(num_sampl-1))
 				thresh+=common.DoubleMinNormal;
 			return thresh;
 			
