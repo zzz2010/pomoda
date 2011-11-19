@@ -418,7 +418,7 @@ public class PWMevaluator {
          while(iter2.hasNext())
          {
         	 int len=iter2.next().length();
-        	 for (int i = 0; i < BGFold; i++) {
+        	 for (int i = 0; i < 1; i++) { //dont consider bgfold in AUC
 
 	        	 String bgstr="";
 	        	 if(removeBG)
