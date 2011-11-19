@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.TreeMap;
 
 
@@ -2565,7 +2566,7 @@ public class GapImprover {
 				while(iter.hasNext())
 				{
 					PWM rawpwm=iter.next();
-					System.out.println(rawpwm.Consensus(true));
+					System.out.println(rawpwm.Name+" : "+rawpwm.Consensus(true));
 					
 			
 					if(GImprover.removeBG)
@@ -2619,7 +2620,7 @@ public class GapImprover {
 					System.out.print("Improved Motif:");
 					double score=GImprover.AUCtest(gpwm);
 					gpwm.Score=score;
-					sortedPWMs.put(score, gpwm);
+					sortedPWMs.put(score+gpwm.Name.hashCode()*common.DoubleMinNormal, gpwm);
 					if(GImprover.PBMflag)
 					{
 						double corr1=GImprover.CorrelationTest(rawpwm);
@@ -2630,7 +2631,7 @@ public class GapImprover {
 					}
 					
 				}
-				System.out.println("Writing the DPWM file");
+				System.out.println("Writing the DPWM file: "+sortedPWMs.size());
 				for(Double key:sortedPWMs.descendingKeySet())
 				{
 					writer.write(sortedPWMs.get(key).toString());
