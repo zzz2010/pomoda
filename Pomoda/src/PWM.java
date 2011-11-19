@@ -608,6 +608,8 @@ public class PWM extends SimpleWeightMatrix {
 
 			if(strict&&thresh<scorelist.get(num_sampl-1))
 				thresh+=common.DoubleMinNormal;
+			if(thresh==scorelist.get(num_sampl-1))
+				thresh-=common.DoubleMinNormal;
 			return thresh;
 			
 			
