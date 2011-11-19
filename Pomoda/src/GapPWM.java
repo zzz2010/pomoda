@@ -326,7 +326,10 @@ public class GapPWM extends PWM {
         	 dmers[i]=dmers[i].toUpperCase();
 			if(Dgroup_DmerProb.get(i+1).containsKey(dmers[i]))
 			{
-				score+=Math.log(Dgroup_DmerProb.get(i+1).get(dmers[i]));
+				double prob=Dgroup_DmerProb.get(i+1).get(dmers[i]);
+				if(prob==0.0)
+					prob=Dgroup_DmerProb.get(i+1).get("N");
+				score+=Math.log(prob);
 			}
 			else
 			{
