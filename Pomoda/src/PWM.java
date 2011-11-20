@@ -591,7 +591,7 @@ public class PWM extends SimpleWeightMatrix {
 			//double sumProb=0;
 			while(count<num_sampl)
 			{
-			 KeyValuePair<Double, String>	sample=bgmodel.generateRandomSequence(Consensus.length());
+			 KeyValuePair<Double, String>	sample=bgmodel.generateRandomSequence(this.core_motiflen);
 				//sumfdr+=sample.getKey();
 				double score=scoreWeightMatrix(sample.getValue());
 				double score2=scoreWeightMatrix(common.getReverseCompletementString(sample.getValue()));
@@ -606,10 +606,12 @@ public class PWM extends SimpleWeightMatrix {
 			//strictly in FDR
 			double thresh=scorelist.get((int)Math.floor(num_sampl*(1-FDRthresh)));
 
+			//int cutoff=Collections.binarySearch(scorelist, thresh);
 			if(strict&&thresh<scorelist.get(num_sampl-1))
 				thresh+=common.DoubleMinNormal;
-			if(thresh==scorelist.get(num_sampl-1))
-				thresh-=common.DoubleMinNormal;
+			
+//			if(thresh==scorelist.get(num_sampl-1))
+//				thresh-=common.DoubleMinNormal;
 			return thresh;
 			
 			

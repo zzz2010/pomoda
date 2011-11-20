@@ -214,6 +214,64 @@ public class GapPWM extends PWM {
 		return pwm;
 	}
 	
+	
+	
+	@Override
+	public String Consensus(boolean trim) {
+		String consensus="";
+		String  ACGT="ACGT";
+		for (int i = 0; i < this.columns(); i++) {
+			StringBuffer sb=new StringBuffer("");
+			for (int j = 1; j<= 4; j++)
+			{  
+				double weight=m_matrix[i][j-1];
+				if(weight>(bg_prob[j-1]+0.01)&&weight!=0.25)//side effect control extending length
+					sb.append(ACGT.charAt(j-1));
+					
+			}
+			String consensus_pattern=sb.toString();
+			if(consensus_pattern.equalsIgnoreCase( "" )) {consensus = consensus + "N"; }
+			else if (consensus_pattern.equalsIgnoreCase( "A") ) { consensus = consensus + "A"; }
+			else if (consensus_pattern.equalsIgnoreCase("C")  )	{ consensus = consensus + "C"; }
+			else if (consensus_pattern.equalsIgnoreCase( "G" ))	{ consensus = consensus + "G"; }
+			else if (consensus_pattern.equalsIgnoreCase( "T" ))	{ consensus = consensus + "T"; }
+			else if (consensus_pattern.equalsIgnoreCase( "AC" ))	{ consensus = consensus + "M"; }
+			else if (consensus_pattern.equalsIgnoreCase( "AG" ))	{ consensus = consensus + "R"; }
+			else if (consensus_pattern.equalsIgnoreCase( "AT" ))	{ consensus = consensus + "W"; }
+			else if (consensus_pattern.equalsIgnoreCase( "CG" ))	{ consensus = consensus + "S"; }
+			else if (consensus_pattern.equalsIgnoreCase( "CT" ))	{ consensus = consensus + "Y"; }
+			else if (consensus_pattern.equalsIgnoreCase( "GT" ))	{ consensus = consensus + "K"; }
+			else if (consensus_pattern.equalsIgnoreCase( "ACG" ))	{ consensus = consensus + "V"; }
+			else if (consensus_pattern.equalsIgnoreCase( "ACT" ))	{ consensus = consensus + "H"; }
+			else if (consensus_pattern.equalsIgnoreCase( "AGT" ))	{ consensus = consensus + "D"; }
+			else if (consensus_pattern.equalsIgnoreCase( "CGT" ))	{ consensus = consensus + "B"; }
+			
+		}
+
+		int start,end;
+		start=-1;
+			end=0;
+		for (int i = 0; i < consensus.length(); i++) {
+			if(consensus.charAt(i)!='N'& start==-1)
+				start=i;
+			if(consensus.charAt(consensus.length()-i-1)!='N'& end==0)
+				end=consensus.length()-i;
+		}
+
+		if(trim)
+		{
+			if(start>-1)
+		   consensus=consensus.substring(start,end);
+			else
+			{
+				 consensus=consensus.substring(0,core_motiflen);
+			}
+
+		}
+
+	
+		return consensus;
+	}
 	public static GapPWM createGapPWM(PWM pwm,HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap, int FlankLen )
 	{
 		GapPWM ret=null;
