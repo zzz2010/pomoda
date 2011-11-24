@@ -1658,6 +1658,8 @@ public class GapImprover {
         	 double maxseq_score=	Double.NEGATIVE_INFINITY;
         	 FastaLocation max_currloc=null;
         	 //take the best occurrences above 1.5 and all sites above 3.0
+        	 if(falocs.size()<10)
+        		 return null;
         	 while(iter.hasNext())
         	 {
         		 FastaLocation currloc=iter.next();
@@ -2584,6 +2586,12 @@ public class GapImprover {
 						lastcount=currentcount;
 						loopcount++;
 						KeyValuePair<LinkedList<String>, ArrayList<Double>> retpair=GImprover.querySites(rawpwm);
+						if(retpair==null)
+						{
+							System.out.println("Bad Motif: "+oldname);
+							rawpwm=null;
+							break;
+						}
 						currentcount=retpair.key.size();
 						try {
 							rawpwm=new PWM(retpair.key.toArray(new String[1]));
@@ -2596,38 +2604,40 @@ public class GapImprover {
 						}
 					}
 					GImprover.FlankLen=oldflank;
-					
-					GapPWM gpwm=null;
-					if(version==2)
+					if(rawpwm!=null)
 					{
-						gpwm=GImprover.fillDependency3(rawpwm);
-						GImprover.FlankLen=0;
-						gpwm=GImprover.fillDependency3(gpwm);
-					}
-					if(version==1)
-					{
-						gpwm=GImprover.fillDependency2(rawpwm);
-						GImprover.FlankLen=0;
-						gpwm=GImprover.fillDependency2(gpwm);
-					}
-
-					if(rawpwm.Prior_EZ<5)//the conserved bases number less than 5
-						gpwm=GImprover.refineGapPWM(gpwm);
-					gpwm.Name="GPimpover_"+oldname;
-					GImprover.SearchEngine.DisableBackground();
-					System.out.print("Original Motif:");
-					GImprover.AUCtest(rawpwm);
-					System.out.print("Improved Motif:");
-					double score=GImprover.AUCtest(gpwm);
-					gpwm.Score=score;
-					sortedPWMs.put(score+gpwm.Name.hashCode()*common.DoubleMinNormal, gpwm);
-					if(GImprover.PBMflag)
-					{
-						double corr1=GImprover.CorrelationTest(rawpwm);
-						System.out.println("Original Motif Correlation with Signal:"+corr1);
-						
-						double corr2=GImprover.CorrelationTest(gpwm);
-						System.out.println("Improved Motif Correlation with Signal:"+corr2);
+						GapPWM gpwm=null;
+						if(version==2)
+						{
+							gpwm=GImprover.fillDependency3(rawpwm);
+							GImprover.FlankLen=0;
+							gpwm=GImprover.fillDependency3(gpwm);
+						}
+						if(version==1)
+						{
+							gpwm=GImprover.fillDependency2(rawpwm);
+							GImprover.FlankLen=0;
+							gpwm=GImprover.fillDependency2(gpwm);
+						}
+	
+						if(rawpwm.Prior_EZ<5)//the conserved bases number less than 5
+							gpwm=GImprover.refineGapPWM(gpwm);
+						gpwm.Name="GPimpover_"+oldname;
+						GImprover.SearchEngine.DisableBackground();
+						System.out.print("Original Motif:");
+						GImprover.AUCtest(rawpwm);
+						System.out.print("Improved Motif:");
+						double score=GImprover.AUCtest(gpwm);
+						gpwm.Score=score;
+						sortedPWMs.put(score+gpwm.Name.hashCode()*common.DoubleMinNormal, gpwm);
+						if(GImprover.PBMflag)
+						{
+							double corr1=GImprover.CorrelationTest(rawpwm);
+							System.out.println("Original Motif Correlation with Signal:"+corr1);
+							
+							double corr2=GImprover.CorrelationTest(gpwm);
+							System.out.println("Improved Motif Correlation with Signal:"+corr2);
+						}
 					}
 					
 				}
