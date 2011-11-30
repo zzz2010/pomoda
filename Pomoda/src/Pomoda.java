@@ -359,7 +359,7 @@ public class Pomoda {
 
 			
 			GapImprover gimprover=new GapImprover(this);
-			GapPWM gPWM=gimprover.fillDependency(AR.get(3));
+			GapPWM gPWM=gimprover.fillDependency2(AR.get(3));
 			double gthresh=gPWM.getThresh(sampling_ratio, FDR, background);
 			LinkedList<FastaLocation> falocs=SearchEngine2.searchPattern(gPWM, gthresh);
 			int dd=falocs.size();
