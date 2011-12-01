@@ -17,8 +17,8 @@ import umontreal.iro.lecuyer.probdist.ChiSquareDist;
 public class GapOptimalModelingThread extends GapBGModelingThread {
 
 	
-	static boolean ParaRecyclFlag=false;
-	TreeMap<Double,ConstrainBlock> Pending=null;
+	static int ParaRecyclNum=0;
+	ArrayList<ConstrainBlock> PendingConstrainBlocks=null;
 	
 	public GapOptimalModelingThread(HashMap<String, Double> gapmerCount,
 			PWM sitePWM, HashSet<Integer> depend_pos, BGModel bg) {
@@ -27,12 +27,25 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 	}
 	
 	
-	static TreeMap<Double,ConstrainBlock> getConstrainBlockQueue(double[] dmerProb, int colid)
+	static ArrayList<ConstrainBlock> getConstrainBlockQueue(double[] dmerProb, int startNum)
 	{
+		TreeMap<Double, Integer> sortedProbMap=new TreeMap<Double, Integer>();
+		ArrayList<ConstrainBlock> CBlist=new ArrayList<ConstrainBlock>(Math.min(ParaRecyclNum, dmerProb.length-startNum));
+		for (int i = 0; i < dmerProb.length; i++) {
+			sortedProbMap.put(dmerProb[i], i);
+		}
 		
+		Double[] sortedProb=sortedProbMap.keySet().toArray(new Double[1]);
+		for (int i = 1; i < Math.min(ParaRecyclNum, sortedProb.length-startNum); i++) {
+			double[] bounds=findOptimalKconstrainEntries(sortedProb,sortedProb.length-startNum-i);
+			ConstrainBlock  CB=new ConstrainBlock();
+			CB.lowerbound=bounds[0];
+			CB.upperbound=bounds[1];
+			CB.KL=bounds[2];
+			CBlist.add(CB);
+		}
 		
-		
-		return null;
+		return CBlist;
 		
 	}
 
@@ -40,9 +53,9 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 	
 	
 	
-	static double[] findOptimalKconstrainEntries(double[] sorteddmerProb, int k)
+	static double[] findOptimalKconstrainEntries(Double[] sorteddmerProb, int k)
 	{
-		double[] bound=new double[2];
+		double[] bound=new double[3];
 		//KL_j=sum_{i=j}^{j+k}{P_i*log(P_i)}-k*m_j*log(m_j)
 		//m_{j+1}=(k*m_j-P_j+P_{j+k+1})/k
 		//KL_{j+1}=KL_j+P_{j+k+1}*log(P_{j+k+1})-P_j*log(P_j)+k*m_j*log(m_j)-k*m_{j+1}*log(m_{j+1})
@@ -81,6 +94,7 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 		
 		bound[0]=sorteddmerProb[minIndex];
 		bound[1]=sorteddmerProb[minIndex+k-1];
+		bound[2]=minKL;
 		return bound;
 	}
 	
@@ -170,7 +184,7 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 		
 		double sumprob=0;
 		
-		double[] sorteddmerProb=ArrayUtils.toPrimitive(sorted_column.keySet().toArray(new Double[1]));
+		Double[] sorteddmerProb=sorted_column.keySet().toArray(new Double[1]);
 		double[] bounds=findOptimalKconstrainEntries(sorteddmerProb, sorteddmerProb.length-num_top);
 		if(depend_Pos.contains(5)&&depend_Pos.contains(0)&&depend_Pos.size()==2)
 			sumprob=0;
@@ -253,21 +267,15 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 
 		}
 		
-		chisqPvalue=1-chisqTest(dmerCount,gapmerCount.size(),gapPWM,sorteddpos);
-		//parameter recycling
-		if(depend_Pos.size()>1&&chisqPvalue<0.05&&ParaRecyclFlag)
+		if(depend_Pos.size()>1)
 		{
-			PendingParas=new TreeMap<Double, KeyValuePair<Integer,String>>();
-			TreeMap<Double,KeyValuePair<Integer, String>> paraslist=GapImprover.getFreeParaQueue( dmerCount,-this.hashCode());
-			int k=0;  //take |dmerCount|-topNum
-			for(Double key:paraslist.keySet())
+			chisqPvalue=1-chisqTest(dmerCount,gapmerCount.size(),gapPWM,sorteddpos);
+			//parameter recycling
+			if(chisqPvalue<0.05&&ParaRecyclNum>0)
 			{
-				k++;
-				if(paraslist.size()-PendingParas.size()==num_top)
-					break;
-				PendingParas.put(key, paraslist.get(key));
+				PendingConstrainBlocks=getConstrainBlockQueue(dmerCount,DprobMap.size()-1 );
+							
 			}
-			
 		}
   
 		
@@ -278,7 +286,7 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 	 public static void main(String[] args) 
 	{
 		int dim=4;
-		double[] testarray=new double[]{0.01,0.15,0.15,0.19,0.2,0.3};
+		Double[] testarray=new Double[]{0.01,0.15,0.15,0.19,0.2,0.3};
 		double[] bounds=findOptimalKconstrainEntries(testarray,3);
 		System.out.println(Arrays.toString(bounds));
 		

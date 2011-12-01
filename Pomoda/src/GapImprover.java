@@ -416,7 +416,7 @@ public class GapImprover {
 
 					recyclingEnhance+=pend-free;
 					  
-					if(!penditer.hasNext()||!freeParaiter.hasNext())
+					if(!penditer.hasNext()||!freeParaiter.hasNext()) 
 						break;
 					  free=freeParaiter.next();
 					while(freeParaiter.hasNext()&&t2.depend_Pos.contains(FreeParaQueue.get(free).key))

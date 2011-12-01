@@ -1,8 +1,9 @@
 
 public class ConstrainBlock {
 
-	int columId;
+//	int columId;
 	double lowerbound;
 	double upperbound;
+	double KL;
 	
 }
