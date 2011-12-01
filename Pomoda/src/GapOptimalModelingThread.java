@@ -26,7 +26,7 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 		// TODO Auto-generated constructor stub
 	}
 	
-	
+	//startNum is the original free parameter number 3k
 	static ArrayList<ConstrainBlock> getConstrainBlockQueue(double[] dmerProb, int startNum)
 	{
 		TreeMap<Double, Integer> sortedProbMap=new TreeMap<Double, Integer>();
