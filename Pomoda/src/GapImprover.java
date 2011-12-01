@@ -26,6 +26,7 @@ import org.biojava.bio.dist.UniformDistribution;
 import org.biojava.bio.seq.DNATools;
 import org.biojava.bio.symbol.IllegalAlphabetException;
 import org.biojava.bio.symbol.IllegalSymbolException;
+import org.jgrapht.graph.SimpleGraph;
 
 
 
@@ -204,6 +205,9 @@ public class GapImprover {
 
 		
 	}
+	
+	
+	
 	
 	//allow multi dep-group in the same region, need to try different combinations
 	public HashMap<HashSet<Integer>,HashMap<String,Double>> FindBest(List<GapBGModelingThread> list)
@@ -1425,7 +1429,8 @@ public class GapImprover {
 			if(!OOPG)
 			{
 				
-			Dmap.putAll( FindBest(threadPool.subList(0, threadPool.size())));
+		//	Dmap.putAll( FindBest(threadPool.subList(0, threadPool.size())));
+			Dmap.putAll( DependencyCombination.FindBest_1(threadPool.subList(0, threadPool.size())));
 			System.out.println("Final:"+threadPool.size());
 			threadPool.clear();
 			}
@@ -1557,6 +1562,383 @@ public class GapImprover {
 			gapPWM=GapPWM.createGapPWM(motif.subPWM( motif.head,motif.head+motif.core_motiflen), Dmap,FlankLen);
 		else
 			gapPWM=GapPWM.createGapPWM(dataPWM.subPWM(FlankLen,dataPWM.columns()-FlankLen), Dmap,FlankLen);
+//		if(gapPWM.core_motiflen!=motif.core_motiflen&&sites.size()>0)
+//		{
+//			motif=new PWM(sites.toArray(new String[1]));
+//			gapPWM=GapPWM.createGapPWM(motif.subPWM(FlankLen,motif.columns()-FlankLen), Dmap,FlankLen);
+//			motif=motif.subPWM(gapPWM.head, gapPWM.head+gapPWM.core_motiflen);
+//		}
+		dataPWM.head=gapPWM.head;
+		dataPWM.core_motiflen=gapPWM.core_motiflen;
+		dataPWM.tail=dataPWM.columns()-dataPWM.core_motiflen-dataPWM.head;
+		
+		if(siteWeight!=null)
+		{
+			System.out.println("orginal KL:"+KL_Divergence_empirical(sites,siteWeight, dataPWM,gapPWM.head) +"\timproved KL:"+KL_Divergence_empirical(sites,siteWeight, gapPWM,gapPWM.head));
+		}
+		else
+		System.out.println("orginal KL:"+KL_Divergence_empirical(sites, dataPWM,gapPWM.head) +"\timproved KL:"+KL_Divergence_empirical(sites, gapPWM,gapPWM.head));
+		
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		
+		return gapPWM;
+	}
+	
+	
+	//enable the parameter recycling , optimal mode
+	public GapPWM fillDependency2_1(PWM motif)
+	{
+		GapPWM gapPWM=null;
+		if(!is_bsitedata)
+		motif.Consensus(true);
+
+		//get a set of instance strings, assume they are all real binding site
+		LinkedList<String> sites=null;
+		ArrayList<Double> siteWeight=null;
+
+		if(!is_bsitedata)
+		{
+			KeyValuePair<LinkedList<String>, ArrayList<Double>> retpair=querySites(motif);
+			sites=retpair.key;
+			siteWeight=retpair.value;
+		}
+		else
+		{
+			//directly use the sequences as binding sites
+			sites=SearchEngine.ForwardStrand;
+			if(SearchEngine.seqWeighting!=null)
+				siteWeight=SearchEngine.seqWeighting;
+			
+		}
+		
+		System.out.println("Number of Sites:"+sites.size());
+		if(sites.size()<3)
+			return GapPWM.createGapPWM(motif, new HashMap<HashSet<Integer>, HashMap<String,Double>>(),0);;
+		PWM dataPWM=null;
+		try {
+			if(SearchEngine.seqWeighting!=null)
+				dataPWM=PWM.createPWM(sites.toArray(new String[1]), siteWeight.toArray(new Double[1]));
+			else
+				dataPWM=new PWM(sites.toArray(new String[1]));
+		} catch (IllegalAlphabetException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IllegalSymbolException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		if(dataPWM==null)
+			dataPWM=motif;
+		if(motif==null||FlankLen>0)
+			motif=dataPWM;
+	
+		//sorted Free parameter queue
+		TreeMap<Double,KeyValuePair<Integer, String>> FreeParaQueue=new TreeMap<Double,KeyValuePair<Integer, String>>();
+		//detect  conserved bases
+		HashSet<Integer> conBases=new HashSet<Integer>();
+		int start=-1;
+		for (int i = motif.head; i < motif.head+motif.core_motiflen; i++) {
+			double entropy=0;
+			if(i<0||i>=motif.columns())
+				entropy=2;
+			else
+				entropy=DistributionTools.totalEntropy(motif.getColumn(i-motif.head)) ;//use motif to determine conserved base
+			if(entropy<entropyThresh)
+			{				
+					start=i-motif.head;
+					conBases.add(start);	
+					
+					//here untranslated column use negative colid, also recycle non-conserved bases later
+					TreeMap<Double,KeyValuePair<Integer, String>> paraslist=getFreeParaQueue( motif.m_matrix[start],-start-1);
+					for(Double key : paraslist.keySet())
+					{
+						FreeParaQueue.put(key, paraslist.get(key));
+					}
+					
+			}
+
+		}
+		motif.Prior_EZ=conBases.size();
+		System.out.println("Conserved Bases:"+conBases);
+		if(conBases.size()>(motif.columns()-2))
+			return GapPWM.createGapPWM(motif, new HashMap<HashSet<Integer>, HashMap<String,Double>>(),0);
+			
+/******************************************************************************************/		
+		//transate : remove the Conserved Columns and do again.
+		
+		LinkedList<String> sites2=new LinkedList<String>();
+		for(String site:sites)
+		{
+			StringBuilder sb=new StringBuilder();
+			for (int i = 0; i < site.length(); i++) {
+				if(!conBases.contains(i))
+				{
+					sb.append(site.charAt(i));
+				}
+			}
+			sites2.add(sb.toString());
+		}
+		PWM dataPWM2=null;
+		HashSet<Integer> conBases2=new HashSet<Integer>(conBases);
+		conBases.clear();
+		try {
+			if(SearchEngine.seqWeighting!=null)
+				dataPWM2=PWM.createPWM(sites2.toArray(new String[1]), siteWeight.toArray(new Double[1]));
+			else
+				dataPWM2=new PWM(sites2.toArray(new String[1]));
+			
+			PWM temp=dataPWM;
+			dataPWM=dataPWM2;
+			dataPWM2=temp;
+			LinkedList<String> tempsites=null;
+			tempsites=sites;
+			sites=sites2;
+			sites2=tempsites;
+			
+		} catch (IllegalAlphabetException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IllegalSymbolException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		int[] translateTB=new int[dataPWM.columns()];
+		int Dj=0;
+		for (int i = 0; i < translateTB.length; i++) {
+			while(conBases2.contains(Dj))
+			{
+				Dj++;
+			}
+			translateTB[i]=Dj;
+			Dj++;
+		}
+		
+		// recycle non-conserved bases using positive colid
+		for (int i = 0; i <  translateTB.length; i++) {
+			TreeMap<Double,KeyValuePair<Integer, String>> paraslist=getFreeParaQueue( motif.m_matrix[translateTB[i]],i);
+			for(Double key : paraslist.keySet())
+			{
+				FreeParaQueue.put(key, paraslist.get(key));
+			}
+		}
+
+/******************************************************************************************/	
+		
+		
+		try {
+		//find the best dependency modeling in each gap region
+		LinkedList<GapBGModelingThread> threadPool=new LinkedList<GapBGModelingThread>();
+		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>,HashMap<String,Double>>();
+		if(sites.size()>0)
+		{
+			
+		//consider the whole motif length	
+			HashMap<String, Double> sitecountMap=getSitemerFrequency(sites, siteWeight);
+			int combinNum=(1<<Math.min(max_gaplen-1,dataPWM.columns()))*Math.max(1, dataPWM.columns()-max_gaplen+2); //+2 due to need a final to represent start point not in dep-group
+		//Threads Pool
+			PooledExecutor executor = new PooledExecutor(new LinkedQueue());
+			executor.setMinimumPoolSize(threadNum);
+			executor.setKeepAliveTime(-1);
+			
+			//add non-dep group thread
+			HashSet<Integer> dpos=new HashSet<Integer>();
+			GapBGModelingThread t1=null;
+			if(removeBG)
+				t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight));//null mean not considering BG
+			else
+				 t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight));//null mean not considering BG
+			if(combinNum<=100||threadNum==1)
+				t1.run();
+			else
+			{
+			executor.execute(t1);
+			}
+			threadPool.add(t1);
+			
+			
+		 {
+			int gstart=0;
+			int gend=dataPWM.columns();
+			//each block assume the start base must in the dep-group,so only max_gaplen-1 binary length to consider
+		
+			
+			int shift=0;//move the max_gaplen along the positions
+			int blocksize=1<<(max_gaplen-1);
+			for (int j = 0; j < combinNum; j++) {
+				 dpos=new HashSet<Integer>();
+				int bcode=j%blocksize;
+				boolean convflag=false;
+				shift=j/blocksize;
+				if(shift!=(dataPWM.columns()-max_gaplen+1)&&dataPWM.columns()>=max_gaplen)
+				{
+					if(!conBases.contains(shift))
+					{
+						dpos.add(shift);
+					}
+					else 
+						continue;
+				}
+				else
+					shift--;//the final block
+				
+				int blocklen=Math.min(max_gaplen-1,dataPWM.columns());
+				for (int j2 = 0; j2 < blocklen; j2++) {
+					if(bcode%2==0)
+					{
+						dpos.add(j2+shift+1);
+						if(conBases.contains(j2+shift+1))
+						{
+							convflag=true;
+							break;
+						}
+					}
+					bcode>>=1;
+				}
+				if(dpos.size()<2||convflag)
+					continue;
+				 t1=null;
+				if(removeBG)
+					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight);//null mean not considering BG
+				else
+					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight);//null mean not considering BG
+				if(combinNum<=100||threadNum==1)
+					t1.run();
+				else
+				{
+				executor.execute(t1);
+				}
+	
+				threadPool.add(t1);
+			}
+
+			
+//			 Wait until all threads are finish
+			if(combinNum>100&&threadNum!=1)
+			{
+			executor.shutdownAfterProcessingCurrentlyQueuedTasks();
+			executor.awaitTerminationAfterShutdown();
+			}
+			if(!OOPG)
+			{
+				
+			Dmap.putAll( FindBest2(threadPool.subList(0, threadPool.size()),FreeParaQueue,motif.m_matrix,translateTB));
+			System.out.println("Final:"+threadPool.size());
+			threadPool.clear();
+			}
+		}
+		
+		}
+	
+		Iterator<GapBGModelingThread> iter3=threadPool.iterator();
+		 start=-1;
+		double minKL=Double.MAX_VALUE;
+		GapBGModelingThread bestThread=null;
+		
+		GapBGModelingThread[] Pos_BestThread=new GapBGModelingThread[motif.core_motiflen+2*FlankLen];
+		
+		if(OOPG)
+		while(iter3.hasNext())
+		{
+			//find different flexible combinations in the same gap region(not allow two dependency group share the same position)
+			GapBGModelingThread t1=iter3.next();	
+				t1.join();
+				if(t1.depend_Pos.size()==0)
+				{
+					//print PWM case, no dependancy 
+					System.out.println(t1.toString());
+					//snull=t1.debuglist;
+				}
+				if(t1.gapStart!=start)
+				{
+					start=t1.gapStart;
+					minKL=t1.KL_Divergence;
+					if(bestThread!=null)
+					{
+						System.out.println("best:"+bestThread.toString());
+						if(bestThread.depend_Pos.size()>1)
+						{
+							Dmap.put(bestThread.depend_Pos, bestThread.DprobMap);
+							
+						}
+					}
+					bestThread=t1;
+				}
+				else 
+				{
+					if(t1.KL_Divergence<minKL)
+					{
+						minKL=t1.KL_Divergence;
+						bestThread=t1;
+					}
+					
+				}
+				
+				Iterator<Integer> iter4=t1.depend_Pos.iterator();
+				while(iter4.hasNext())
+				{
+					int posId=iter4.next();
+					if(Pos_BestThread[posId]!=null)
+					{
+						//as only one dep-group in the region, only check whether the given one is the best 
+						if(Pos_BestThread[posId].KL_Divergence>t1.KL_Divergence)
+							Pos_BestThread[posId]=t1;
+					}
+					else
+					{
+						Pos_BestThread[posId]=t1;
+					}
+				}
+				if(t1.depend_Pos.size()==0)
+				{
+					for (int i = t1.gapStart; i < t1.gapEnd; i++) {
+						if(Pos_BestThread[i].KL_Divergence>t1.KL_Divergence)
+							Pos_BestThread[i]=t1;
+						
+					}
+				}
+		}
+		if(bestThread!=null&&bestThread.depend_Pos.size()>1)
+		{
+			Dmap.put(bestThread.depend_Pos, bestThread.DprobMap);
+		System.out.println("best:"+bestThread.toString());
+		//sbest=bestThread.debuglist;
+		}
+
+		
+
+/******************************************************************************************/	
+		//translate back to orignial columns ids
+		HashMap<HashSet<Integer>, HashMap<String, Double>> Dmap2=new HashMap<HashSet<Integer>, HashMap<String,Double>>();
+
+		for(HashSet<Integer> keyset : Dmap.keySet())
+		{
+			if(keyset.size()==1) //no need to translate for the recycled single based columns
+			{
+				Dmap2.put(keyset, Dmap.get(keyset));
+				continue;
+			}
+			HashSet<Integer> keyset2= new HashSet<Integer>();
+			
+			for(Integer dj : keyset)
+			{
+				keyset2.add(translateTB[dj]);
+			}
+			System.out.println("Translate:"+keyset.toString()+" To "+keyset2.toString());
+			Dmap2.put(keyset2, Dmap.get(keyset));
+			
+		}
+		Dmap=Dmap2;
+		dataPWM=dataPWM2;
+		sites=sites2;
+/******************************************************************************************/			
+		
+		//if(FlankLen==0)
+			gapPWM=GapPWM.createGapPWM(motif.subPWM( motif.head,motif.head+motif.core_motiflen), Dmap,0);
+		//else
+			//gapPWM=GapPWM.createGapPWM(dataPWM.subPWM(FlankLen,dataPWM.columns()-FlankLen), Dmap,FlankLen);
 //		if(gapPWM.core_motiflen!=motif.core_motiflen&&sites.size()>0)
 //		{
 //			motif=new PWM(sites.toArray(new String[1]));
@@ -1997,13 +2379,6 @@ public class GapImprover {
 				}
 	
 				threadPool.add(t1);
-//				if(threadPool.size()>10000&&threadPool.size()%10000==0)
-//				{
-//					Thread.sleep(100);
-//					System.out.println("before:"+threadPool.size());
-//					cleanupThread(threadPool);
-//					System.out.println("after:"+threadPool.size());
-//				}
 			}
 
 			
@@ -2100,29 +2475,6 @@ public class GapImprover {
 		}
 
 		
-//		if(!OOPG)
-//		{
-//		//fill in multi-dependency in the same gap region	
-//		for (int i = 0; i < Pos_BestThread.length; i++) {
-//			if(Pos_BestThread[i]!=null&&Pos_BestThread[i].depend_Pos.size()>1)
-//			{
-//				boolean maxCover=true;
-//				for(Integer ii:Pos_BestThread[i].depend_Pos)
-//				{
-//					if(Pos_BestThread[ii].hashCode()!=Pos_BestThread[i].hashCode())
-//					{
-//						maxCover=false;
-//						break;
-//					}
-//				}
-//				if(maxCover)
-//				{
-//				Dmap.put(Pos_BestThread[i].depend_Pos, Pos_BestThread[i].DprobMap);
-//				System.out.println(Pos_BestThread[i]);
-//				}
-//			}
-//		}
-//		}
 
 /******************************************************************************************/	
 		//translate back to orignial columns ids
@@ -2395,7 +2747,7 @@ public class GapImprover {
 		CommandLineParser parser = new GnuParser();
 		GapImprover GImprover=new GapImprover();
 		double version=2;
-		
+		long fullstart = System.currentTimeMillis();
 		try {
 			CommandLine cmd = parser.parse( options, args);
 			if(cmd.hasOption("i"))
@@ -2657,6 +3009,10 @@ public class GapImprover {
 				e.printStackTrace();
 			}
 		}
+		
+		long fullend = System.currentTimeMillis();
+		
+		System.out.println("Total time was "+(fullend-fullstart)/1000+" seconds.");
 		
 		System.exit(0);
 		
