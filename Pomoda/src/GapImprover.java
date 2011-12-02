@@ -1594,7 +1594,10 @@ public class GapImprover {
 		GapPWM gapPWM=null;
 		if(!is_bsitedata)
 		motif.Consensus(true);
-
+		//the maximum number parameters of recycling is min(3n-3k,4^k-3k), n is the number of columns, k is the maximum number of dependency column in one group
+		// when 3n-3k=4^k-3k => k=log_4(3n)
+		GapOptimalModelingThread.ParaRecyclNum= (int)Math.ceil(3*motif.columns()- 3*Math.log( 3*motif.columns())/Math.log(4));
+		
 		//get a set of instance strings, assume they are all real binding site
 		LinkedList<String> sites=null;
 		ArrayList<Double> siteWeight=null;
@@ -1637,6 +1640,8 @@ public class GapImprover {
 	
 		//sorted Free parameter queue
 		TreeMap<Double,KeyValuePair<Integer, String>> FreeParaQueue=new TreeMap<Double,KeyValuePair<Integer, String>>();
+		HashMap<Integer,ArrayList<ConstrainBlock>> ConservedCBList=new HashMap<Integer,ArrayList<ConstrainBlock>>();
+		HashMap<Integer,ArrayList<ConstrainBlock>> DiverseCBList=new HashMap<Integer,ArrayList<ConstrainBlock>>();
 		//detect  conserved bases
 		HashSet<Integer> conBases=new HashSet<Integer>();
 		int start=-1;
@@ -1650,16 +1655,10 @@ public class GapImprover {
 			{				
 					start=i-motif.head;
 					conBases.add(start);	
-					
 					//here untranslated column use negative colid, also recycle non-conserved bases later
-					TreeMap<Double,KeyValuePair<Integer, String>> paraslist=getFreeParaQueue( motif.m_matrix[start],-start-1);
-					for(Double key : paraslist.keySet())
-					{
-						FreeParaQueue.put(key, paraslist.get(key));
-					}
+					ConservedCBList.put(start, GapOptimalModelingThread.getConstrainReverseBlockQueueDeltaKL(motif.m_matrix[start], 3)) ;
 					
 			}
-
 		}
 		motif.Prior_EZ=conBases.size();
 		System.out.println("Conserved Bases:"+conBases);
@@ -1718,19 +1717,15 @@ public class GapImprover {
 		
 		// recycle non-conserved bases using positive colid
 		for (int i = 0; i <  translateTB.length; i++) {
-			TreeMap<Double,KeyValuePair<Integer, String>> paraslist=getFreeParaQueue( motif.m_matrix[translateTB[i]],i);
-			for(Double key : paraslist.keySet())
-			{
-				FreeParaQueue.put(key, paraslist.get(key));
-			}
+			DiverseCBList.put(i, GapOptimalModelingThread.getConstrainReverseBlockQueueDeltaKL(motif.m_matrix[translateTB[i]], 3)) ;
 		}
 
 /******************************************************************************************/	
-		
+
 		
 		try {
 		//find the best dependency modeling in each gap region
-		LinkedList<GapBGModelingThread> threadPool=new LinkedList<GapBGModelingThread>();
+		LinkedList<GapOptimalModelingThread> threadPool=new LinkedList<GapOptimalModelingThread>();
 		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>,HashMap<String,Double>>();
 		if(sites.size()>0)
 		{
@@ -1745,16 +1740,16 @@ public class GapImprover {
 			
 			//add non-dep group thread
 			HashSet<Integer> dpos=new HashSet<Integer>();
-			GapBGModelingThread t1=null;
+			GapOptimalModelingThread t1=null;
 			if(removeBG)
-				t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight));//null mean not considering BG
+				t1=new GapOptimalModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight));//null mean not considering BG
 			else
-				 t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight));//null mean not considering BG
+				 t1=new GapOptimalModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight));//null mean not considering BG
 			if(combinNum<=100||threadNum==1)
 				t1.run();
 			else
 			{
-			executor.execute(t1);
+				executor.execute(t1);
 			}
 			threadPool.add(t1);
 			
@@ -1801,9 +1796,9 @@ public class GapImprover {
 					continue;
 				 t1=null;
 				if(removeBG)
-					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight);//null mean not considering BG
+					t1=new GapOptimalModelingThread(sitecountMap,dataPWM,dpos,background);//(gstart, gend, sites, dpos,background,siteWeight);//null mean not considering BG
 				else
-					t1=new GapBGModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight);//null mean not considering BG
+					t1=new GapOptimalModelingThread(sitecountMap,dataPWM,dpos,null);//(gstart, gend, sites, dpos,null,siteWeight);//null mean not considering BG
 				if(combinNum<=100||threadNum==1)
 					t1.run();
 				else
@@ -1824,7 +1819,7 @@ public class GapImprover {
 			if(!OOPG)
 			{
 				
-			Dmap.putAll( FindBest2(threadPool.subList(0, threadPool.size()),FreeParaQueue,motif.m_matrix,translateTB));
+			Dmap.putAll( DependencyCombination.FindBestCombination(threadPool.subList(0, threadPool.size()),ConservedCBList,DiverseCBList,motif.m_matrix,translateTB));
 			System.out.println("Final:"+threadPool.size());
 			threadPool.clear();
 			}
@@ -1832,18 +1827,18 @@ public class GapImprover {
 		
 		}
 	
-		Iterator<GapBGModelingThread> iter3=threadPool.iterator();
+		Iterator<GapOptimalModelingThread> iter3=threadPool.iterator();
 		 start=-1;
 		double minKL=Double.MAX_VALUE;
-		GapBGModelingThread bestThread=null;
+		GapOptimalModelingThread bestThread=null;
 		
-		GapBGModelingThread[] Pos_BestThread=new GapBGModelingThread[motif.core_motiflen+2*FlankLen];
+		GapOptimalModelingThread[] Pos_BestThread=new GapOptimalModelingThread[motif.core_motiflen+2*FlankLen];
 		
 		if(OOPG)
 		while(iter3.hasNext())
 		{
 			//find different flexible combinations in the same gap region(not allow two dependency group share the same position)
-			GapBGModelingThread t1=iter3.next();	
+			GapOptimalModelingThread t1=iter3.next();	
 				t1.join();
 				if(t1.depend_Pos.size()==0)
 				{
@@ -2920,6 +2915,12 @@ public class GapImprover {
 							gpwm=GImprover.fillDependency1_1(rawpwm);
 							GImprover.FlankLen=0;
 							gpwm=GImprover.fillDependency1_1(gpwm);
+						}
+						if(version==2.1)
+						{
+							gpwm=GImprover.fillDependency2_1(rawpwm);
+							GImprover.FlankLen=0;
+							gpwm=GImprover.fillDependency2_1(gpwm);
 						}
 	
 						if(rawpwm.Prior_EZ<5)//the conserved bases number less than 5
