@@ -32,7 +32,7 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 		TreeMap<Double, Integer> sortedProbMap=new TreeMap<Double, Integer>();
 		ArrayList<ConstrainBlock> CBlist=new ArrayList<ConstrainBlock>(Math.min(ParaRecyclNum, dmerProb.length-startNum));
 		for (int i = 0; i < dmerProb.length; i++) {
-			sortedProbMap.put(dmerProb[i], i);
+			sortedProbMap.put(dmerProb[i]*(1-i*common.DoubleMinNormal), i);
 		}
 		
 		Double[] sortedProb=sortedProbMap.keySet().toArray(new Double[1]);
@@ -42,6 +42,68 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 			CB.lowerbound=bounds[0];
 			CB.upperbound=bounds[1];
 			CB.KL=bounds[2];
+			CBlist.add(CB);
+		}
+		
+		return CBlist;
+		
+	}
+	
+	
+	
+	//startNum is the original free parameter number 3k
+	static ArrayList<ConstrainBlock> getConstrainBlockQueueDeltaKL(double[] dmerProb, int startNum)
+	{
+		TreeMap<Double, Integer> sortedProbMap=new TreeMap<Double, Integer>();
+		ArrayList<ConstrainBlock> CBlist=new ArrayList<ConstrainBlock>(Math.min(ParaRecyclNum, dmerProb.length-startNum));
+		for (int i = 0; i < dmerProb.length; i++) {
+			sortedProbMap.put(dmerProb[i]*(1-i*common.DoubleMinNormal), i);
+		}
+		
+		Double[] sortedProb=sortedProbMap.keySet().toArray(new Double[1]);
+		double baseKL=0;
+		for (int i = 0; i < Math.min(ParaRecyclNum, sortedProb.length-startNum); i++) {
+			double[] bounds=findOptimalKconstrainEntries(sortedProb,sortedProb.length-startNum-i);
+			if(i==0)
+			{
+				baseKL=bounds[2];
+				continue;
+			}
+			ConstrainBlock  CB=new ConstrainBlock();
+			CB.lowerbound=bounds[0];
+			CB.upperbound=bounds[1];
+			CB.KL=baseKL-bounds[2];
+			CBlist.add(CB);
+		}
+		
+		return CBlist;
+		
+	}
+	
+	
+	
+	//startNum is the original free parameter number 3k, but the number of free parameters is decreasing here
+	static ArrayList<ConstrainBlock> getConstrainReverseBlockQueueDeltaKL(double[] dmerProb, int startNum)
+	{
+		TreeMap<Double, Integer> sortedProbMap=new TreeMap<Double, Integer>();
+		ArrayList<ConstrainBlock> CBlist=new ArrayList<ConstrainBlock>(Math.min(ParaRecyclNum, startNum));
+		for (int i = 0; i < dmerProb.length; i++) {
+			sortedProbMap.put(dmerProb[i]*(1-i*common.DoubleMinNormal), i);
+		}
+		
+		Double[] sortedProb=sortedProbMap.keySet().toArray(new Double[1]);
+		double baseKL=0;
+		for (int i = 0; i < Math.min(ParaRecyclNum, startNum)+1; i++) {
+			double[] bounds=findOptimalKconstrainEntries(sortedProb,sortedProb.length-startNum+i);
+			if(i==0)
+			{
+				baseKL=bounds[2];
+				continue;
+			}
+			ConstrainBlock  CB=new ConstrainBlock();
+			CB.lowerbound=bounds[0];
+			CB.upperbound=bounds[1];
+			CB.KL=bounds[2]-baseKL;
 			CBlist.add(CB);
 		}
 		
@@ -267,13 +329,13 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 
 		}
 		
-		if(depend_Pos.size()>1)
+		if(depend_Pos.size()>1&&DprobMap.size()>0)
 		{
 			chisqPvalue=1-chisqTest(dmerCount,gapmerCount.size(),gapPWM,sorteddpos);
 			//parameter recycling
 			if(chisqPvalue<0.05&&ParaRecyclNum>0)
 			{
-				PendingConstrainBlocks=getConstrainBlockQueue(dmerCount,DprobMap.size()-1 );
+				PendingConstrainBlocks=getConstrainBlockQueueDeltaKL(Pt,DprobMap.size()-1 );
 							
 			}
 		}
