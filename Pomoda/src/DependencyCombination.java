@@ -493,7 +493,7 @@ public class DependencyCombination {
 				dPos.add(orignalColumn);
 				for (int i = 0; i < 4; i++) {
 					double prob=m_matrix[orignalColumn][i];
-					if(prob>cb.upperbound||prob<cb.lowerbound)
+					if(prob>(cb.upperbound+common.DoubleMinNormal)||prob<cb.lowerbound)
 					{
 						sumprob+=m_matrix[orignalColumn][i];
 						dprobMap.put(common.Hash2ACGT(i, 1), m_matrix[orignalColumn][i]);
@@ -531,7 +531,7 @@ public class DependencyCombination {
 				dPos.add(orignalColumn);
 				for (int i = 0; i < 4; i++) {
 					double prob=m_matrix[orignalColumn][i];
-					if(prob>cb.upperbound||prob<cb.lowerbound)
+					if(prob>cb.upperbound+common.DoubleMinNormal||prob<cb.lowerbound)
 					{
 						sumprob+=m_matrix[orignalColumn][i];
 						dprobMap.put(common.Hash2ACGT(i, 1), m_matrix[orignalColumn][i]);
