@@ -20,6 +20,26 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 	static int ParaRecyclNum=0;
 	ArrayList<ConstrainBlock> PendingConstrainBlocks=null;
 	
+	
+	public void updateParaNum(double[] Pt, double[] bounds )
+	{
+		int dmerSize=Pt.length;
+		double sumprob=0;
+		for (int i = 0; i < Pt.length; i++) {
+			double key=Pt[i];
+			if(key>(bounds[1]+common.DoubleMinNormal)||key<bounds[0])
+			{	
+				DprobMap.put(common.Hash2ACGT(i, depend_Pos.size()), key);
+				sumprob+=key;
+			}
+		}
+		
+	int num_top=DprobMap.size();
+	DprobMap.put("N", (1-sumprob)/(dmerSize-num_top));
+
+	
+	}
+	
 	public GapOptimalModelingThread(HashMap<String, Double> gapmerCount,
 			PWM sitePWM, HashSet<Integer> depend_pos, BGModel bg) {
 		super(gapmerCount, sitePWM, depend_pos, bg);
@@ -72,7 +92,11 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 			ConstrainBlock  CB=new ConstrainBlock();
 			CB.lowerbound=bounds[0];
 			CB.upperbound=bounds[1];
-			CB.KL=baseKL-bounds[2];
+			double diff=baseKL-bounds[2];
+			if(diff<0)
+				diff=0;
+			CB.KL=diff;
+			
 			CBlist.add(CB);
 		}
 		
@@ -103,7 +127,10 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 			ConstrainBlock  CB=new ConstrainBlock();
 			CB.lowerbound=bounds[0];
 			CB.upperbound=bounds[1];
-			CB.KL=bounds[2]-baseKL;
+			double diff=bounds[2]-baseKL;
+			if(diff<0)
+				diff=i*common.DoubleMinNormal; //add a bit penalty for reducing parameter
+			CB.KL=diff;
 			CBlist.add(CB);
 		}
 		
@@ -248,8 +275,7 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 		
 		Double[] sorteddmerProb=sorted_column.keySet().toArray(new Double[1]);
 		double[] bounds=findOptimalKconstrainEntries(sorteddmerProb, sorteddmerProb.length-num_top);
-		if(depend_Pos.contains(5)&&depend_Pos.contains(0)&&depend_Pos.size()==2)
-			sumprob=0;
+
 		
 		//sort the dmer by desc prob£¬ and take top 3d as the dependency model 
 		for(Double key:sorted_column.descendingKeySet())
