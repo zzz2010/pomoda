@@ -572,6 +572,7 @@ public class GapImprover {
 				while(freeParaiter.hasNext()&&All_depend_Pos.contains(FreeParaQueue.get(free).key))
 					free=freeParaiter.next();
 			}
+			int paraRecyclNum=0;
 			while(pend>free+10*common.DoubleMinNormal)
 			{
 				String dmer=PendingParas.get(pend).value;
@@ -590,7 +591,7 @@ public class GapImprover {
 					delectedPara.put(colid, new HashSet<Integer>());
 				}
 				delectedPara.get(colid).add(common.getHashing(fpair.getValue(),0,fpair.getValue().length()));
-				
+				paraRecyclNum++;
 				recyclingEnhance+=pend-free;
 				
 				if(!penditer.hasNext()||!freeParaiter.hasNext())
