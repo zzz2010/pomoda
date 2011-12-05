@@ -358,9 +358,9 @@ public class DependencyCombination {
 			
 			//////////////////////////////////compute donate recourses///////////////////////
 			double [][] IndColumnsDeltaKL=new double[DiverseCBList.size()-Dpos.size()][4];
-			double[] donateArray=null;
-			 int[][] DivAction=null;
-			 int[] DivIndAction=null;
+			double[] donateArray=new double[1];
+			 int[][] DivAction=new int[1][1];
+			 int[] DivIndAction=new int[1];
 			if(DiverseCBList.size()-Dpos.size()>0)
 			{
 			colid=0;
