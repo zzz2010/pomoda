@@ -173,6 +173,8 @@ public class DependencyCombination {
 	//DeltaKLMatrix the first column are zeros, meaning donate 0 parameter, no KL decrease
 	public static double[] DP_computeMinKLdesc(double[][]DeltaKLMatrix,int[][] actionMatrix)
 	{
+		if(DeltaKLMatrix.length==0)
+			return new double[1];
 		int maxDonateNum=DeltaKLMatrix.length*(DeltaKLMatrix[0].length-1);
 		double[] minKLdesc_dnoate_i=new double[maxDonateNum+1];
 		double[][]DPtable=new double[DeltaKLMatrix.length][maxDonateNum+1];
@@ -216,6 +218,8 @@ public class DependencyCombination {
 	
 	public static int[] backtracking_DP(int[][]Actions, int finalRequestNum)
 	{
+		if(Actions.length==0)
+			return new int[1];
 		int[] actArray=new int[Actions.length];
 		int restRequestNum=finalRequestNum-Actions[Actions.length-1][finalRequestNum];
 		actArray[actArray.length-1]=Actions[Actions.length-1][finalRequestNum];
@@ -329,7 +333,9 @@ public class DependencyCombination {
 		int[][] bestConAction=null,bestDivIndAction=null,BestDepAction = null;
 		int[] bestDivIndFinalAction=null;
 		int bestReqNum=0;
-		int maxConvDonateNum=ConservedDeltaKL.length*(ConservedDeltaKL[0].length-1);
+		int maxConvDonateNum=0;
+		if(ConservedCBList.size()>0)
+		maxConvDonateNum=ConservedDeltaKL.length*(ConservedDeltaKL[0].length-1);
 		bestConAction=new int[ConservedDeltaKL.length][maxConvDonateNum+1];
 		double[] min_conversedKL_descr=DP_computeMinKLdesc(ConservedDeltaKL,bestConAction);
 		
@@ -352,6 +358,11 @@ public class DependencyCombination {
 			
 			//////////////////////////////////compute donate recourses///////////////////////
 			double [][] IndColumnsDeltaKL=new double[DiverseCBList.size()-Dpos.size()][4];
+			double[] donateArray=null;
+			 int[][] DivAction=null;
+			 int[] DivIndAction=null;
+			if(DiverseCBList.size()-Dpos.size()>0)
+			{
 			colid=0;
 			for(Map.Entry<Integer, ArrayList<ConstrainBlock>>  elm:DiverseCBList.entrySet())
 			{
@@ -366,13 +377,13 @@ public class DependencyCombination {
 			}
 			
 			 int maxDivIndDonateNum=IndColumnsDeltaKL.length*(IndColumnsDeltaKL[0].length-1);
-			 int[][] DivAction=new int[IndColumnsDeltaKL.length][maxDivIndDonateNum+1];
+			 DivAction=new int[IndColumnsDeltaKL.length][maxDivIndDonateNum+1];
 			double[] min_DiversedKL_descr=DP_computeMinKLdesc(IndColumnsDeltaKL,DivAction);	
 			int totalDonateNumber=min_DiversedKL_descr.length+min_conversedKL_descr.length-1;
-			double[] donateArray=new double[totalDonateNumber];
+			donateArray=new double[totalDonateNumber];
 			//combine conserved and diverse
 			double[] V1,V2;
-			int[] DivIndAction=new int[totalDonateNumber];
+			 DivIndAction=new int[totalDonateNumber];
 			boolean swapFlag=false;
 			if(min_conversedKL_descr.length<min_DiversedKL_descr.length)
 			{
@@ -405,6 +416,11 @@ public class DependencyCombination {
 					}
 					donateArray[i]=mindeltaKL;
 				}
+			}
+			}
+			else
+			{
+				donateArray=min_conversedKL_descr;
 			}
 			//////////////////////////////////compute request recourses///////////////////////
 			double[] maxKLincr=null;
