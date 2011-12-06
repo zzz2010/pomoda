@@ -330,8 +330,8 @@ public class DependencyCombination {
 			colid++;					
 		}
 		
-		int[][] bestConAction=null,bestDivIndAction=null,BestDepAction = null;
-		int[] bestDivIndFinalAction=null;
+		int[][] bestConAction=new int[1][1],bestDivIndAction=new int[1][1],BestDepAction = new int[1][1];
+		int[] bestDivIndFinalAction=new int[1];
 		int bestReqNum=0;
 		int maxConvDonateNum=0;
 		if(ConservedCBList.size()>0)
@@ -477,7 +477,7 @@ public class DependencyCombination {
 		}
 		
 		///////////////////////////////decode action//////////////////////////
-		if(bestDgroups.size()>0)
+		if(bestDgroups.size()>0&&bestReqNum>0) 
 		{
 			int[] bt_depAction=backtracking_DP(BestDepAction, bestReqNum);
 			HashSet<Integer> tPosSet=new HashSet<Integer>();

@@ -2840,7 +2840,7 @@ public class GapImprover {
 			formatter.printHelp( "GapImprover", options );
 			return;
 		}
-		
+		int oldflank=GImprover.FlankLen;
 		GImprover.initialize();
 		PWM.infothresh=0;
 		LinkedList<PWM> pwmlist=null;
@@ -2861,7 +2861,7 @@ public class GapImprover {
 				{
 					PWM rawpwm=iter.next();
 					System.out.println(rawpwm.Name+" : "+rawpwm.Consensus(true));
-					
+					GImprover.FlankLen=oldflank;
 			
 					if(GImprover.removeBG)
 						GImprover.SearchEngine.EnableBackground(GImprover.background);
@@ -2870,7 +2870,7 @@ public class GapImprover {
 					int lastcount=0;
 					int currentcount=10;
 					int loopcount=0;
-					int oldflank=GImprover.FlankLen;
+					
 					GImprover.FlankLen=0;
 					//prior PWM refine loop
 					while((currentcount-lastcount)>1&&loopcount<30)
