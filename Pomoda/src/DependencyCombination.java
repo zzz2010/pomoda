@@ -669,6 +669,7 @@ public class DependencyCombination extends Thread{
 					ConstrainBlock CB=t.PendingConstrainBlocks.get(bt_depAction[depId]-1);
 					t.updateParaNum(t.dmerCount,new double[]{CB.lowerbound,CB.upperbound});
 				}
+				depId++;
 			}
 			//change Independent column
 			//conserved bases
