@@ -388,6 +388,7 @@ public class GapPWM extends PWM {
 				if(prob==0.0)
 					prob+=common.DoubleMinNormal;
 				score+=Math.log(prob);
+				
 			}
 			else
 			{
@@ -395,9 +396,10 @@ public class GapPWM extends PWM {
 				if(prob==0.0)
 					prob+=common.DoubleMinNormal;
 				score+=Math.log(prob);
+					
 			}
 		}
-         
+
          return score;
 		
 	}
