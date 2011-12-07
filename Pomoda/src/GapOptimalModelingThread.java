@@ -18,18 +18,23 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 
 	
 	static int ParaRecyclNum=0;
+	static boolean startZeroPara=false;
 	ArrayList<ConstrainBlock> PendingConstrainBlocks=null;
 	
 	
 	public void updateParaNum(double[] Pt, double[] bounds )
 	{
 		int dmerSize=Pt.length;
+		DprobMap.clear();
 		double sumprob=0;
 		for (int i = 0; i < Pt.length; i++) {
 			double key=Pt[i];
 			if(key>(bounds[1]+common.DoubleMinNormal)||key<bounds[0])
 			{	
+				if(key==1)
+					key=1-common.DoubleMinNormal;
 				DprobMap.put(common.Hash2ACGT(i, depend_Pos.size()), key);
+				
 				sumprob+=key;
 			}
 		}
@@ -104,7 +109,34 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 		
 	}
 	
-	
+	//startNum is the original free parameter number 3k
+	static ArrayList<ConstrainBlock> getFullConstrainBlockQueueDeltaKL(double[] dmerProb, int base)
+	{
+		TreeMap<Double, Integer> sortedProbMap=new TreeMap<Double, Integer>();
+		ArrayList<ConstrainBlock> CBlist=new ArrayList<ConstrainBlock>(Math.min(ParaRecyclNum+base, dmerProb.length));
+		for (int i = 0; i < dmerProb.length; i++) {
+			sortedProbMap.put(dmerProb[i]*(1-i*common.DoubleMinNormal), i);
+		}
+		
+		Double[] sortedProb=sortedProbMap.keySet().toArray(new Double[1]);
+		
+		double[] bounds=findOptimalKconstrainEntries(sortedProb,sortedProb.length-base);
+		double baseKL=bounds[2];
+		for (int i = 0; i < Math.min(ParaRecyclNum+base, sortedProb.length); i++) {
+			 bounds=findOptimalKconstrainEntries(sortedProb,sortedProb.length-i);
+			ConstrainBlock  CB=new ConstrainBlock();
+			CB.lowerbound=bounds[0];
+			CB.upperbound=bounds[1];
+			double diff=baseKL-bounds[2];
+
+			CB.KL=diff;
+			
+			CBlist.add(CB);
+		}
+		
+		return CBlist;
+		
+	}
 	
 	//startNum is the original free parameter number 3k, but the number of free parameters is decreasing here
 	static ArrayList<ConstrainBlock> getConstrainReverseBlockQueueDeltaKL(double[] dmerProb, int startNum)
@@ -361,7 +393,10 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 			//parameter recycling
 			if(chisqPvalue<0.05&&ParaRecyclNum>0)
 			{
-				PendingConstrainBlocks=getConstrainBlockQueueDeltaKL(Pt,DprobMap.size()-1 );
+				if(startZeroPara)
+					PendingConstrainBlocks=getFullConstrainBlockQueueDeltaKL(Pt,DprobMap.size()-1 );
+				else
+					PendingConstrainBlocks=getConstrainBlockQueueDeltaKL(Pt,DprobMap.size()-1 );
 							
 			}
 		}
