@@ -36,6 +36,25 @@ public class GapPWM extends PWM {
 	}
 	
 	
+	public int getTotalParaNum()
+	{
+		int paracount=0;
+		
+		int len=core_motiflen;
+        for (int i = 0; i < len; i++) {
+       
+       	 if(GroupId[head+i]==0)
+       		paracount+=3;
+       	
+		}
+        for (int i = 0; i < Num_Group; i++) {
+      
+        	paracount+=Dgroup_DmerProb.get(i+1).size()-1;
+		}
+		
+		return paracount;
+	}
+	
 	@Override
 	public String get_randomSite() {
 		// TODO Auto-generated method stub

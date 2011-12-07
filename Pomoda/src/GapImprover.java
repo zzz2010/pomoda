@@ -3301,7 +3301,7 @@ public class GapImprover {
 							gpwm=GImprover.fillDependency2_2(gpwm);
 						}
 	
-
+						System.out.println("Parameter Number: "+gpwm.getTotalParaNum());
 						gpwm.Name="GPimpover_"+oldname;
 						GImprover.SearchEngine.DisableBackground();
 						System.out.print("Original Motif:");
