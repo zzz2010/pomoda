@@ -489,8 +489,10 @@ public class DependencyCombination extends Thread{
 		//Threads Pool
 		LinkedList<DependencyCombination> threadPool=new LinkedList<DependencyCombination>();
 		PooledExecutor executor = new PooledExecutor(new LinkedQueue());
-		executor.setMinimumPoolSize(threadNum);
+		executor.setMinimumPoolSize(1);
 		executor.setKeepAliveTime(-1);
+		if(cliques.size()>100&&threadNum>1)
+			executor.createThreads(threadNum);
 		for( Set<GapOptimalModelingThread> clique:cliques)
 		{
 				// compute the total KL for each clique, using parameter recycling

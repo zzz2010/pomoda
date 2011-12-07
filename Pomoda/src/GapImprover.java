@@ -1819,7 +1819,7 @@ public class GapImprover {
 			}
 			if(!OOPG)
 			{
-				DependencyCombination.threadNum=threadNum;
+				DependencyCombination.threadNum=1;
 			Dmap.putAll( DependencyCombination.FindBestCombination(threadPool.subList(0, threadPool.size()),ConservedCBList,DiverseCBList,motif.m_matrix,translateTB));
 			System.out.println("Final:"+threadPool.size());
 			threadPool.clear();
