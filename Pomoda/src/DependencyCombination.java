@@ -674,8 +674,11 @@ public class DependencyCombination extends Thread{
 				depId++;
 			}
 			//change Independent column
+			int totaldivcolReq=0;
+			if(bestDivIndFinalAction.length>bestReqNum)
+				totaldivcolReq=bestDivIndFinalAction[bestReqNum];
 			//conserved bases
-			int[] bt_conAction=backtracking_DP(bestConAction,bestReqNum-bestDivIndFinalAction[bestReqNum]);
+			int[] bt_conAction=backtracking_DP(bestConAction,bestReqNum-totaldivcolReq);
 			int cid=-1;
 			for(Map.Entry<Integer, ArrayList<ConstrainBlock>>  elm:ConservedCBList.entrySet())
 			{
@@ -705,7 +708,7 @@ public class DependencyCombination extends Thread{
 			}
 			//diverse bases
 			cid=-1;
-			int[] bt_divAction=backtracking_DP(bestDivIndAction, bestDivIndFinalAction[bestReqNum]);
+			int[] bt_divAction=backtracking_DP(bestDivIndAction, totaldivcolReq);
 			for(Map.Entry<Integer, ArrayList<ConstrainBlock>>  elm:DiverseCBList.entrySet())
 			{
 				int transColumn=elm.getKey();
