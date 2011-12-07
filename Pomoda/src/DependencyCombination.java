@@ -22,7 +22,11 @@ public class DependencyCombination extends Thread{
 	static int threadNum=4;
 	
 	Set<GapOptimalModelingThread> clique;
+	Set<GapOptimalModelingThread> bestclique;
+	ArrayList<GapOptimalModelingThread> negThreads;
 	double score=0;
+	static double bestscore_allthreads=0;
+	double bestscore=0;
 	HashMap<Integer,ArrayList<ConstrainBlock>> DiverseCBList;
 	 int[][] DivAction;
 	 int[] DivIndAction;
@@ -31,14 +35,18 @@ public class DependencyCombination extends Thread{
 	 int[][] DepAction;
 	 double[] min_conversedKL_descr;
 
-	public DependencyCombination(Set<GapOptimalModelingThread> clique_,	HashMap<Integer,ArrayList<ConstrainBlock>> DiverseCBList_,double[]  min_conversedKL_descr_)
+	public DependencyCombination(Set<GapOptimalModelingThread> clique_,	HashMap<Integer,ArrayList<ConstrainBlock>> DiverseCBList_,double[]  min_conversedKL_descr_,ArrayList<GapOptimalModelingThread> negThreads_)
 	{
 		min_conversedKL_descr=min_conversedKL_descr_;
 		clique=clique_;
 		DiverseCBList=DiverseCBList_;
+		negThreads=negThreads_;
 		
 	}
-	public void run() {
+	
+	static double cliqueScore(Set<GapOptimalModelingThread> clique,	HashMap<Integer,ArrayList<ConstrainBlock>> DiverseCBList,double[]  min_conversedKL_descr)
+	{
+		
 		HashSet<Integer> Dpos=new HashSet<Integer>();
 		
 		for(GapOptimalModelingThread t : clique)
@@ -49,8 +57,8 @@ public class DependencyCombination extends Thread{
 		//////////////////////////////////compute donate recourses///////////////////////
 		double [][] IndColumnsDeltaKL=new double[DiverseCBList.size()-Dpos.size()][4];
 		double[] donateArray=new double[1];
-		DivAction=new int[1][1];
-		DivIndAction=new int[1];
+		 int[][] DivAction=new int[1][1];
+		 int[] DivIndAction=new int[1];
 		if(DiverseCBList.size()-Dpos.size()>0)
 		{
 		int colid=0;
@@ -114,17 +122,25 @@ public class DependencyCombination extends Thread{
 		}
 		//////////////////////////////////compute request recourses///////////////////////
 		double[] maxKLincr=null;
-		DepAction=new int[clique.size()][donateArray.length];
+		int maxDonateNum=donateArray.length+3*Dpos.size();
+		//extend the donateArray for the 3*Dpos.size() free parameters in the front
+		double[] newdonateArray=new double[maxDonateNum];
+		for (int i = 3*Dpos.size()+1; i < newdonateArray.length; i++) {
+			newdonateArray[i]=donateArray[i-3*Dpos.size()-1];
+		}
+		donateArray=newdonateArray;
 		
+		int[][] DepAction=new int[clique.size()][maxDonateNum];
+		double score=0;
 		HashSet<Integer> Dgroups=new HashSet<Integer>();
 		int tid=0;
 		for(GapOptimalModelingThread t : clique)
 		{
 			Dgroups.add((int)t.lamda);
 			score+=t.KL_Divergence;
-			double[] KLvec=new double[Math.min(donateArray.length, t.PendingConstrainBlocks.size()+1) ];
-			for (int i = 1; i < KLvec.length; i++) {
-				KLvec[i]=t.PendingConstrainBlocks.get(i-1).KL;
+			double[] KLvec=new double[Math.min(maxDonateNum, t.PendingConstrainBlocks.size()) ];
+			for (int i = 0; i < KLvec.length; i++) {
+				KLvec[i]=t.PendingConstrainBlocks.get(i).KL;
 			}
 			if(maxKLincr==null)
 			{
@@ -139,9 +155,9 @@ public class DependencyCombination extends Thread{
 			tid++;
 		}
 		//find the maximum improvement
-		
-		
-		for (int i = 0; i < Math.min(donateArray.length, maxKLincr.length); i++) {
+		double maxDeltaKL=0;
+		int bestRecycNum=0;
+		for (int i = 0; i < Math.min(maxDonateNum, maxKLincr.length); i++) {
 			double DKL=maxKLincr[i]-donateArray[i]-i*common.DoubleMinNormal; //give penalty for small different.
 			if(DKL>maxDeltaKL)
 			{
@@ -151,8 +167,74 @@ public class DependencyCombination extends Thread{
 			}
 			
 		}
-		score+=maxDeltaKL;
 		
+		return score+maxDeltaKL;
+		
+		
+	}
+	public void run() {
+		
+		HashSet<Integer> Dpos=new HashSet<Integer>();
+		
+		for(GapOptimalModelingThread t : clique)
+		{		
+			Dpos.addAll(t.depend_Pos);
+		}
+		double basicCliquescore=cliqueScore(clique, DiverseCBList, min_conversedKL_descr);
+		bestscore=basicCliquescore;
+		HashSet<Set<GapOptimalModelingThread>> triedClique=new HashSet<Set<GapOptimalModelingThread>>(negThreads.size());
+		LinkedList< Set<GapOptimalModelingThread> > queue=new LinkedList< Set<GapOptimalModelingThread> >();
+		queue.add(clique);
+		Set<GapOptimalModelingThread> topElm=null;
+		while((topElm=queue.poll())!=null)
+		{
+			Dpos.clear();
+			for(GapOptimalModelingThread t : topElm)
+			{		
+				Dpos.addAll(t.depend_Pos);
+			}
+
+			for(GapOptimalModelingThread t1 : negThreads)
+			{
+				HashSet<Integer> s2=t1.depend_Pos;
+				boolean overlap=false;
+				HashSet<Integer> intersect=new HashSet<Integer>(s2);
+				intersect.retainAll(Dpos);
+				if(intersect.size()>0)
+					overlap=true;			
+				//flexible combination
+				if(overlap==false)
+				{
+					double upperbound=basicCliquescore+t1.PendingConstrainBlocks.get(t1.PendingConstrainBlocks.size()-1).KL;
+					HashSet<GapOptimalModelingThread> newclique=new HashSet<GapOptimalModelingThread>(topElm);
+					newclique.add(t1);
+					if(triedClique.contains(newclique))
+						continue;
+					else
+						triedClique.add(newclique);
+					topElm.removeAll(clique);
+					for(GapOptimalModelingThread t2:topElm)//estimate upperbound for all negative threads
+						upperbound+=t2.PendingConstrainBlocks.get(t2.PendingConstrainBlocks.size()-1).KL;
+					if(upperbound<bestscore_allthreads)
+						continue;
+					
+					double newcliqueScore=cliqueScore(newclique, DiverseCBList, min_conversedKL_descr);
+					if(newcliqueScore>bestscore)
+					{
+						bestscore=newcliqueScore;
+						bestclique=newclique;
+						if(newcliqueScore>bestscore_allthreads)
+						{
+							bestscore_allthreads=newcliqueScore;
+						}
+					}	
+					
+					queue.add(newclique);
+				}			
+			}
+		}
+		
+		 
 	}
 
 	//allow multi dep-group in the same region, need to try different combinations
@@ -481,25 +563,12 @@ public class DependencyCombination extends Thread{
 		
 		
 		
-		//Threads Pool
-		LinkedList<DependencyCombination> threadPool=new LinkedList<DependencyCombination>();
-		PooledExecutor executor = new PooledExecutor(new LinkedQueue());
-		executor.setMinimumPoolSize(1);
-		executor.setKeepAliveTime(-1);
-		if(cliques.size()>100&&threadNum>1)
-			executor.createThreads(threadNum);
 		for( Set<GapOptimalModelingThread> clique:cliques)
 		{
 				// compute the total KL for each clique, using parameter recycling
 
-			if(cliques.size()>100&&threadNum>1)
-			{
-				DependencyCombination t11=new DependencyCombination(clique, DiverseCBList, min_conversedKL_descr);
-				executor.execute(t11);
-				threadPool.add(t11);
-			}
-			else
-			{
+
+		
 			
 			HashSet<Integer> Dpos=new HashSet<Integer>();
 			
@@ -627,29 +696,6 @@ public class DependencyCombination extends Thread{
 			}
 			}
 			
-		}
-		
-		//fetch threading result
-		if(cliques.size()>100&&threadNum>1)
-		{
-			System.out.println("summarizing multiple threads result...");
-			executor.shutdownAfterProcessingCurrentlyQueuedTasks();
-			executor.awaitTerminationAfterShutdown();
-			for(DependencyCombination t11:threadPool)
-			{
-				if(t11.score>bestScore)
-				{
-					bestDgroups.clear();
-					bestDgroups=t11.clique;
-					recyclingEnhance=t11.maxDeltaKL;
-					bestScore=t11.score;
-					bestDivIndAction=t11.DivAction;
-					bestDivIndFinalAction=t11.DivIndAction;
-					BestDepAction=t11.DepAction;
-					bestReqNum=t11.bestRecycNum;
-				}
-			}
-		}
 		
 		
 		///////////////////////////////decode action//////////////////////////
@@ -1026,6 +1072,282 @@ public class DependencyCombination extends Thread{
 		}
 			
 
+		
+		///////////////////////////////decode action//////////////////////////
+		if(bestDgroups.size()>0&&bestReqNum>0) 
+		{
+			int[] bt_depAction=backtracking_DP(BestDepAction, bestReqNum);
+			HashSet<Integer> tPosSet=new HashSet<Integer>();
+			int depId=0;
+			for(GapOptimalModelingThread t : bestDgroups)
+			{
+				tPosSet.addAll(t.depend_Pos);
+				if(bt_depAction[depId]>0)
+				{
+					ConstrainBlock CB=t.PendingConstrainBlocks.get(bt_depAction[depId]);
+					t.updateParaNum(t.dmerCount,new double[]{CB.lowerbound,CB.upperbound});
+				}
+				depId++;
+			}
+			//change Independent column
+			int totaldivcolReq=0;
+			if(bestDivIndFinalAction.length>bestReqNum)
+				totaldivcolReq=bestDivIndFinalAction[bestReqNum];
+			//conserved bases
+			int[] bt_conAction=backtracking_DP(bestConAction,bestReqNum-totaldivcolReq-3*tPosSet.size());
+			int cid=-1;
+			for(Map.Entry<Integer, ArrayList<ConstrainBlock>>  elm:ConservedCBList.entrySet())
+			{
+				cid++;
+				if(bt_conAction[cid]==0)
+					continue;
+				int orignalColumn=elm.getKey();
+				HashMap<String,Double> dprobMap=new HashMap<String,Double>();
+				ConstrainBlock  cb=elm.getValue().get(bt_conAction[cid]-1);
+				double sumprob=0;
+				int taken=0;
+				HashSet<Integer> dPos=new HashSet<Integer>();
+				dPos.add(orignalColumn);
+				for (int i = 0; i < 4; i++) {
+					double prob=m_matrix[orignalColumn][i];
+					if(prob>(cb.upperbound+common.DoubleMinNormal)||prob<cb.lowerbound)
+					{
+						if(m_matrix[orignalColumn][i]==1)
+							m_matrix[orignalColumn][i]=1-+common.DoubleMinNormal;
+						sumprob+=m_matrix[orignalColumn][i];
+						dprobMap.put(common.Hash2ACGT(i, 1), m_matrix[orignalColumn][i]);
+						taken++;
+					}
+				}
+				dprobMap.put("N",(1-sumprob)/(4-taken));
+				System.out.println("recycling :"+dPos);
+				Dmap.put(dPos, dprobMap);
+				
+			}
+			//diverse bases
+			cid=-1;
+			int[] bt_divAction=backtracking_DP(bestDivIndAction, totaldivcolReq);
+			for(Map.Entry<Integer, ArrayList<ConstrainBlock>>  elm:DiverseCBList.entrySet())
+			{
+				int transColumn=elm.getKey();
+				if(tPosSet.contains(transColumn))
+				{
+					continue;
+				}
+				cid++;
+	
+				if(bt_divAction[cid]==0)
+					continue;
+				
+				
+				int orignalColumn=translate[transColumn];
+				
+				HashMap<String,Double> dprobMap=new HashMap<String,Double>();
+				ConstrainBlock  cb=elm.getValue().get(bt_divAction[cid]-1);
+				double sumprob=0;
+				int taken=0;
+				HashSet<Integer> dPos=new HashSet<Integer>();
+				dPos.add(orignalColumn);
+				for (int i = 0; i < 4; i++) {
+					double prob=m_matrix[orignalColumn][i];
+					if(prob>cb.upperbound+common.DoubleMinNormal||prob<cb.lowerbound)
+					{
+						if(m_matrix[orignalColumn][i]==1)
+							m_matrix[orignalColumn][i]=1-+common.DoubleMinNormal;
+						sumprob+=m_matrix[orignalColumn][i];
+						dprobMap.put(common.Hash2ACGT(i, 1), m_matrix[orignalColumn][i]);
+						taken++;
+					}
+				}
+				dprobMap.put("N",(1-sumprob)/(4-taken));
+				System.out.println("recycling :"+dPos);
+				Dmap.put(dPos, dprobMap);				
+			}
+			System.out.println("recycling enhance KL:"+recyclingEnhance);
+		}
+		
+		
+		
+		double descSum=0;
+		if(bestDgroups.size()>0)
+			for(GapOptimalModelingThread t : bestDgroups)
+			{
+				System.out.println("max KL desc:"+t.toString());
+				descSum+=t.KL_Divergence;
+				Dmap.put(t.depend_Pos,t.DprobMap);
+			}
+				
+
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return Dmap;
+		
+		
+		
+	}
+	
+	
+	public static HashMap<HashSet<Integer>,HashMap<String,Double>> FindBestCombination3(List<GapOptimalModelingThread> list,
+			HashMap<Integer,ArrayList<ConstrainBlock>> ConservedCBList,HashMap<Integer,ArrayList<ConstrainBlock>> DiverseCBList,double[][] m_matrix, int[] translate)
+	{
+		
+		HashMap<HashSet<Integer>,HashMap<String,Double>> Dmap=new HashMap<HashSet<Integer>,HashMap<String,Double>>();
+		Iterator<GapOptimalModelingThread> iter3=list.iterator();
+		int start=-1;
+		double minKL=Double.MAX_VALUE;
+		double baseScore=0;
+		double bestScore=0;
+		GapBGModelingThread bestThread=null;
+		Set<GapOptimalModelingThread> bestDgroups=new HashSet<GapOptimalModelingThread>();
+		try {
+
+		while(iter3.hasNext())
+		{
+			GapBGModelingThread t1=iter3.next();	
+			t1.join();
+				if(t1.depend_Pos.size()==0)
+				{
+					System.out.println(t1.toString());
+					baseScore=t1.KL_Divergence;
+					//PWM case
+					
+				}
+				else //debug
+					System.out.println(t1.toString());
+		}
+		
+		
+		iter3=list.iterator();	
+		//filter the negative threads, only consider the dep-group better than independence case
+		ArrayList<GapOptimalModelingThread> positiveThread=new ArrayList<GapOptimalModelingThread>(list.size()/2);
+		ArrayList<GapOptimalModelingThread> negativeThread=new ArrayList<GapOptimalModelingThread>(list.size()/2);
+		
+		 LinkedList< HashSet<Integer> > queue=new LinkedList< HashSet<Integer> >();
+		for(GapOptimalModelingThread t2:list)
+		{
+			if(t2.chisqPvalue<0.05)
+			{
+				if(baseScore>t2.KL_Divergence)
+				{
+					//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
+					t2.KL_Divergence=baseScore-t2.KL_Divergence;
+					positiveThread.add(t2);
+					//higher the better now, KL_Divergence is score here
+					if(t2.KL_Divergence>bestScore)
+					{
+						bestDgroups.clear();
+						bestDgroups.add(t2);
+						bestScore=t2.KL_Divergence;
+					}
+					
+				}
+				else
+				{	
+					
+					negativeThread.add(t2);
+				}
+			}
+			
+		}
+		//here: bestDgroups is the best only-1 dep-group
+		
+		// build graph
+		SimpleGraph<GapOptimalModelingThread, DefaultEdge> graph=new SimpleGraph<GapOptimalModelingThread, DefaultEdge>(DefaultEdge.class);
+		
+		for (int i = 0; i < positiveThread.size(); i++) {
+			GapOptimalModelingThread t1=positiveThread.get(i);
+			t1.lamda=i;
+			graph.addVertex(t1);
+		}
+		for (int i = 0; i < positiveThread.size()-1; i++) {
+			GapOptimalModelingThread t1=positiveThread.get(i);
+			HashSet<Integer> s1=t1.depend_Pos;
+			for (int j = i+1; j < positiveThread.size(); j++) 
+			{
+				GapOptimalModelingThread t2=positiveThread.get(j);
+				HashSet<Integer> s2=t2.depend_Pos;
+				boolean overlap=false;
+				HashSet<Integer> intersect=new HashSet<Integer>(s2);
+				intersect.retainAll(s1);
+				if(intersect.size()>0)
+					overlap=true;
+				
+				//flexible combination
+				if(overlap==false)
+				{		
+					graph.addEdge(t1, t2);					
+				}
+			}
+		}
+		
+		double [][] ConservedDeltaKL=new double[ConservedCBList.size()][4];
+		double recyclingEnhance=0;
+		int colid=0;
+		for(ArrayList<ConstrainBlock> cblist:ConservedCBList.values())
+		{
+			ConservedDeltaKL[colid][0]=0;
+			for (int donateNum = 1; donateNum < ConservedDeltaKL[0].length; donateNum++)
+			{
+			    ConservedDeltaKL[colid][donateNum]=cblist.get(donateNum-1).KL;
+			}
+			
+			colid++;					
+		}
+		
+		int[][] bestConAction=new int[1][1],bestDivIndAction=new int[1][1],BestDepAction = new int[1][1];
+		int[] bestDivIndFinalAction=new int[1];
+		int bestReqNum=0;
+		int maxConvDonateNum=0;
+		if(ConservedCBList.size()>0)
+			maxConvDonateNum=ConservedDeltaKL.length*(ConservedDeltaKL[0].length-1);
+		bestConAction=new int[ConservedDeltaKL.length][maxConvDonateNum+1];
+		double[] min_conversedKL_descr=DP_computeMinKLdesc(ConservedDeltaKL,bestConAction);
+		
+		//enumerate all possible number of dep-group combinations, maximum clique
+		BronKerboschCliqueFinder<GapOptimalModelingThread, DefaultEdge> cliquefinder=new BronKerboschCliqueFinder<GapOptimalModelingThread, DefaultEdge>(graph);
+		Collection<Set<GapOptimalModelingThread>> cliques=cliquefinder.getAllMaximalCliques();
+		System.out.println("Clique Number: "+cliques.size());
+		
+		
+		
+		//Threads Pool
+		LinkedList<DependencyCombination> threadPool=new LinkedList<DependencyCombination>();
+		PooledExecutor executor = new PooledExecutor(new LinkedQueue());
+		executor.setMinimumPoolSize(threadNum);
+		executor.setKeepAliveTime(-1);
+		
+		for( Set<GapOptimalModelingThread> clique:cliques)
+		{
+				// compute the total KL for each clique, using parameter recycling
+				DependencyCombination t11=new DependencyCombination(clique, DiverseCBList, min_conversedKL_descr,negativeThread);
+				executor.execute(t11);
+				threadPool.add(t11);
+		}
+			
+		//fetch threading result
+		
+			System.out.println("summarizing multiple threads result...");
+			executor.shutdownAfterProcessingCurrentlyQueuedTasks();
+			executor.awaitTerminationAfterShutdown();
+			for(DependencyCombination t11:threadPool)
+			{
+				if(t11.score>bestScore)
+				{
+					bestDgroups.clear();
+					bestDgroups=t11.clique;
+					recyclingEnhance=t11.maxDeltaKL;
+					bestScore=t11.score;
+					bestDivIndAction=t11.DivAction;
+					bestDivIndFinalAction=t11.DivIndAction;
+					BestDepAction=t11.DepAction;
+					bestReqNum=t11.bestRecycNum;
+				}
+			}
+		
 		
 		///////////////////////////////decode action//////////////////////////
 		if(bestDgroups.size()>0&&bestReqNum>0) 
