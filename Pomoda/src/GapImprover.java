@@ -2924,8 +2924,7 @@ public class GapImprover {
 							gpwm=GImprover.fillDependency2_1(gpwm);
 						}
 	
-						if(rawpwm.Prior_EZ<5)//the conserved bases number less than 5
-							gpwm=GImprover.refineGapPWM(gpwm);
+
 						gpwm.Name="GPimpover_"+oldname;
 						GImprover.SearchEngine.DisableBackground();
 						System.out.print("Original Motif:");
