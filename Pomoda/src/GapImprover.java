@@ -2108,7 +2108,7 @@ public class GapImprover {
 			//Threads Pool
 				PooledExecutor executor = new PooledExecutor(new LinkedQueue());
 				executor.setMinimumPoolSize(threadNum);
-				executor.setKeepAliveTime(1000 * 60 );
+				executor.setKeepAliveTime(1000 * 60*5 );
 				
 				//add non-dep group thread
 				HashSet<Integer> dpos=new HashSet<Integer>();
