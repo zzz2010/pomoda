@@ -379,7 +379,7 @@ public class GapOptimalModelingThread extends GapBGModelingThread {
 		{
 			KL_scorethresh=KL_Divergence;
 		}
-		if(KL_scorethresh<KL_Divergence)
+		if(KL_scorethresh<KL_Divergence&&!startZeroPara)
 		{
 			//no need to consider
 			//depend_Pos.clear();

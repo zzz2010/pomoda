@@ -2108,7 +2108,7 @@ public class GapImprover {
 			//Threads Pool
 				PooledExecutor executor = new PooledExecutor(new LinkedQueue());
 				executor.setMinimumPoolSize(threadNum);
-				executor.setKeepAliveTime(-1);
+				executor.setKeepAliveTime(1000 * 60 );
 				
 				//add non-dep group thread
 				HashSet<Integer> dpos=new HashSet<Integer>();
@@ -2190,8 +2190,8 @@ public class GapImprover {
 				}
 				if(!OOPG)
 				{
-					DependencyCombination.threadNum=1;
-				Dmap.putAll( DependencyCombination.FindBestCombination2(threadPool.subList(0, threadPool.size()),ConservedCBList,DiverseCBList,motif.m_matrix,translateTB));
+					DependencyCombination.threadNum=threadNum;
+				Dmap.putAll( DependencyCombination.FindBestCombination3(threadPool.subList(0, threadPool.size()),ConservedCBList,DiverseCBList,motif.m_matrix,translateTB));
 				System.out.println("Final:"+threadPool.size());
 				threadPool.clear();
 				}
