@@ -1467,12 +1467,12 @@ public class DependencyCombination extends Thread{
 		PooledExecutor executor = new PooledExecutor(new LinkedQueue());
 		executor.setMinimumPoolSize(threadNum);
 		executor.setKeepAliveTime(1000 * 60*5);
-		
+		System.out.println("Number of Negative Threads: "+negativeThread.size());
 		for( Set<GapOptimalModelingThread> clique:cliques)
 		{
 				// compute the total KL for each clique, using parameter recycling
 				DependencyCombination t11=new DependencyCombination(clique, DiverseCBList, min_conversedKL_descr,negativeThread);
-				if(cliques.size()>10000)
+				if(negativeThread.size()>1000)
 					executor.execute(t11);
 				else
 					t11.run();
