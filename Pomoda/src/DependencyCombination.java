@@ -1238,8 +1238,8 @@ public class DependencyCombination extends Thread{
 			}
 			//change Independent column
 			int totaldivcolReq=0;
-			if(bestDivIndFinalAction.length>bestReqNum)
-				totaldivcolReq=bestDivIndFinalAction[bestReqNum];
+			if(bestDivIndFinalAction.length>bestReqNum-3*tPosSet.size())
+				totaldivcolReq=bestDivIndFinalAction[bestReqNum-3*tPosSet.size()];
 			//conserved bases
 			int[] bt_conAction=backtracking_DP(bestConAction,bestReqNum-totaldivcolReq-3*tPosSet.size());
 			int cid=-1;
@@ -1466,7 +1466,7 @@ public class DependencyCombination extends Thread{
 		LinkedList<DependencyCombination> threadPool=new LinkedList<DependencyCombination>();
 		PooledExecutor executor = new PooledExecutor(new LinkedQueue());
 		executor.setMinimumPoolSize(threadNum);
-		executor.setKeepAliveTime(1000 * 60);
+		executor.setKeepAliveTime(1000 * 60*5);
 		
 		for( Set<GapOptimalModelingThread> clique:cliques)
 		{
@@ -1536,8 +1536,8 @@ public class DependencyCombination extends Thread{
 			}
 			//change Independent column
 			int totaldivcolReq=0;
-			if(bestDivIndFinalAction.length>bestReqNum)
-				totaldivcolReq=bestDivIndFinalAction[bestReqNum];
+			if(bestDivIndFinalAction.length>bestReqNum-3*tPosSet.size())
+				totaldivcolReq=bestDivIndFinalAction[bestReqNum-3*tPosSet.size()];
 			//conserved bases
 			int[] bt_conAction=backtracking_DP(bestConAction,bestReqNum-totaldivcolReq-3*tPosSet.size());
 			int cid=-1;
