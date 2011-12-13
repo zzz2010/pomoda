@@ -1260,7 +1260,7 @@ public class DependencyCombination extends Thread{
 					if(prob>(cb.upperbound+common.DoubleMinNormal)||prob<cb.lowerbound)
 					{
 						if(m_matrix[orignalColumn][i]==1)
-							m_matrix[orignalColumn][i]=1-+common.DoubleMinNormal;
+							m_matrix[orignalColumn][i]=1-common.DoubleMinNormal;
 						sumprob+=m_matrix[orignalColumn][i];
 						dprobMap.put(common.Hash2ACGT(i, 1), m_matrix[orignalColumn][i]);
 						taken++;
@@ -1355,6 +1355,8 @@ public class DependencyCombination extends Thread{
 		while(iter3.hasNext())
 		{
 			GapBGModelingThread t1=iter3.next();	
+			if(t1.depend_Pos.size()==2&&t1.depend_Pos.contains(0)&&t1.depend_Pos.contains(1))
+				bestScore=0;
 			t1.join();
 				if(t1.depend_Pos.size()==0)
 				{
