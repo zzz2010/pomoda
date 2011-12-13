@@ -75,6 +75,7 @@ public class PWMevaluator {
 	LinearEngine BGSearchEngine;
 	public double sampling_ratio=1;
 	public double FDR=0.001;
+	public double maxFPdraw=1;
 	public double DivergenceThresh=0.24;
 	
 	public int resolution=10;
@@ -958,9 +959,13 @@ public class PWMevaluator {
 	       	for (int i = 0; i < labels.length; i++) {
 				if(labels[i]==1)
 					poscount++;
+				double fp=(double)(i+1-poscount)/(labels.length-one);
+				if(fp>maxFPdraw)
+					break;
 				if(i%skip==0)
-				series1.add((double)(i+1-poscount)/(labels.length-one), (double)(poscount)/one);
-			}
+				series1.add(fp, (double)(poscount)/one);
+				
+	       	}
 	       	ROCdata.put(motif.Name, series1);
 	       	
          double AUCscore=AUCcalc.calculateAUCROC();
@@ -1034,6 +1039,7 @@ public class PWMevaluator {
 		options.addOption("markov", true, "use markov model of the control sequences rather than directly control sequences");
 		options.addOption("prefix", true, "output directory");
 		options.addOption("ratio",true, "sampling ratio (default 1)");
+		options.addOption("maxROCfp",true, "the x axis scale in ROC curve drawing (default 1)");
 		options.addOption("genrand",false, "shuffle the colums of input PWMs and evaluate");
 		options.addOption("thresh",true, "minimum PWM divergence threshold for considering a match known motif(default 0.24)");
 		options.addOption("FDR",true,"fasle positive rate");
@@ -1120,7 +1126,11 @@ public class PWMevaluator {
 			{
 				evaluator.outputPrefix=cmd.getOptionValue("prefix");
 			}
-
+			
+			if(cmd.hasOption("maxROCfp"))
+			{
+				evaluator.maxFPdraw=Double.parseDouble( cmd.getOptionValue("maxROCfp"));
+			}
 			if(cmd.hasOption("ratio"))
 			{
 				evaluator.sampling_ratio=Double.parseDouble( cmd.getOptionValue("ratio"));
