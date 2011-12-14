@@ -596,6 +596,7 @@ public class DependencyCombination extends Thread{
 		return actArray;
 	}
 	
+	//no donator for dep-group
 	public static HashMap<HashSet<Integer>,HashMap<String,Double>> FindBestCombination(List<GapOptimalModelingThread> list,
 			HashMap<Integer,ArrayList<ConstrainBlock>> ConservedCBList,HashMap<Integer,ArrayList<ConstrainBlock>> DiverseCBList,double[][] m_matrix, int[] translate)
 	{
@@ -958,6 +959,8 @@ public class DependencyCombination extends Thread{
 		
 		
 	}
+	
+	//dep-group can be donator
 	public static HashMap<HashSet<Integer>,HashMap<String,Double>> FindBestCombination2(List<GapOptimalModelingThread> list,
 			HashMap<Integer,ArrayList<ConstrainBlock>> ConservedCBList,HashMap<Integer,ArrayList<ConstrainBlock>> DiverseCBList,double[][] m_matrix, int[] translate)
 	{
@@ -1337,7 +1340,7 @@ public class DependencyCombination extends Thread{
 		
 	}
 	
-	
+	//allow recyle the negative thread, but must based on maximum clique group
 	public static HashMap<HashSet<Integer>,HashMap<String,Double>> FindBestCombination3(List<GapOptimalModelingThread> list,
 			HashMap<Integer,ArrayList<ConstrainBlock>> ConservedCBList,HashMap<Integer,ArrayList<ConstrainBlock>> DiverseCBList,double[][] m_matrix, int[] translate)
 	{

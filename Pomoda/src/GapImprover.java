@@ -46,6 +46,7 @@ public class GapImprover {
 	 */
 	public String outputPrefix="./";
 	public String inputFasta;
+	public static double version=1.0;
 	public String ctrlFasta="";
 	public boolean OOPS=false; //only one dependence per sequence
 	public boolean OOPG=false; //only one occurrence per sequence
@@ -2191,7 +2192,11 @@ public class GapImprover {
 				if(!OOPG)
 				{
 					DependencyCombination.threadNum=threadNum;
-				Dmap.putAll( DependencyCombination.FindBestCombination2(threadPool.subList(0, threadPool.size()),ConservedCBList,DiverseCBList,motif.m_matrix,translateTB));
+				if(version==2.3)
+					Dmap.putAll( DependencyCombination.FindBestCombination3(threadPool.subList(0, threadPool.size()),ConservedCBList,DiverseCBList,motif.m_matrix,translateTB));
+				else
+					Dmap.putAll( DependencyCombination.FindBestCombination2(threadPool.subList(0, threadPool.size()),ConservedCBList,DiverseCBList,motif.m_matrix,translateTB));
+				
 				System.out.println("Final:"+threadPool.size());
 				threadPool.clear();
 				}
@@ -3294,7 +3299,7 @@ public class GapImprover {
 							GImprover.FlankLen=0;
 							gpwm=GImprover.fillDependency2_1(gpwm);
 						}
-						if(version==2.2)
+						if(version==2.2||version==2.3)
 						{
 							gpwm=GImprover.fillDependency2_2(rawpwm);
 							GImprover.FlankLen=0;
