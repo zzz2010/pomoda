@@ -2191,7 +2191,7 @@ public class GapImprover {
 				if(!OOPG)
 				{
 					DependencyCombination.threadNum=threadNum;
-				Dmap.putAll( DependencyCombination.FindBestCombination3(threadPool.subList(0, threadPool.size()),ConservedCBList,DiverseCBList,motif.m_matrix,translateTB));
+				Dmap.putAll( DependencyCombination.FindBestCombination2(threadPool.subList(0, threadPool.size()),ConservedCBList,DiverseCBList,motif.m_matrix,translateTB));
 				System.out.println("Final:"+threadPool.size());
 				threadPool.clear();
 				}
@@ -3231,7 +3231,7 @@ public class GapImprover {
 				while(iter.hasNext())
 				{
 					PWM rawpwm=iter.next();
-					System.out.println(rawpwm.Name+" : "+rawpwm.Consensus(true));
+					System.out.println(rawpwm.Name+" : "+rawpwm.Consensus(false));
 					GImprover.FlankLen=oldflank;
 			
 					if(GImprover.removeBG)
