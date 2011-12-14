@@ -525,9 +525,14 @@ public class PWMevaluator {
 	       	for (int i = 0; i < labels.length; i++) {
 				if(labels[i]==1)
 					poscount++;
+				
+				double fp=(double)(i+1-poscount)/(labels.length-one);
+				if(fp>maxFPdraw)
+					break;
+			
 				if(skip!=0&&i%skip==0)
 				{
-				series1.add((double)(i+1-poscount)/(labels.length-one), (double)(poscount)/one);
+				series1.add(fp, (double)(poscount)/one);
 				//System.err.println(labels[i]+"\t"+scores[i]);
 				}
 			}
