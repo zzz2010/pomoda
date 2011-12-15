@@ -3271,6 +3271,8 @@ public class GapImprover {
 							e.printStackTrace();
 						}
 					}
+					
+					GImprover.version=version;
 					GImprover.FlankLen=oldflank;
 					if(rawpwm!=null)
 					{
