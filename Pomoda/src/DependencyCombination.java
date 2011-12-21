@@ -709,7 +709,16 @@ public class DependencyCombination extends Thread{
 		Collection<Set<GapOptimalModelingThread>> cliques=cliquefinder.getAllMaximalCliques();
 		System.out.println("Clique Number: "+cliques.size());
 		
-		
+		// no dependency group found
+		if(positiveThread.size()==0)
+			return Dmap;
+		//when only have one positive thread, will report no clique
+		if(cliques.size()==0)
+		{
+			HashSet<GapOptimalModelingThread> hs=new HashSet<GapOptimalModelingThread>();
+			hs.add(positiveThread.get(0));
+			cliques.add(hs);
+		}
 		
 		for( Set<GapOptimalModelingThread> clique:cliques)
 		{
@@ -1072,7 +1081,16 @@ public class DependencyCombination extends Thread{
 		BronKerboschCliqueFinder<GapOptimalModelingThread, DefaultEdge> cliquefinder=new BronKerboschCliqueFinder<GapOptimalModelingThread, DefaultEdge>(graph);
 		Collection<Set<GapOptimalModelingThread>> cliques=cliquefinder.getAllMaximalCliques();
 		System.out.println("Clique Number: "+cliques.size());
-		
+		// no dependency group found
+		if(positiveThread.size()==0)
+			return Dmap;
+		//when only have one positive thread, will report no clique
+		if(cliques.size()==0)
+		{
+			HashSet<GapOptimalModelingThread> hs=new HashSet<GapOptimalModelingThread>();
+			hs.add(positiveThread.get(0));
+			cliques.add(hs);
+		}
 		
 		
 		//Threads Pool
@@ -1407,6 +1425,7 @@ public class DependencyCombination extends Thread{
 			
 		}
 		//here: bestDgroups is the best only-1 dep-group
+
 		
 		// build graph
 		SimpleGraph<GapOptimalModelingThread, DefaultEdge> graph=new SimpleGraph<GapOptimalModelingThread, DefaultEdge>(DefaultEdge.class);
@@ -1465,6 +1484,18 @@ public class DependencyCombination extends Thread{
 		Collection<Set<GapOptimalModelingThread>> cliques=cliquefinder.getAllMaximalCliques();
 		System.out.println("Clique Number: "+cliques.size());
 		
+		System.out.println("number of positive:"+positiveThread.size());
+		// no dependency group found
+		if(positiveThread.size()==0)
+			return Dmap;
+		
+		//when only have one positive thread, will report no clique
+		if(cliques.size()==0)
+		{
+			HashSet<GapOptimalModelingThread> hs=new HashSet<GapOptimalModelingThread>();
+			hs.add(positiveThread.get(0));
+			cliques.add(hs);
+		}
 		
 		
 		//Threads Pool
