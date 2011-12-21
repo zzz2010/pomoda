@@ -831,6 +831,8 @@ public class GapImprover {
 		if(!is_bsitedata)
 		{
 			KeyValuePair<LinkedList<String>, ArrayList<Double>> retpair=querySites(motif);
+			if(retpair==null)
+				return null;
 			sites=retpair.key;
 			siteWeight=retpair.value;
 		}
@@ -1221,6 +1223,8 @@ public class GapImprover {
 		if(!is_bsitedata)
 		{
 			KeyValuePair<LinkedList<String>, ArrayList<Double>> retpair=querySites(motif);
+			if(retpair==null)
+				return null;
 			sites=retpair.key;
 			siteWeight=retpair.value;
 		}
@@ -1607,6 +1611,8 @@ public class GapImprover {
 		if(!is_bsitedata)
 		{
 			KeyValuePair<LinkedList<String>, ArrayList<Double>> retpair=querySites(motif);
+			if(retpair==null)
+				return null;
 			sites=retpair.key;
 			siteWeight=retpair.value;
 		}
@@ -1978,6 +1984,8 @@ public class GapImprover {
 			if(!is_bsitedata)
 			{
 				KeyValuePair<LinkedList<String>, ArrayList<Double>> retpair=querySites(motif);
+				if(retpair==null)
+					return null;
 				sites=retpair.key;
 				siteWeight=retpair.value;
 			}
@@ -3223,6 +3231,7 @@ public class GapImprover {
 		if(!GImprover.is_bsitedata)
 		{
 			pwmlist=common.LoadPWMFromFile(inputPWM);
+			System.out.println("Number of Prior PWM:"+pwmlist.size());
 			Iterator<PWM> iter=pwmlist.iterator();
 			LinkedList<GapPWM> improvedPWMs=new LinkedList<GapPWM>();
 			 File directory=new File(inputPWM);
@@ -3277,23 +3286,30 @@ public class GapImprover {
 					if(rawpwm!=null)
 					{
 						GapPWM gpwm=null;
+						GapPWM temp=null;
 						if(version==2)
 						{
 							gpwm=GImprover.fillDependency2(rawpwm);
 							GImprover.FlankLen=0;
-							gpwm=GImprover.fillDependency2(gpwm);
+							temp=GImprover.fillDependency2(gpwm);
+							if(temp!=null)
+								gpwm=temp;
 						}
 						if(version==1)
 						{
 							gpwm=GImprover.fillDependency1(rawpwm);
 							GImprover.FlankLen=0;
-							gpwm=GImprover.fillDependency1(gpwm);
+							temp=GImprover.fillDependency1(gpwm);
+							if(temp!=null)
+								gpwm=temp;
 						}
 						if(version==1.1)
 						{
 							gpwm=GImprover.fillDependency1_1(rawpwm);
 							GImprover.FlankLen=0;
-							gpwm=GImprover.fillDependency1_1(gpwm);
+							temp=GImprover.fillDependency1_1(gpwm);
+							if(temp!=null)
+								gpwm=temp;
 						}
 						if(version==2.1)
 						{
@@ -3305,7 +3321,9 @@ public class GapImprover {
 						{
 							gpwm=GImprover.fillDependency2_2(rawpwm);
 							GImprover.FlankLen=0;
-							gpwm=GImprover.fillDependency2_2(gpwm);
+							temp=GImprover.fillDependency2_2(gpwm);
+							if(temp!=null)
+								gpwm=temp;
 						}
 	
 						System.out.println("Parameter Number: "+gpwm.getTotalParaNum());
