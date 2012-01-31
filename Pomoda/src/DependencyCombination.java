@@ -422,7 +422,7 @@ public class DependencyCombination extends Thread{
 		for(GapBGModelingThread t2:list)
 		{
 			
-			if(baseScore>t2.KL_Divergence&&t2.chisqPvalue<0.05)
+			if(baseScore>t2.KL_Divergence&&t2.chisqPvalue<GapImprover.FDR)
 			{
 				//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
@@ -635,7 +635,7 @@ public class DependencyCombination extends Thread{
 		for(GapOptimalModelingThread t2:list)
 		{
 			
-			if(baseScore>t2.KL_Divergence&&t2.chisqPvalue<0.05)
+			if(baseScore>t2.KL_Divergence&&t2.chisqPvalue<GapImprover.FDR)
 			{
 				//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
@@ -1004,11 +1004,11 @@ public class DependencyCombination extends Thread{
 		//filter the negative threads, only consider the dep-group better than independence case
 		ArrayList<GapOptimalModelingThread> positiveThread=new ArrayList<GapOptimalModelingThread>(list.size()/2);
 		
-		 LinkedList< HashSet<Integer> > queue=new LinkedList< HashSet<Integer> >();
+		
 		for(GapOptimalModelingThread t2:list)
 		{
 			
-			if(baseScore>t2.KL_Divergence&&t2.chisqPvalue<0.05)
+			if(baseScore>t2.KL_Divergence&&t2.chisqPvalue<GapImprover.FDR)
 			{
 				//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
@@ -1376,8 +1376,8 @@ public class DependencyCombination extends Thread{
 		while(iter3.hasNext())
 		{
 			GapBGModelingThread t1=iter3.next();	
-			if(t1.depend_Pos.size()==2&&t1.depend_Pos.contains(0)&&t1.depend_Pos.contains(1))
-				bestScore=0;
+//			if(t1.depend_Pos.size()==2&&t1.depend_Pos.contains(0)&&t1.depend_Pos.contains(1))
+//				bestScore=0;
 			t1.join();
 				if(t1.depend_Pos.size()==0)
 				{
@@ -1399,13 +1399,12 @@ public class DependencyCombination extends Thread{
 		 LinkedList< HashSet<Integer> > queue=new LinkedList< HashSet<Integer> >();
 		for(GapOptimalModelingThread t2:list)
 		{
-			if(t2.chisqPvalue<0.05)
+			if(t2.chisqPvalue<GapImprover.FDR)
 			{
 				t2.KL_Divergence=baseScore-t2.KL_Divergence;
 				if(t2.KL_Divergence>0)
 				{
-					//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more
-					
+					//I reuse the field KL_Divergence as a score, not the KL_Divergence meaning any more					
 					positiveThread.add(t2);
 					//higher the better now, KL_Divergence is score here
 					if(t2.KL_Divergence>bestScore)
@@ -1417,8 +1416,7 @@ public class DependencyCombination extends Thread{
 					
 				}
 				else if(t2.depend_Pos.size()>0)
-				{	
-					
+				{						
 					negativeThread.add(t2);
 				}
 			}
@@ -1634,7 +1632,7 @@ public class DependencyCombination extends Thread{
 					if(prob>cb.upperbound+common.DoubleMinNormal||prob<cb.lowerbound)
 					{
 						if(m_matrix[orignalColumn][i]==1)
-							m_matrix[orignalColumn][i]=1-+common.DoubleMinNormal;
+							m_matrix[orignalColumn][i]=1-common.DoubleMinNormal;
 						sumprob+=m_matrix[orignalColumn][i];
 						dprobMap.put(common.Hash2ACGT(i, 1), m_matrix[orignalColumn][i]);
 						taken++;
