@@ -247,7 +247,11 @@ public class MultPWMScorer {
 			
 			
 			//draw heatmap
-			
+			DrawUtil.drawHeatMap(finalProfile, evaluator.outputPrefix+"heatmap.png");
+			//draw SignalAroundCenter
+			DrawUtil.drawSignalAroundPeakCurve(finalProfile, evaluator.outputPrefix+"curve.png");
+			//draw ROC
+			DrawUtil.DrawROC(ROCdata, evaluator.outputPrefix+"ROC.png");
 			
 			//save profile to file
 			 FileOutputStream fileOut =
