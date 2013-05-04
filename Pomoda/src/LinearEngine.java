@@ -434,9 +434,7 @@ public class LinearEngine {
 		if(num_thread>ForwardStrand.size()||ForwardStrand.size()<100)
 			num_thread=1;
 	    int workSize=ForwardStrand.size()/num_thread+1;
-	    Iterator<String> iter=ForwardStrand.iterator();
 	    LinkedList<FastaLocation> search_result=new LinkedList<FastaLocation>();
-	    int count=0;
 	    ArrayList<SearchThread> threadpool=new ArrayList<SearchThread>(num_thread);
 	    if(background!=null)
 		{
