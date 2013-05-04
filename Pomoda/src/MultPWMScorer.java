@@ -31,13 +31,13 @@ public class MultPWMScorer {
 	public String outputPrefix="./";
 	public String inputFasta;
 	public String ctrlFasta="";
-	public boolean removeBG=false; //false:uniform BG assume
+	//public boolean removeBG=false; //false:uniform BG assume
 	public String bgmodelFile="";
 	public int BGFold=1;
 	LinearEngine SearchEngine;
 	LinearEngine BGSearchEngine;
 	public boolean StrandSpec=false;
-	public boolean linearOrder=false;
+	public boolean linearOrder=true;
 	public static double maxFPdraw=1;
 	public int resolution=10;
 	
@@ -47,17 +47,7 @@ public class MultPWMScorer {
 	private boolean PBMflag=false;
 	public static int max_motif_span=30;
 	
-	public MultPWMScorer(Pomoda motiffinder)
-	{
-		//super("");
 
-		SearchEngine=motiffinder.SearchEngine2;
-		//sampling_ratio=motiffinder.sampling_ratio;
-		background=motiffinder.background;
-		removeBG=true;
-		resolution=motiffinder.resolution;
-		
-	}
 	
 	public MultPWMScorer()
 	{//super("");
@@ -68,6 +58,7 @@ public class MultPWMScorer {
 	{
 		common.initialize();
 		SearchEngine=new LinearEngine(4);
+		
 		if(this.PBMflag)
 		{
 			SearchEngine.buildPBM_index(inputFasta, 100000,true);
@@ -88,12 +79,12 @@ public class MultPWMScorer {
 				BGSearchEngine=new LinearEngine(4);
 				 background.BuildModel(this.ctrlFasta, 4); //4-order bg
 				BGSearchEngine.build_index(this.ctrlFasta);
-				removeBG=true;
+				//removeBG=true;
 			}
 			
 			else if(!bgmodelFile.isEmpty())
 			{
-				removeBG=true;
+				//removeBG=true;
 					background.LoadModel(bgmodelFile);
 			}
 			
@@ -103,6 +94,10 @@ public class MultPWMScorer {
 			}
 
 		}
+		
+		//add uniform bg for both search engine, ensure the score can be positive
+		SearchEngine.EnableBackground(BGModel.CreateUniform());
+		BGSearchEngine.EnableBackground(BGModel.CreateUniform());
 		
 	}
 	/**
@@ -157,7 +152,7 @@ public class MultPWMScorer {
 				{
 					common.initialize();
 					int bgorder=Integer.parseInt(cmd.getOptionValue("markov"))+1;
-					evaluator.removeBG=true;
+					//evaluator.removeBG=true;
 					evaluator.background=new BGModel();
 					evaluator.background.BuildModel(evaluator.ctrlFasta, bgorder);
 				}
@@ -320,10 +315,11 @@ public class MultPWMScorer {
 			{
 				bestProfile=mixProfile;
 				bestBarCode=i;
+				bestScore=score;
 			}
 		}
 		String barcode_Str=Integer.toBinaryString(bestBarCode);
-		System.out.println("Best combination: "+barcode_Str.substring(barcode_Str.length()-ProfileCollection.size()));
+		System.out.println("Best combination: "+barcode_Str);
 		return bestProfile;
 	}
 	
@@ -387,12 +383,12 @@ public class MultPWMScorer {
 					double FVal=Double.NEGATIVE_INFINITY;
 					if(j2+forwardGap<row.size())
 					FVal=row.get(j2+forwardGap);
-					FretMat.set(j, j2,FVal);
+					FretMat.set(j, j2,FVal+FretMat.get(j, j2));
 					//reverse strand
 					double RVal=Double.NEGATIVE_INFINITY;
 					if(j2-reverseGap>-1)
 						RVal=row.get(j2-reverseGap);
-					RretMat.set(j, j2,RVal);
+					RretMat.set(j, j2,RVal+RretMat.get(j, j2));
 				}
 				
 			}
@@ -420,10 +416,9 @@ public class MultPWMScorer {
 	{
 		DenseDoubleMatrix2D ret=(DenseDoubleMatrix2D) mat.copy();
 		for (int i = 0; i < mat.rows(); i++) {
-			DoubleMatrix1D row = mat.viewRow(i);
-			
+			DoubleMatrix1D row = mat.viewRow(i);		
 			for (int j = 0; j < mat.columns(); j++) {
-				double maxScore=max(row.viewPart(Math.max(0,j-winsize), Math.min(mat.columns(),j+winsize)));
+				double maxScore=max(row.viewPart(Math.max(0,j-winsize), Math.min(mat.columns()-1,j+winsize)-Math.max(0,j-winsize)));
 				ret.set(i, j, maxScore);
 			}
 		}
@@ -432,7 +427,13 @@ public class MultPWMScorer {
 	
 	DenseDoubleMatrix2D getSinglePWMScoreProfile(PWM motif,LinearEngine engine)
 	{
-		DenseDoubleMatrix2D scoreProfile=new DenseDoubleMatrix2D(engine.ForwardStrand.size(), engine.TotalLen/engine.ForwardStrand.size()+1);
+		int maxlen=0;
+		for (int i = 0; i < engine.accSeqLen.size()-1; i++) {
+			int len=engine.accSeqLen.get(i+1)-engine.accSeqLen.get(i);
+			if(maxlen<len)
+				maxlen=len;
+		}
+		DenseDoubleMatrix2D scoreProfile=new DenseDoubleMatrix2D(engine.ForwardStrand.size(), maxlen);
 		 LinkedList<FastaLocation> falocs=engine.searchPattern(motif, Double.NEGATIVE_INFINITY);
 		 Iterator<FastaLocation> iter=falocs.iterator();
 		 while(iter.hasNext())
