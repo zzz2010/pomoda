@@ -14,6 +14,7 @@ import org.jfree.chart.axis.SymbolAxis;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.LookupPaintScale;
 import org.jfree.chart.renderer.xy.XYBlockRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.Range;
@@ -121,7 +122,7 @@ public class DrawUtil {
 //	        lookuppaintscale.add(0.5D, Color.green);
 //	        lookuppaintscale.add(1D, Color.orange);
 //	        lookuppaintscale.add(2D, Color.red);
-//	        xyblockrenderer.setPaintScale(lookuppaintscale);
+	        xyblockrenderer.setPaintScale( new LookupPaintScale(minvalue,maxvalue,Color.red));
 	        
 
 //	        xyblockrenderer.setPaintScale(getPaintScale(minvalue, maxvalue));
