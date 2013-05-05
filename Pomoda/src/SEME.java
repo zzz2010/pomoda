@@ -6,10 +6,12 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,6 +72,8 @@ import umontreal.iro.lecuyer.probdist.NormalDist;
 import umontreal.iro.lecuyer.probdistmulti.DirichletDist;
 import umontreal.iro.lecuyer.util.Num;
 
+import cern.colt.matrix.impl.DenseDoubleMatrix2D;
+import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 import cern.jet.random.Binomial;
 import cern.jet.random.engine.MersenneTwister;
 import cern.jet.random.engine.RandomEngine;
@@ -82,7 +86,7 @@ import edu.stanford.rsl.jpop.FunctionOptimizer.OptimizationMode;
 
 
 
-public class Pomoda {
+public class SEME {
 
 	public String outputPrefix="./";
 	public String inputFasta;
@@ -121,6 +125,7 @@ public class Pomoda {
 	public int DnaseWindow=1;
 	boolean DemoFlag=false;
 	DemoWin demo=null;
+	public static DenseDoubleMatrix2D PriorDistribution=null;
 	
 	public void initialize()
 	{
@@ -932,10 +937,14 @@ public class Pomoda {
 			double score=0;
 			int lastpos=-1;
 			int facount_nonoverlap=0;
+			
 			for(FastaLocation fal:LocList)
 			{
+				double prior=1;
+				if(PriorDistribution!=null)
+					prior=PriorDistribution.get(fal.getSeqId(), fal.getSeqPos());
 				if(fal.getMin()-lastpos>seedlen)
-					facount_nonoverlap++;
+					facount_nonoverlap+=prior;
 				lastpos=fal.getMin();
 			}
 //			int overlapcount=LocList.size()-facount_nonoverlap;
@@ -1948,6 +1957,9 @@ public class Pomoda {
 						if(motif.peakrank_prior.size()!=0&&motif.peakrank_en)
 							logprior+=Math.log(motif.peakrank_prior.get(rankbin)+Double.MIN_NORMAL)-lognullprior;
 						
+						if(PriorDistribution!=null)
+							logprior+=PriorDistribution.get(currloc.getSeqId(), currloc.getSeqPos());
+						
 						double logDnaseProb=0;
                     ///////////////////////////// extra feature integration ////////////////////////////
 						//logprior=0;
@@ -2765,6 +2777,7 @@ public class Pomoda {
 					double logprior=0;
 					if(motif.pos_prior.size()!=0&&motif.pos_en)
 						logprior=Math.log(motif.pos_prior.get(posbin)+common.DoubleMinNormal)-lognullprior;
+				
 					if(motif.strand_en)
 					{
 						if(currloc.ReverseStrand)
@@ -2774,6 +2787,9 @@ public class Pomoda {
 					}
 					if(motif.peakrank_prior.size()!=0&&motif.peakrank_en)
 						logprior+=Math.log(motif.peakrank_prior.get(rankbin)+common.DoubleMinNormal)-lognullprior;
+					
+					if(PriorDistribution!=null)
+						logprior+=PriorDistribution.get(currloc.getSeqId(), currloc.getSeqPos());
 					
 					double logDnaseProb=0;
 					
@@ -3540,6 +3556,7 @@ public class Pomoda {
 		options.addOption("c", true, "control fasta file");
 		options.addOption("seedfile", true, "seed PWM file");
 		options.addOption("bgmodel", true, "background model file");
+		options.addOption("prior", true, "prior distribution file (DenseDouble2DMatrix object file )");
 //		options.addOption("dnase", true, "dnase data file");
 		options.addOption("strand", false, "only scan on one strand");
 		options.addOption("mincount", true, "min count for extention");
@@ -3559,7 +3576,7 @@ public class Pomoda {
 		options.addOption("clustthresh",true,"overlap threshold for redundance filtering (default 0.1)" );
 		
 		CommandLineParser parser = new GnuParser();
-		Pomoda motifFinder=new Pomoda();
+		SEME motifFinder=new SEME();
 		String SeedPWMfile="";
 		try {
 			CommandLine cmd = parser.parse( options, args);
@@ -3570,6 +3587,19 @@ public class Pomoda {
 			else
 			{
 				throw new ParseException("no input fasta file");
+			}
+			if(cmd.hasOption("prior"))
+			{
+				 try {
+				File f1=new File(cmd.getOptionValue("prior"));
+				FileInputStream fileIn = new FileInputStream(f1.getAbsolutePath());
+				 ObjectInputStream in = new ObjectInputStream(fileIn);
+				 PriorDistribution=(DenseDoubleMatrix2D)in.readObject();
+				 fileIn.close();
+				 } catch (Exception e) {
+						System.err.println("fail to load prior distribution file:" +cmd.getOptionValue("prior"));
+						
+					} 
 			}
 			if(cmd.hasOption("c"))
 			{

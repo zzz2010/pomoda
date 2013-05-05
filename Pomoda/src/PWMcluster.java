@@ -43,7 +43,7 @@ public class PWMcluster {
 		
 	}
 	
-	public PWMcluster(Pomoda motiffinder)
+	public PWMcluster(SEME motiffinder)
 	{
 		SearchEngine=motiffinder.SearchEngine2;
 		//sampling_ratio=motiffinder.sampling_ratio;

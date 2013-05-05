@@ -85,7 +85,7 @@ public class PWMevaluator {
 	HashMap<String,XYSeries> ROCdata=new HashMap<String, XYSeries>();
 	private boolean PBMflag=false;
 	
-	public PWMevaluator(Pomoda motiffinder)
+	public PWMevaluator(SEME motiffinder)
 	{
 		//super("");
 
