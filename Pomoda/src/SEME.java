@@ -3596,6 +3596,7 @@ public class SEME {
 				 ObjectInputStream in = new ObjectInputStream(fileIn);
 				 PriorDistribution=(DenseDoubleMatrix2D)in.readObject();
 				 fileIn.close();
+				 System.out.println("Prior Distribution is loaded: "+PriorDistribution.rows()+" sequences.");
 				 } catch (Exception e) {
 						System.err.println("fail to load prior distribution file:" +cmd.getOptionValue("prior"));
 						
