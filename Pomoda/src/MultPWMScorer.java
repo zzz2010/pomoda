@@ -36,8 +36,8 @@ public class MultPWMScorer {
 	public int BGFold=1;
 	LinearEngine SearchEngine;
 	LinearEngine BGSearchEngine;
-	public boolean StrandSpec=false;
-	public boolean linearOrder=true;
+	public static boolean StrandSpec=false;
+	public static boolean linearOrder=false;
 	public static double maxFPdraw=1;
 	public int resolution=10;
 	
@@ -119,6 +119,8 @@ public class MultPWMScorer {
 		options.addOption("pbm", false, "input file is PBM format, and will compute signal correlation");
 		options.addOption("markov", true, "use markov model of the control sequences rather than directly control sequences");
 		options.addOption("maxROCfp",true, "the x axis scale in ROC curve drawing (default 1)");
+		options.addOption("linear",false, "indicate the order in the PWM file maintain in the combination (default false)");
+		options.addOption("strand",false, "indicate the strand in the PWM file maintain in the combination (default false)");
 		
 		CommandLineParser parser = new GnuParser();
 		MultPWMScorer evaluator=new MultPWMScorer();
@@ -177,6 +179,14 @@ public class MultPWMScorer {
 			{
 				rocflag=true;
 			}
+			if(cmd.hasOption("linear"))
+			{
+				linearOrder=true;
+			}
+			if(cmd.hasOption("strand"))
+			{
+				StrandSpec=true;
+			}
 			if(cmd.hasOption("corr"))
 			{
 				corrflag=true;
@@ -226,20 +236,47 @@ public class MultPWMScorer {
 				pwmlist= pwmlist.subList(0, topN);
 			
 			max_motif_span=0;
+			DenseDoubleMatrix2D finalProfile=null;
 			Iterator<PWM> iter=pwmlist.iterator();
-			ArrayList<DenseDoubleMatrix2D> ProfileCollection=new ArrayList<DenseDoubleMatrix2D>();
-			ArrayList<DenseDoubleMatrix2D> BG_rofileCollection=new ArrayList<DenseDoubleMatrix2D>();
-			while(iter.hasNext())
+			if(evaluator.StrandSpec)
 			{
-				PWM motif=iter.next();
-				max_motif_span+=motif.columns();
-				DenseDoubleMatrix2D scoreProfiles=evaluator.getSinglePWMScoreProfile(motif,evaluator.SearchEngine);
-				ProfileCollection.add(scoreProfiles);
-				DenseDoubleMatrix2D scoreProfiles2=evaluator.getSinglePWMScoreProfile(motif,evaluator.BGSearchEngine);
-				BG_rofileCollection.add(scoreProfiles2);
+				ArrayList<DenseDoubleMatrix2D> ProfileCollection1=new ArrayList<DenseDoubleMatrix2D>();
+				ArrayList<DenseDoubleMatrix2D> BG_rofileCollection1=new ArrayList<DenseDoubleMatrix2D>();
+				ArrayList<DenseDoubleMatrix2D> ProfileCollection2=new ArrayList<DenseDoubleMatrix2D>();
+				ArrayList<DenseDoubleMatrix2D> BG_rofileCollection2=new ArrayList<DenseDoubleMatrix2D>();
+				evaluator.SearchEngine.singleStrand=true;
+				evaluator.BGSearchEngine.singleStrand=true;
+				while(iter.hasNext())
+				{
+					PWM motif=iter.next();
+					max_motif_span+=motif.columns();
+					DenseDoubleMatrix2D scoreProfiles=evaluator.getSinglePWMScoreProfile(motif,evaluator.SearchEngine);
+					ProfileCollection1.add(scoreProfiles);
+					DenseDoubleMatrix2D scoreProfiles2=evaluator.getSinglePWMScoreProfile(motif,evaluator.BGSearchEngine);
+					BG_rofileCollection1.add(scoreProfiles2);
+					
+					DenseDoubleMatrix2D scoreProfiles3=evaluator.getSinglePWMScoreProfile(motif.ReverseComplement(),evaluator.SearchEngine);
+					ProfileCollection2.add(scoreProfiles3);
+					DenseDoubleMatrix2D scoreProfiles4=evaluator.getSinglePWMScoreProfile(motif.ReverseComplement(),evaluator.BGSearchEngine);
+					BG_rofileCollection2.add(scoreProfiles4);
+				}
+				finalProfile=evaluator.combineDifferentProfiles(ProfileCollection1,ProfileCollection2,BG_rofileCollection1,BG_rofileCollection2);
 			}
-			DenseDoubleMatrix2D finalProfile=evaluator.combineDifferentProfiles(ProfileCollection,BG_rofileCollection);
-			
+			else
+			{
+				ArrayList<DenseDoubleMatrix2D> ProfileCollection=new ArrayList<DenseDoubleMatrix2D>();
+				ArrayList<DenseDoubleMatrix2D> BG_rofileCollection=new ArrayList<DenseDoubleMatrix2D>();
+				while(iter.hasNext())
+				{
+					PWM motif=iter.next();
+					max_motif_span+=motif.columns();
+					DenseDoubleMatrix2D scoreProfiles=evaluator.getSinglePWMScoreProfile(motif,evaluator.SearchEngine);
+					ProfileCollection.add(scoreProfiles);
+					DenseDoubleMatrix2D scoreProfiles2=evaluator.getSinglePWMScoreProfile(motif,evaluator.BGSearchEngine);
+					BG_rofileCollection.add(scoreProfiles2);
+				}
+				finalProfile=evaluator.combineDifferentProfiles(ProfileCollection,BG_rofileCollection);
+			}
 			
 			//draw heatmap
 			DrawUtil.drawHeatMap(finalProfile, evaluator.outputPrefix+"heatmap.png");
@@ -265,6 +302,96 @@ public class MultPWMScorer {
 		
 	}
 	
+	
+	DenseDoubleMatrix2D combineDifferentProfiles(ArrayList<DenseDoubleMatrix2D> ProfileCollection_minus,ArrayList<DenseDoubleMatrix2D> ProfileCollection_plus,ArrayList<DenseDoubleMatrix2D> BG_rofileCollection_minus,ArrayList<DenseDoubleMatrix2D> BG_rofileCollection_plus)
+	{
+		if(!linearOrder)
+		{
+			//take max in the window size
+			for (int i = 0; i < ProfileCollection_plus.size(); i++) {
+				ProfileCollection_plus.set(i, maxWinSize(ProfileCollection_plus.get(i),max_motif_span));
+				ProfileCollection_minus.set(i, maxWinSize(ProfileCollection_minus.get(i),max_motif_span));
+			}
+			for (int i = 0; i < BG_rofileCollection_minus.size(); i++) {
+				BG_rofileCollection_plus.set(i, maxWinSize(BG_rofileCollection_plus.get(i),max_motif_span));
+				BG_rofileCollection_minus.set(i, maxWinSize(BG_rofileCollection_minus.get(i),max_motif_span));
+			}
+			
+		}
+//		else
+//		{
+//			for (int i = 0; i < ProfileCollection_plus.size(); i++) {
+//				ProfileCollection_plus.set(i, maxWinSize(ProfileCollection_plus.get(i),pwmlist.get(i).columns()/2));
+//				ProfileCollection_minus.set(i, maxWinSize(ProfileCollection_minus.get(i),pwmlist.get(i).columns()/2));
+//			}
+//			for (int i = 0; i < BG_rofileCollection_minus.size(); i++) {
+//				BG_rofileCollection_plus.set(i, maxWinSize(BG_rofileCollection_plus.get(i),pwmlist.get(i).columns()/2));
+//				BG_rofileCollection_minus.set(i, maxWinSize(BG_rofileCollection_minus.get(i),pwmlist.get(i).columns()/2));
+//			}
+//		}
+		
+		int bestBarCode=(int) (Math.pow(2, ProfileCollection_plus.size())-1);
+		DenseDoubleMatrix2D bestProfile=null;
+		double bestScore=Double.NEGATIVE_INFINITY;
+		for (int i = 1; i < Math.pow(2, ProfileCollection_plus.size()); i++) {
+			int barcode=i;
+			ArrayList<DenseDoubleMatrix2D> tempPColl1=new ArrayList<DenseDoubleMatrix2D>();
+			ArrayList<DenseDoubleMatrix2D> tempBGPColl1=new ArrayList<DenseDoubleMatrix2D>();
+			ArrayList<DenseDoubleMatrix2D> tempPColl2=new ArrayList<DenseDoubleMatrix2D>();
+			ArrayList<DenseDoubleMatrix2D> tempBGPColl2=new ArrayList<DenseDoubleMatrix2D>();
+			ArrayList<Integer> motiflen=new ArrayList<Integer>();
+			for (int j = 0; j < ProfileCollection_plus.size(); j++) {
+				if(barcode%2==1)
+				{
+					tempPColl1.add(ProfileCollection_plus.get(j));
+					tempBGPColl1.add(BG_rofileCollection_plus.get(j));
+					tempPColl2.add(ProfileCollection_minus.get(j));
+					tempBGPColl2.add(BG_rofileCollection_minus.get(j));
+					motiflen.add(pwmlist.get(j).columns());
+				}
+				barcode>>=1;
+			}
+			DenseDoubleMatrix2D mixProfile1=null;
+			DenseDoubleMatrix2D mixBGProfile1=null;
+			DenseDoubleMatrix2D mixProfile2=null;
+			DenseDoubleMatrix2D mixBGProfile2=null;
+			if(linearOrder)
+			{
+				mixProfile1=maxWinSize(linearOrderMix(tempPColl1,motiflen),max_motif_span);
+				mixBGProfile1=maxWinSize(linearOrderMix(tempBGPColl1,motiflen),max_motif_span);
+				mixProfile2=maxWinSize(linearOrderMix(tempPColl2,motiflen),max_motif_span);
+				mixBGProfile2=maxWinSize(linearOrderMix(tempBGPColl2,motiflen),max_motif_span);
+			}
+			else //normal add up
+			{
+				mixProfile1=tempPColl1.get(0);
+				mixBGProfile1=tempBGPColl1.get(0);
+				mixProfile2=tempPColl2.get(0);
+				mixBGProfile2=tempBGPColl2.get(0);
+				PlusMult Plus=PlusMult.plusMult(1);
+				for (int j = 1; j < tempPColl1.size(); j++) {
+					mixProfile1=(DenseDoubleMatrix2D) mixProfile1.assign(tempPColl1.get(j), Plus);
+					mixBGProfile1=(DenseDoubleMatrix2D) mixBGProfile1.assign(tempBGPColl1.get(j), Plus);
+					mixProfile2=(DenseDoubleMatrix2D) mixProfile2.assign(tempPColl1.get(j), Plus);
+					mixBGProfile2=(DenseDoubleMatrix2D) mixBGProfile2.assign(tempBGPColl1.get(j), Plus);
+				}
+			}
+			
+			DenseDoubleMatrix2D mixProfile=(DenseDoubleMatrix2D) mixProfile1.assign(mixProfile2, new maxFunction());
+			DenseDoubleMatrix2D mixBGProfile=(DenseDoubleMatrix2D) mixBGProfile1.assign(mixBGProfile2, new maxFunction());
+			double score=computeProfileScore(mixProfile,mixBGProfile,String.valueOf(i));
+			if(score>bestScore)
+			{
+				bestProfile=mixProfile;
+				bestBarCode=i;
+				bestScore=score;
+			}
+		}
+		String barcode_Str=Integer.toBinaryString(bestBarCode);
+		System.out.println("Best combination: "+barcode_Str+"   Score: "+bestScore);
+		return bestProfile;
+	}
+	
 	DenseDoubleMatrix2D combineDifferentProfiles(ArrayList<DenseDoubleMatrix2D> ProfileCollection,ArrayList<DenseDoubleMatrix2D> BG_rofileCollection)
 	{
 		if(!linearOrder)
@@ -272,9 +399,21 @@ public class MultPWMScorer {
 			//take max in the window size
 			for (int i = 0; i < ProfileCollection.size(); i++) {
 				ProfileCollection.set(i, maxWinSize(ProfileCollection.get(i),max_motif_span));
-				BG_rofileCollection.set(i, maxWinSize(BG_rofileCollection.get(i),max_motif_span));
+			}
+			for (int i = 0; i < BG_rofileCollection.size(); i++) {
+				ProfileCollection.set(i, maxWinSize(ProfileCollection.get(i),max_motif_span));
 			}
 		}
+//		else
+//		{
+//			//take max in the window size
+//			for (int i = 0; i < ProfileCollection.size(); i++) {
+//				ProfileCollection.set(i, maxWinSize(ProfileCollection.get(i),pwmlist.get(i).columns()/2));
+//			}
+//			for (int i = 0; i < BG_rofileCollection.size(); i++) {
+//				ProfileCollection.set(i, maxWinSize(ProfileCollection.get(i),pwmlist.get(i).columns()/2));
+//			}
+//		}
 		
 		int bestBarCode=(int) (Math.pow(2, ProfileCollection.size())-1);
 		DenseDoubleMatrix2D bestProfile=null;
@@ -297,8 +436,8 @@ public class MultPWMScorer {
 			DenseDoubleMatrix2D mixBGProfile=null;
 			if(linearOrder)
 			{
-				mixProfile=maxWinSize(linearOrderMix(tempPColl,motiflen),max_motif_span);
-				mixBGProfile=maxWinSize(linearOrderMix(tempBGPColl,motiflen),max_motif_span);
+				mixProfile=maxWinSize(linearOrderMix(tempPColl,motiflen),max_motif_span/2);
+				mixBGProfile=maxWinSize(linearOrderMix(tempBGPColl,motiflen),max_motif_span/2);
 			}
 			else //normal add up
 			{
@@ -319,7 +458,7 @@ public class MultPWMScorer {
 			}
 		}
 		String barcode_Str=Integer.toBinaryString(bestBarCode);
-		System.out.println("Best combination: "+barcode_Str);
+		System.out.println("Best combination: "+barcode_Str+"   Score: "+bestScore);
 		return bestProfile;
 	}
 	

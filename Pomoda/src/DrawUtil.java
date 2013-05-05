@@ -15,6 +15,7 @@ import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.LookupPaintScale;
+import org.jfree.chart.renderer.PaintScale;
 import org.jfree.chart.renderer.xy.XYBlockRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.Range;
@@ -25,6 +26,7 @@ import org.jfree.ui.RectangleInsets;
 
 import cern.colt.list.DoubleArrayList;
 import cern.colt.list.IntArrayList;
+import cern.colt.matrix.DoubleFactory1D;
 import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleMatrix2D;
 
@@ -91,23 +93,106 @@ public class DrawUtil {
 		return ret;
 	}
 	
+	 public static Color blend (Color color1, Color color2, double ratio)
+	  {
+	    float r  = (float) ratio;
+	    float ir = (float) 1.0 - r;
+
+	    float rgb1[] = new float[3];
+	    float rgb2[] = new float[3];    
+
+	    color1.getColorComponents (rgb1);
+	    color2.getColorComponents (rgb2);    
+
+	    Color color = new Color (rgb1[0] * r + rgb2[0] * ir, 
+	                             rgb1[1] * r + rgb2[1] * ir, 
+	                             rgb1[2] * r + rgb2[2] * ir);
+	    
+	    return color;
+	  }
+	
+	 
+	 	public static PaintScale getPaintScale(DoubleMatrix2D matrix)
+	{
+	 		
+	 		DoubleMatrix1D vecD =matrix.viewRow(0);
+	 		for (int i = 1; i <matrix.rows(); i++) {
+	 			vecD=DoubleFactory1D.dense.append(vecD, matrix.viewRow(i));
+			}
+	 		DoubleMatrix1D vecSortD = vecD.viewSorted();
+	       //... Setting PaintScale ...//
+	 		double min=vecSortD.get(0);
+	 		double point1=vecSortD.get(vecSortD.size()/3);
+	 		double point2=vecSortD.get(2*vecSortD.size()/3);
+	 		double max=vecSortD.get(vecSortD.size()-1);
+	 	
+        LookupPaintScale ps = new LookupPaintScale(min, Double.MAX_VALUE, Color.gray);
+        int numscale=10;
+      
+        Color purle=new Color(255, 0, 255);
+        ps.add(Double.MIN_VALUE, Color.gray);
+        double valPoint=min;
+        int num_trans=numscale;
+        double stepsize=(point1-min)/numscale;
+       for (int i = 0; i < num_trans; i++) {
+    	   ps.add(valPoint=valPoint+stepsize, blend(Color.blue,Color.gray,((double)i)/(num_trans)));
+	  }
+       
+       stepsize=(point2-point1)/numscale;
+       for (int i = 0; i < num_trans; i++) {
+    	   ps.add(valPoint=valPoint+stepsize, blend(Color.GREEN,Color.blue,((double)i)/(num_trans)));
+	  }
+       
+       stepsize=(max-point2)/numscale;
+       for (int i = 0; i < num_trans; i++) {
+    	   ps.add(valPoint=valPoint+stepsize, blend(Color.RED,Color.GREEN,((double)i)/(num_trans)));
+	  }
+       ps.add(Double.MAX_VALUE,Color.RED);
+        return ps;
+	}
+	 
+	public static PaintScale getPaintScale(double min, double max)
+	{
+	       //... Setting PaintScale ...//
+        LookupPaintScale ps = new LookupPaintScale(min, Double.MAX_VALUE, Color.gray);
+        int numscale=30;
+        double stepsize=(max-min)/numscale;
+        Color purle=new Color(255, 0, 255);
+        ps.add(Double.MIN_VALUE, Color.gray);
+        double valPoint=min;
+        int num_trans=numscale/3;
+       for (int i = 0; i < num_trans; i++) {
+    	   ps.add(valPoint=valPoint+stepsize, blend(Color.blue,Color.gray,((double)i)/(num_trans)));
+	  }
+       for (int i = 0; i < num_trans; i++) {
+    	   ps.add(valPoint=valPoint+stepsize, blend(Color.GREEN,Color.blue,((double)i)/(num_trans)));
+	  }
+       for (int i = 0; i < num_trans; i++) {
+    	   ps.add(valPoint=valPoint+stepsize, blend(Color.RED,Color.GREEN,((double)i)/(num_trans)));
+	  }
+       ps.add(Double.MAX_VALUE,Color.RED);
+        return ps;
+	}
+	
 	public static void drawHeatMap(DoubleMatrix2D matrix, String pngfile)
 	{
-		 double minvalue=0;
-		 double maxvalue=0;
-		 for (int i = 0; i < matrix.rows(); i++) {
-			for (int j = 0; j < matrix.columns(); j++) {
-				double temp=matrix.getQuick(i, j);
-				if(!Double.isNaN(temp))
-				{
-					if(temp<minvalue)
-						minvalue=temp;
-					if(temp>maxvalue)
-						maxvalue=temp;
-				}
-
-			}
-		}
+//		 double minvalue=0;
+//		 double maxvalue=0;
+//		 for (int i = 0; i < matrix.rows(); i++) {
+//			for (int j = 0; j < matrix.columns(); j++) {
+//				double temp=matrix.getQuick(i, j);
+//				if(!Double.isNaN(temp))
+//				{
+//					if(temp<minvalue)
+//						minvalue=temp;
+//					if(temp>maxvalue)
+//						maxvalue=temp;
+//				}
+//
+//			}
+//		}
+//		 
+		 
 		 String[] tokens = pngfile.split("\\.(?=[^\\.]+$)");
 		 String title=tokens[0];
 		 NumberAxis numberaxis1 = new NumberAxis("Sequence");
@@ -116,19 +201,12 @@ public class DrawUtil {
 		 numberaxis2.setRange(new Range(0, matrix.columns()));
 		 DefaultXYZDataset xyzdataset = new DefaultXYZDataset();
 		 xyzdataset.addSeries(title, sparseMatrix(matrix));  //here only the non-zero element will be colored
-		 XYBlockRenderer xyblockrenderer = new XYBlockRenderer();
-//	        LookupPaintScale lookuppaintscale = new LookupPaintScale(-1D, Double.MAX_VALUE, Color.black);
-//	        lookuppaintscale.add(0D, Color.blue);
-//	        lookuppaintscale.add(0.5D, Color.green);
-//	        lookuppaintscale.add(1D, Color.orange);
-//	        lookuppaintscale.add(2D, Color.red);
-	        xyblockrenderer.setPaintScale( new LookupPaintScale(minvalue,maxvalue,Color.red));
-	        
+		 XYBlockRenderer xyblockrenderer = new XYBlockRenderer();        
 
-//	        xyblockrenderer.setPaintScale(getPaintScale(minvalue, maxvalue));
+	        xyblockrenderer.setPaintScale(getPaintScale(matrix));
 	       
 	        
-	        XYPlot xyplot = new XYPlot(xyzdataset, numberaxis2,numberaxis1, xyblockrenderer);xyplot.setBackgroundPaint(Color.lightGray);
+	        XYPlot xyplot = new XYPlot(xyzdataset, numberaxis1,numberaxis2, xyblockrenderer);xyplot.setBackgroundPaint(Color.white);
 	        xyplot.setDomainGridlinePaint(Color.white);
 	        xyplot.setRangeGridlinePaint(Color.white);
 	        xyplot.setForegroundAlpha(0.66F);

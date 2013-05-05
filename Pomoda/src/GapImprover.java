@@ -66,7 +66,7 @@ public class GapImprover {
 	public double KLthresh=0.05;
 	
 	public BGModel background;
-	public GapImprover(Pomoda motiffinder)
+	public GapImprover(SEME motiffinder)
 	{
 		SearchEngine=motiffinder.SearchEngine2;
 		sampling_ratio=motiffinder.sampling_ratio;
