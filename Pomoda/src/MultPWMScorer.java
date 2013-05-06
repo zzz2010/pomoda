@@ -318,17 +318,17 @@ public class MultPWMScorer {
 			}
 			
 		}
-//		else
-//		{
-//			for (int i = 0; i < ProfileCollection_plus.size(); i++) {
-//				ProfileCollection_plus.set(i, maxWinSize(ProfileCollection_plus.get(i),pwmlist.get(i).columns()/2));
-//				ProfileCollection_minus.set(i, maxWinSize(ProfileCollection_minus.get(i),pwmlist.get(i).columns()/2));
-//			}
-//			for (int i = 0; i < BG_rofileCollection_minus.size(); i++) {
-//				BG_rofileCollection_plus.set(i, maxWinSize(BG_rofileCollection_plus.get(i),pwmlist.get(i).columns()/2));
-//				BG_rofileCollection_minus.set(i, maxWinSize(BG_rofileCollection_minus.get(i),pwmlist.get(i).columns()/2));
-//			}
-//		}
+		else
+		{
+			for (int i = 0; i < ProfileCollection_plus.size(); i++) {
+				ProfileCollection_plus.set(i, maxWinSize(ProfileCollection_plus.get(i),pwmlist.get(i).columns()/2));
+				ProfileCollection_minus.set(i, maxWinSize(ProfileCollection_minus.get(i),pwmlist.get(i).columns()/2));
+			}
+			for (int i = 0; i < BG_rofileCollection_minus.size(); i++) {
+				BG_rofileCollection_plus.set(i, maxWinSize(BG_rofileCollection_plus.get(i),pwmlist.get(i).columns()/2));
+				BG_rofileCollection_minus.set(i, maxWinSize(BG_rofileCollection_minus.get(i),pwmlist.get(i).columns()/2));
+			}
+		}
 		
 		int bestBarCode=(int) (Math.pow(2, ProfileCollection_plus.size())-1);
 		DenseDoubleMatrix2D bestProfile=null;
@@ -402,16 +402,16 @@ public class MultPWMScorer {
 				BG_rofileCollection.set(i, maxWinSize(BG_rofileCollection.get(i),max_motif_span));
 			}
 		}
-//		else
-//		{
-//			//take max in the window size
-//			for (int i = 0; i < ProfileCollection.size(); i++) {
-//				ProfileCollection.set(i, maxWinSize(ProfileCollection.get(i),pwmlist.get(i).columns()/2));
-//			}
-//			for (int i = 0; i < BG_rofileCollection.size(); i++) {
-//				ProfileCollection.set(i, maxWinSize(ProfileCollection.get(i),pwmlist.get(i).columns()/2));
-//			}
-//		}
+		else
+		{
+			//take max in the window size
+			for (int i = 0; i < ProfileCollection.size(); i++) {
+				ProfileCollection.set(i, maxWinSize(ProfileCollection.get(i),pwmlist.get(i).columns()/2));
+			}
+			for (int i = 0; i < BG_rofileCollection.size(); i++) {
+				ProfileCollection.set(i, maxWinSize(ProfileCollection.get(i),pwmlist.get(i).columns()/2));
+			}
+		}
 		
 		int bestBarCode=(int) (Math.pow(2, ProfileCollection.size())-1);
 		DenseDoubleMatrix2D bestProfile=null;
