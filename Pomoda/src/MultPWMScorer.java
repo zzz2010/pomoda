@@ -399,9 +399,7 @@ public class MultPWMScorer {
 			//take max in the window size
 			for (int i = 0; i < ProfileCollection.size(); i++) {
 				ProfileCollection.set(i, maxWinSize(ProfileCollection.get(i),max_motif_span));
-			}
-			for (int i = 0; i < BG_rofileCollection.size(); i++) {
-				ProfileCollection.set(i, maxWinSize(ProfileCollection.get(i),max_motif_span));
+				BG_rofileCollection.set(i, maxWinSize(BG_rofileCollection.get(i),max_motif_span));
 			}
 		}
 //		else
