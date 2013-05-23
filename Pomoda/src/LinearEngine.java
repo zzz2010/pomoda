@@ -255,6 +255,10 @@ public class LinearEngine {
 			     }
 			     br.close();
    		          System.out.println("Filter Sequences: "+filternum);
+   		          if(ForwardStrand.size()<2)
+   		          {
+   		        	System.out.println("Filter too much BG Sequences, please use another background data!");
+   		          }
    		          
    	
 			     
