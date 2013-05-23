@@ -196,7 +196,7 @@ public class SEME {
 			else
 			{
 				BGSearch=new LinearEngine(max_threadNum);
-				BGSearch.build_index(ctrlFasta, SearchEngine2.ForwardStrand);
+				BGSearch.build_index(ctrlFasta); //SearchEngine2.ForwardStrand no need to filter postive seq now
 				bg_markov_order=seedlen-1;
 				background.EnablePWMBG=true;
 				background.kmerlen=seedlen;
