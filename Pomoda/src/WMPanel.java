@@ -325,7 +325,7 @@ null) ? "" : (" (" + message + ")")));
     			}
     			else
     			{
-    				throw new ParseException("no input fasta file");
+    				throw new ParseException("no input PWM file");
     			}
 
 
