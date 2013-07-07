@@ -1177,7 +1177,7 @@ public class PWMevaluator {
 					if(p1 instanceof GapPWM )
 					{
 						PWM p2=p1.Clone();
-						
+						p2.Name=p2.Name.replaceAll("Clone", "noDependency");
 						restorepwmlist.add(p2);
 					}
 				}
