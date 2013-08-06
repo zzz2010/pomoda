@@ -542,6 +542,7 @@ public class MultPWMScorer {
 		return score;
 	}
 	
+	//this function, add the different profiles with step size by each motif length
 	static DenseDoubleMatrix2D linearOrderMix(ArrayList<DenseDoubleMatrix2D> ProfileCollection,ArrayList<Integer> motiflen)
 	{
 		DenseDoubleMatrix2D retMat=(DenseDoubleMatrix2D) ProfileCollection.get(0).copy();
