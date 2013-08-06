@@ -1,4 +1,7 @@
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
@@ -46,7 +49,7 @@ public class MultPWMScorer {
 	static HashMap<String,XYSeries> ROCdata=new HashMap<String, XYSeries>();
 	private boolean PBMflag=false;
 	public static int max_motif_span=30;
-	
+	static String barcode_Str;
 
 	
 	public MultPWMScorer()
@@ -278,6 +281,17 @@ public class MultPWMScorer {
 				finalProfile=evaluator.combineDifferentProfiles(ProfileCollection,BG_rofileCollection);
 			}
 			
+			//save selected PWMs to file
+			File file = new File(evaluator.outputPrefix+"sel.pwm"); 
+			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+			for (int i = 0; i < pwmlist.size(); i++) {
+				if(barcode_Str.charAt(i)=='1')
+				{
+					writer.write(pwmlist.get(i).toString());
+				}
+			}
+			writer.close();
+			
 			//draw heatmap
 			DrawUtil.drawHeatMap(finalProfile, evaluator.outputPrefix+"heatmap.png");
 			//draw SignalAroundCenter
@@ -387,7 +401,7 @@ public class MultPWMScorer {
 				bestScore=score;
 			}
 		}
-		String barcode_Str=Integer.toBinaryString(bestBarCode);
+		 barcode_Str=Integer.toBinaryString(bestBarCode);
 		System.out.println("Best combination: "+barcode_Str+"   Score: "+bestScore);
 		return bestProfile;
 	}
@@ -455,7 +469,7 @@ public class MultPWMScorer {
 				bestScore=score;
 			}
 		}
-		String barcode_Str=Integer.toBinaryString(bestBarCode);
+	    barcode_Str=Integer.toBinaryString(bestBarCode);
 		System.out.println("Best combination: "+barcode_Str+"   Score: "+bestScore);
 		return bestProfile;
 	}
@@ -574,10 +588,10 @@ public class MultPWMScorer {
 		 LinkedList<FastaLocation> falocs=engine.searchPattern(motif, Double.NEGATIVE_INFINITY);
 		 Iterator<FastaLocation> iter=falocs.iterator();
 		 while(iter.hasNext())
-    	 {
+    	 	{
     		 FastaLocation currloc=iter.next();
     		 scoreProfile.set(currloc.getSeqId(),currloc.getSeqPos(),currloc.Score);
-    	 }
+    	 	}
 		return scoreProfile;
 		
 	}
