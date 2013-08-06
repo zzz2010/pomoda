@@ -125,6 +125,8 @@ public class DrawUtil {
 	 	 		double point1=vecSortD.get(vecSortD.size()/10);
 	 	 		double point2=vecSortD.get((int) (vecSortD.size()*0.9));
 	 	 		double max=vecSortD.get(vecSortD.size()-1);
+	 	 		
+	 	 		System.out.println("min:"+min+"\t10%:"+point1+"\t90%:"+point2+"\tmax:"+max);
 	 	 	
 	 	 		Color color0=Color.blue;
 	 	 	    Color color1= Color.white;//blend(Color.RED,Color.white,0.01);
