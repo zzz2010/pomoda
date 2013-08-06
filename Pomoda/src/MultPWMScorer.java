@@ -49,7 +49,7 @@ public class MultPWMScorer {
 	static HashMap<String,XYSeries> ROCdata=new HashMap<String, XYSeries>();
 	private boolean PBMflag=false;
 	public static int max_motif_span=30;
-	static String barcode_Str;
+	static boolean[] selFlags;
 
 	
 	public MultPWMScorer()
@@ -237,7 +237,7 @@ public class MultPWMScorer {
 			pwmlist=common.LoadPWMFromFile(inputPWM);
 			if(pwmlist.size()>topN)
 				pwmlist= pwmlist.subList(0, topN);
-			
+			selFlags=new boolean[pwmlist.size()];
 			max_motif_span=0;
 			DenseDoubleMatrix2D finalProfile=null;
 			Iterator<PWM> iter=pwmlist.iterator();
@@ -285,7 +285,7 @@ public class MultPWMScorer {
 			File file = new File(evaluator.outputPrefix+"sel.pwm"); 
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			for (int i = 0; i < pwmlist.size(); i++) {
-				if(barcode_Str.charAt(i)=='1')
+				if(selFlags[i])
 				{
 					writer.write(pwmlist.get(i).toString());
 				}
@@ -401,7 +401,20 @@ public class MultPWMScorer {
 				bestScore=score;
 			}
 		}
-		 barcode_Str=Integer.toBinaryString(bestBarCode);
+		String barcode_Str=Integer.toBinaryString(bestBarCode);
+		
+		//set the selFlag
+		for (int j = 0; j < ProfileCollection_plus.size(); j++) {
+			if(bestBarCode%2==1)
+			{
+				selFlags[j]=true;
+			}
+			else
+			{
+				selFlags[j]=false;
+			}
+			bestBarCode>>=1;
+		}
 		System.out.println("Best combination: "+barcode_Str+"   Score: "+bestScore);
 		return bestProfile;
 	}
@@ -469,7 +482,19 @@ public class MultPWMScorer {
 				bestScore=score;
 			}
 		}
-	    barcode_Str=Integer.toBinaryString(bestBarCode);
+	  String  barcode_Str=Integer.toBinaryString(bestBarCode);
+		//set the selFlag
+		for (int j = 0; j < ProfileCollection.size(); j++) {
+			if(bestBarCode%2==1)
+			{
+				selFlags[j]=true;
+			}
+			else
+			{
+				selFlags[j]=false;
+			}
+			bestBarCode>>=1;
+		}
 		System.out.println("Best combination: "+barcode_Str+"   Score: "+bestScore);
 		return bestProfile;
 	}
