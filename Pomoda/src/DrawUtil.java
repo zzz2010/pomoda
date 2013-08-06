@@ -113,43 +113,49 @@ public class DrawUtil {
 	
 	 
 	 	public static PaintScale getPaintScale(DoubleMatrix2D matrix)
-	{
-	 		
-	 		DoubleMatrix1D vecD =matrix.viewRow(0);
-	 		for (int i = 1; i <matrix.rows(); i++) {
-	 			vecD=DoubleFactory1D.dense.append(vecD, matrix.viewRow(i));
-			}
-	 		DoubleMatrix1D vecSortD = vecD.viewSorted();
-	       //... Setting PaintScale ...//
-	 		double min=vecSortD.get(0);
-	 		double point1=vecSortD.get(vecSortD.size()/3);
-	 		double point2=vecSortD.get(2*vecSortD.size()/3);
-	 		double max=vecSortD.get(vecSortD.size()-1);
-	 	
-        LookupPaintScale ps = new LookupPaintScale(min, Double.MAX_VALUE, Color.gray);
-        int numscale=10;
-      
-        Color purle=new Color(255, 0, 255);
-        ps.add(Double.MIN_VALUE, Color.gray);
-        double valPoint=min;
-        int num_trans=numscale;
-        double stepsize=(point1-min)/numscale;
-       for (int i = 0; i < num_trans; i++) {
-    	   ps.add(valPoint=valPoint+stepsize, blend(Color.blue,Color.gray,((double)i)/(num_trans)));
-	  }
-       
-       stepsize=(point2-point1)/numscale;
-       for (int i = 0; i < num_trans; i++) {
-    	   ps.add(valPoint=valPoint+stepsize, blend(Color.GREEN,Color.blue,((double)i)/(num_trans)));
-	  }
-       
-       stepsize=(max-point2)/numscale;
-       for (int i = 0; i < num_trans; i++) {
-    	   ps.add(valPoint=valPoint+stepsize, blend(Color.RED,Color.GREEN,((double)i)/(num_trans)));
-	  }
-       ps.add(Double.MAX_VALUE,Color.RED);
-        return ps;
-	}
+	 	{
+	 	 		
+	 	 		DoubleMatrix1D vecD =matrix.viewColumn(2);
+	 	 		for (int i = 3; i <matrix.columns(); i++) {
+	 	 			vecD=DoubleFactory1D.dense.append(vecD, matrix.viewColumn(i));
+	 			}
+	 	 		DoubleMatrix1D vecSortD = vecD.viewSorted();
+	 	       //... Setting PaintScale ...//
+	 	 		double min=vecSortD.get(0);	
+	 	 		double point1=vecSortD.get(vecSortD.size()/10);
+	 	 		double point2=vecSortD.get((int) (vecSortD.size()*0.9));
+	 	 		double max=vecSortD.get(vecSortD.size()-1);
+	 	 	
+	 	 		Color color0=Color.blue;
+	 	 	    Color color1= Color.white;//blend(Color.RED,Color.white,0.01);
+	 	 	    Color color2=blend(Color.RED,Color.white,0.5);
+	 	 	    Color color3=Color.RED;
+	 	 	    
+	 	    LookupPaintScale ps = new LookupPaintScale(min, Double.MAX_VALUE, color0);
+	 	    int numscale=10;
+	 	   
+	 	    Color purle=new Color(255, 0, 255);
+	 	    ps.add(Double.NEGATIVE_INFINITY,color0);
+	 	    double valPoint=min;
+	 	    int num_trans=numscale;
+	 	    double stepsize=(point1-min)/numscale;
+	 	   for (int i = 0; i < num_trans; i++) {
+	 		   ps.add(valPoint=valPoint+stepsize, blend(color1,color0,((double)i)/(num_trans)));
+	 	  }
+	 	   
+	 	   stepsize=(point2-point1)/numscale;
+	 	   if(stepsize>0)
+	 	   for (int i = 0; i < num_trans; i++) {
+	 		   ps.add(valPoint=valPoint+stepsize, blend(color2,color1,((double)i)/(num_trans)));
+	 	  }
+	 	   
+	 	   stepsize=(max-point2)/numscale;
+	 	   for (int i = 0; i < num_trans; i++) {
+	 		   ps.add(valPoint=valPoint+stepsize, blend(color3,color2,((double)i)/(num_trans)));
+	 	  }
+	 	   ps.add(Double.MAX_VALUE,color3);
+	 	    return ps;
+	 	}
 	 
 	public static PaintScale getPaintScale(double min, double max)
 	{
