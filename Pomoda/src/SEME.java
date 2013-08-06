@@ -942,7 +942,7 @@ public class SEME {
 			{
 				double prior=1;
 				if(PriorDistribution!=null)
-					prior=PriorDistribution.get(fal.getSeqId(), fal.getSeqPos());
+					prior+=PriorDistribution.get(fal.getSeqId(), fal.getSeqPos());// no bias assume 0 
 				if(fal.getMin()-lastpos>seedlen)
 					facount_nonoverlap+=prior;
 				lastpos=fal.getMin();
