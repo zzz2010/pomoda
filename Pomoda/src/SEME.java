@@ -900,7 +900,7 @@ public class SEME {
 //			}
 //			else
 //			pattern=common.Hash2ACGT(hash,seedlen);
-			
+
 			//LinkedList<Integer> positionlist=SearchEngine.searchPattern(pattern,0);
 			LinkedList<FastaLocation> LocList=new LinkedList<FastaLocation>(); //SearchEngine.Int2Location(positionlist);
 
@@ -927,8 +927,8 @@ public class SEME {
 			
 			
 
-		
-			if((SearchEngine2.TotalLen*prob_bg)>LocList.size())
+		// if prior Distribution is provided, then no need to filter by original background
+			if((SearchEngine2.TotalLen*prob_bg)>LocList.size()&&PriorDistribution==null)
 				continue;
 //			double pvalue=BinomialDist.cdf(SearchEngine2.TotalLen, prob_bg,LocList.size());
 //			if(pvalue<1-FDR)
@@ -942,7 +942,7 @@ public class SEME {
 			{
 				double prior=1;
 				if(PriorDistribution!=null)
-					prior+=PriorDistribution.get(fal.getSeqId(), fal.getSeqPos());// no bias assume 0 
+					prior=Math.exp(PriorDistribution.get(fal.getSeqId(), fal.getSeqPos()));// no bias assume 0 
 				if(fal.getMin()-lastpos>seedlen)
 					facount_nonoverlap+=prior;
 				lastpos=fal.getMin();
@@ -954,8 +954,7 @@ public class SEME {
 
 			//if(pos_prior.size()==0&&!OOPS)
 				score=facount_nonoverlap/(SearchEngine2.TotalLen*prob_bg); //positionlist.size()*(-common.DoubleMinNormal*seedlen-logprob_bg);//sum loglik ,-0.037267253272904234 is from pseudo count
-//			if(pattern.equalsIgnoreCase("TTCCC"))
-//				pattern="TTCCC";
+
 			if(score<=oddthresh)
 				continue;
 				//else
@@ -1567,16 +1566,16 @@ public class SEME {
 		double switchvalue=Double.POSITIVE_INFINITY;//*SearchEngine2.TotalLen*Math.pow(0.25, motif.core_motiflen);
 		//relax the conserved column 
 		String consensus=motif.Consensus(false);
-		double main_prop=0.504166667;//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
+		double main_prop=0.504166667;//dilute the seed base
 		if(motif.core_motiflen<10)
-			main_prop= 0.704166667;
-			//Math.pow(3*sampling_ratio/(seedlen-2), 1.0/(seedlen-1));// 1 mismatch
-			
-			//Math.pow(sampling_ratio*9/(seedlen*seedlen-2*seedlen+4), 1.0/(seedlen-2)); //2 mismatch
+			main_prop= 0.704166667; //if the motif is short , need to make the seed stronger, less dilute
+
+		//procedure to dilute the seed base
 		for (int i = 0; i < consensus.length(); i++) {
 			if(consensus.charAt(i)=='N')
 				continue;
 			boolean conserved=false;
+			//detect the position of seed base (super conserved base)
 			for (int j = 0; j < 4; j++) {
 				 if(motif.m_matrix[i][j]>0.9999)
 				 {
@@ -1602,11 +1601,11 @@ public class SEME {
 		//EM full site iteration
 		
 		double bestscore=motif.Score;
-		double lastscore=Double.NEGATIVE_INFINITY;
+		//determine bin number based on the resolution and average sequence length
 		int num_priorbin=SearchEngine2.getTotalLength()/SearchEngine2.getSeqNum()/this.resolution;
-		if(motif.core_motiflen/2>this.resolution)
+		if(motif.core_motiflen/2>this.resolution) //if the motf length is larger than the resolution, then use motif length instead
 			num_priorbin=SearchEngine2.getTotalLength()/SearchEngine2.getSeqNum()/(motif.core_motiflen/2);
-		if(num_priorbin<10)
+		if(num_priorbin<10) //if too few bins, then it is hard to capture the pattern
 			num_priorbin=10;
 		if(motif.pos_prior.size()==0)
 		{
@@ -1615,13 +1614,12 @@ public class SEME {
 			}
 		}
 		
-		
-		HashSet<Integer> stateCodes=new HashSet<Integer>();
 	
 		int flankingLen=0;
 		int orighead=motif.head;
 		int origtail=motif.tail;
 
+		//prior prob is the half sequence contain one motif or the estimate number in EEM 
 		 double    Prior_EZ=(double)SearchEngine2.getSeqNum()*0.5/SearchEngine2.TotalLen;//motif.inst_coverage/Falocs.size();//1-SearchEngine.TotalLen*prior_fp/Falocs.size();
 		   Prior_EZ=Math.min(Prior_EZ, motif.inst_coverage/SearchEngine2.TotalLen);	
 		   
@@ -2284,7 +2282,7 @@ public class SEME {
 					{
 
 						motif.Score=bestscore;//-Math.log(SearchEngine2.getSeqNum())*2*motif.core_motiflen;
-						lastscore=bestscore;
+						
 
 					
 

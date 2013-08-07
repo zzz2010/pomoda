@@ -24,6 +24,7 @@ import auc.AUCCalculator;
 import auc.Confusion;
 
 import cern.colt.function.DoubleDoubleFunction;
+import cern.colt.matrix.DoubleFactory1D;
 import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleMatrix1DProcedure;
 import cern.colt.matrix.impl.DenseDoubleMatrix2D;
@@ -299,6 +300,19 @@ public class MultPWMScorer {
 			//draw ROC
 			DrawUtil.DrawROC(ROCdata, evaluator.outputPrefix+"ROC.png");
 			
+			//renormalized to 80% quatile
+			DoubleMatrix1D vecD =finalProfile.viewColumn(0);
+ 	 		for (int i = 1; i <finalProfile.columns(); i++) {
+ 	 			vecD=DoubleFactory1D.dense.append(vecD, finalProfile.viewColumn(i));
+ 			}
+ 	 		DoubleMatrix1D vecSortD = vecD.viewSorted();
+ 	 		double Quartile90=vecSortD.getQuick((int) (vecSortD.size()*0.8))-common.DoubleMinNormal;
+ 	 		for (int i = 0; i <finalProfile.columns(); i++)
+ 	 			for (int j = 0; j <finalProfile.rows(); j++)
+ 	 			{
+ 	 				finalProfile.set(j, i, finalProfile.getQuick(j, i)-Quartile90);
+ 	 			}
+ 	 		
 			//save profile to file
 			 FileOutputStream fileOut =
    		         new FileOutputStream(evaluator.outputPrefix+"outputProfile.obj");
