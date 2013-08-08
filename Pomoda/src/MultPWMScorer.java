@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -218,7 +219,7 @@ public class MultPWMScorer {
 			
 			if(cmd.hasOption("maxROCfp"))
 			{
-				evaluator.maxFPdraw=Double.parseDouble( cmd.getOptionValue("maxROCfp"));
+				MultPWMScorer.maxFPdraw=Double.parseDouble( cmd.getOptionValue("maxROCfp"));
 			}
 
 			if(cmd.hasOption("genrand"))
@@ -242,7 +243,7 @@ public class MultPWMScorer {
 			max_motif_span=0;
 			DenseDoubleMatrix2D finalProfile=null;
 			Iterator<PWM> iter=pwmlist.iterator();
-			if(evaluator.StrandSpec)
+			if(MultPWMScorer.StrandSpec)
 			{
 				ArrayList<DenseDoubleMatrix2D> ProfileCollection1=new ArrayList<DenseDoubleMatrix2D>();
 				ArrayList<DenseDoubleMatrix2D> BG_rofileCollection1=new ArrayList<DenseDoubleMatrix2D>();
@@ -331,7 +332,7 @@ public class MultPWMScorer {
 	}
 	
 	
-	DenseDoubleMatrix2D combineDifferentProfiles(ArrayList<DenseDoubleMatrix2D> ProfileCollection_minus,ArrayList<DenseDoubleMatrix2D> ProfileCollection_plus,ArrayList<DenseDoubleMatrix2D> BG_rofileCollection_minus,ArrayList<DenseDoubleMatrix2D> BG_rofileCollection_plus)
+	DenseDoubleMatrix2D combineDifferentProfiles(ArrayList<DenseDoubleMatrix2D> ProfileCollection_plus,ArrayList<DenseDoubleMatrix2D> ProfileCollection_minus,ArrayList<DenseDoubleMatrix2D> BG_rofileCollection_plus,ArrayList<DenseDoubleMatrix2D> BG_rofileCollection_minus)
 	{
 		if(!linearOrder)
 		{
@@ -385,10 +386,12 @@ public class MultPWMScorer {
 			DenseDoubleMatrix2D mixBGProfile2=null;
 			if(linearOrder)
 			{
-				mixProfile1=maxWinSize(linearOrderMix(tempPColl1,motiflen),max_motif_span);
-				mixBGProfile1=maxWinSize(linearOrderMix(tempBGPColl1,motiflen),max_motif_span);
-				mixProfile2=maxWinSize(linearOrderMix(tempPColl2,motiflen),max_motif_span);
-				mixBGProfile2=maxWinSize(linearOrderMix(tempBGPColl2,motiflen),max_motif_span);
+				mixProfile1=maxWinSize(linearOrderMix(tempPColl1,motiflen,false),max_motif_span);
+				mixBGProfile1=maxWinSize(linearOrderMix(tempBGPColl1,motiflen,false),max_motif_span);
+				Collections.reverse(tempPColl2);Collections.reverse(tempPColl2);
+				mixProfile2=maxWinSize(linearOrderMix(tempPColl2,motiflen,false),max_motif_span);
+				Collections.reverse(tempBGPColl2);
+				mixBGProfile2=maxWinSize(linearOrderMix(tempBGPColl2,motiflen,false),max_motif_span);
 			}
 			else //normal add up
 			{
@@ -475,8 +478,8 @@ public class MultPWMScorer {
 			DenseDoubleMatrix2D mixBGProfile=null;
 			if(linearOrder)
 			{
-				mixProfile=maxWinSize(linearOrderMix(tempPColl,motiflen),max_motif_span/2);
-				mixBGProfile=maxWinSize(linearOrderMix(tempBGPColl,motiflen),max_motif_span/2);
+				mixProfile=maxWinSize(linearOrderMix(tempPColl,motiflen,true),max_motif_span/2);
+				mixBGProfile=maxWinSize(linearOrderMix(tempBGPColl,motiflen,true),max_motif_span/2);
 			}
 			else //normal add up
 			{
@@ -557,7 +560,7 @@ public class MultPWMScorer {
 	}
 	
 	//this function, add the different profiles with step size by each motif length
-	static DenseDoubleMatrix2D linearOrderMix(ArrayList<DenseDoubleMatrix2D> ProfileCollection,ArrayList<Integer> motiflen)
+	static DenseDoubleMatrix2D linearOrderMix(ArrayList<DenseDoubleMatrix2D> ProfileCollection,ArrayList<Integer> motiflen, boolean reverse)
 	{
 		DenseDoubleMatrix2D retMat=(DenseDoubleMatrix2D) ProfileCollection.get(0).copy();
 		DenseDoubleMatrix2D RretMat=(DenseDoubleMatrix2D) ProfileCollection.get(0).copy();
@@ -576,19 +579,28 @@ public class MultPWMScorer {
 					FVal=row.get(j2+forwardGap);
 					FretMat.set(j, j2,FVal+FretMat.get(j, j2));
 					//reverse strand
+					if(reverse)
+					{
 					double RVal=Double.NEGATIVE_INFINITY;
 					if(j2-reverseGap>-1)
 						RVal=row.get(j2-reverseGap);
 					RretMat.set(j, j2,RVal+RretMat.get(j, j2));
+					}
 				}
 				
 			}
 			forwardGap+=motiflen.get(i);
 			reverseGap+=motiflen.get(i);
 		}
-		
+		if(reverse)
+		{
 		if(ProfileCollection.size()>1)
 			retMat=(DenseDoubleMatrix2D) FretMat.assign(RretMat,new maxFunction());
+		}
+		else
+		{
+			retMat=FretMat;
+		}
 
 		return retMat;
 	}
