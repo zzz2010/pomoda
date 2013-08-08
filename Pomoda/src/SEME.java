@@ -1955,8 +1955,8 @@ public class SEME {
 						if(motif.peakrank_prior.size()!=0&&motif.peakrank_en)
 							logprior+=Math.log(motif.peakrank_prior.get(rankbin)+Double.MIN_NORMAL)-lognullprior;
 						
-						if(PriorDistribution!=null)
-							logprior+=PriorDistribution.get(currloc.getSeqId(), currloc.getSeqPos());
+//						if(PriorDistribution!=null)
+//							logprior+=PriorDistribution.get(currloc.getSeqId(), currloc.getSeqPos());
 						
 						double logDnaseProb=0;
                     ///////////////////////////// extra feature integration ////////////////////////////

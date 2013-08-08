@@ -450,7 +450,7 @@ public class MultPWMScorer {
 				ProfileCollection.set(i, maxWinSize(ProfileCollection.get(i),pwmlist.get(i).columns()/2));
 			}
 			for (int i = 0; i < BG_rofileCollection.size(); i++) {
-				ProfileCollection.set(i, maxWinSize(ProfileCollection.get(i),pwmlist.get(i).columns()/2));
+				BG_rofileCollection.set(i, maxWinSize(BG_rofileCollection.get(i),pwmlist.get(i).columns()/2));
 			}
 		}
 		
