@@ -117,15 +117,10 @@ public class MultPWMScorer {
 		options.addOption("c", true, "control fasta file");
 		options.addOption("N", true, "the number of PWM want to evaluate");
 		options.addOption("bgmodel", true, "background model file");
-		options.addOption("match", true, "find similar motifs in known PWM library (path to the library, e.g., jaspar.pwm)");
 		options.addOption("convert", false, "convert input PWM file to the transfac format");
-		options.addOption("roc", false, "compute AUC and draw ROC curve for the given pwm file");
-		options.addOption("corr", false, "compute rank correlation between sequence and PWM score for the given pwm file");
-		options.addOption("pbm", false, "input file is PBM format, and will compute signal correlation");
-		options.addOption("markov", true, "use markov model of the control sequences rather than directly control sequences");
-		options.addOption("maxROCfp",true, "the x axis scale in ROC curve drawing (default 1)");
 		options.addOption("linear",false, "indicate the order in the PWM file maintain in the combination (default false)");
 		options.addOption("strand",false, "indicate the strand in the PWM file maintain in the combination (default false)");
+		options.addOption("negRatio",true, "re-normalize the final score profile by forcing the given percentage to be negative (default 0.8)");
 		
 		CommandLineParser parser = new GnuParser();
 		MultPWMScorer evaluator=new MultPWMScorer();
@@ -135,6 +130,7 @@ public class MultPWMScorer {
 		boolean genrand=false;
 		boolean multiscore_flag=false;
 		boolean convertflag=false;
+		double negRatio=0.8;
 		String inputPWM;
 		LinkedList<PWM> PWMLibrary=null;
 		int topN=1000000;
@@ -143,6 +139,10 @@ public class MultPWMScorer {
 			if(cmd.hasOption("i"))
 			{
 				evaluator.inputFasta=cmd.getOptionValue("i");
+			}
+			if(cmd.hasOption("negRatio"))
+			{
+				negRatio=Double.parseDouble(cmd.getOptionValue("negRatio"));
 			}
 			if(cmd.hasOption("pwm"))
 			{
@@ -301,17 +301,17 @@ public class MultPWMScorer {
 			//draw ROC
 			DrawUtil.DrawROC(ROCdata, evaluator.outputPrefix+"ROC.png");
 			
-			//renormalized to 80% quatile
+			//renormalized to negRatio quatile
 			DoubleMatrix1D vecD =finalProfile.viewColumn(0);
  	 		for (int i = 1; i <finalProfile.columns(); i++) {
  	 			vecD=DoubleFactory1D.dense.append(vecD, finalProfile.viewColumn(i));
  			}
  	 		DoubleMatrix1D vecSortD = vecD.viewSorted();
- 	 		double Quartile90=vecSortD.getQuick((int) (vecSortD.size()*0.8))-common.DoubleMinNormal;
+ 	 		double negRatioScore=vecSortD.getQuick((int) (vecSortD.size()*negRatio))-common.DoubleMinNormal;
  	 		for (int i = 0; i <finalProfile.columns(); i++)
  	 			for (int j = 0; j <finalProfile.rows(); j++)
  	 			{
- 	 				finalProfile.set(j, i, finalProfile.getQuick(j, i)-Quartile90);
+ 	 				finalProfile.set(j, i, finalProfile.getQuick(j, i)-negRatioScore);
  	 			}
  	 		
 			//save profile to file
