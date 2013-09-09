@@ -4,6 +4,7 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -18,7 +19,12 @@ import weka.core.Attribute;
 import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
-
+import weka.classifiers.Classifier;
+import weka.classifiers.Evaluation;
+import weka.classifiers.lazy.KStar;
+import weka.classifiers.meta.AdaBoostM1;
+import weka.classifiers.trees.J48graft;
+import weka.classifiers.trees.RandomForest;
 
 public class Domain2PWM {
 
@@ -95,10 +101,39 @@ public class Domain2PWM {
 		
 		FastVector values = new FastVector();
 		for (int i = 0; i < AAstring.length(); i++) {
-			values.addElement(AAstring.charAt(i));
+			values.addElement(String.valueOf(AAstring.charAt(i)));
 		}
 		return new Attribute(name,values);
 		
+	}
+	
+	static Instances CreateInstances( ArrayList<String> AAs,  ArrayList<String> Vecs,int lastPWMColID,HashMap<String,Integer> AAmapping) throws Exception
+	{
+		  //do cluster for Vecs, parse instances object
+		  FastVector attrList=new FastVector(AAs.get(0).length()+1);
+		  for (int i = 0; i < AAs.get(0).length(); i++) {
+			  attrList.addElement(createWekaAttribute_AA(String.valueOf(i+1)));
+		}
+		  //build cluster
+		  weka.clusterers.XMeans cluster=buildXMeanClusters(Vecs);
+		  Attribute label=createWekaLabel_Vecs(cluster);
+		  System.out.println("PWM column "+lastPWMColID+"    cluster number:"+cluster.getClusterCenters().numInstances());
+		  attrList.addElement(label);
+		  Instances traindata=new Instances(String.valueOf(lastPWMColID), attrList,AAs.size());
+		  //add instance to instances
+		  for (int i = 0; i < AAs.size(); i++) {
+			double[] values = new double[traindata.numAttributes()] ;
+			String AAinst = AAs.get(i);
+			for (int j = 0; j <AAinst.length(); j++) {
+				values[j]=AAmapping.get(AAinst.substring(j, j+1));
+			}
+			Instance vecInst = Vec2Instance(Vecs.get(i));
+			values[traindata.numAttributes()-1]=cluster.clusterInstance(vecInst);
+			Instance instance = new Instance(1, values);
+			traindata.add(instance);
+		}
+		  traindata.setClassIndex(traindata.numAttributes()-1);
+		  return traindata;
 	}
 	
 	static HashMap<Integer, Instances> loadTrainFile(String trainfile)
@@ -124,29 +159,7 @@ public class Domain2PWM {
         		  int PWMColID=Integer.parseInt(comps[0]);
         		  if(lastPWMColID!=PWMColID&&lastPWMColID!=-1)
         		  {
-        			  //do cluster for Vecs, parse instances object
-        			  FastVector attrList=new FastVector(AAs.get(0).length()+1);
-        			  for (int i = 0; i < AAs.get(0).length(); i++) {
-        				  attrList.addElement(createWekaAttribute_AA(String.valueOf(i+1)));
-					}
-        			  //build cluster
-        			  weka.clusterers.XMeans cluster=buildXMeanClusters(Vecs);
-        			  Attribute label=createWekaLabel_Vecs(cluster);
-        			  attrList.addElement(label);
-        			  Instances traindata=new Instances(String.valueOf(lastPWMColID), attrList,AAs.size());
-        			  //add instance to instances
-        			  for (int i = 0; i < AAs.size(); i++) {
-						double[] values = new double[traindata.numAttributes()] ;
-						String AAinst = AAs.get(i);
-						for (int j = 0; j <AAinst.length(); j++) {
-							values[j]=AAmapping.get(AAinst.substring(j, j+1));
-						}
-						Instance vecInst = Vec2Instance(Vecs.get(i));
-						values[traindata.numAttributes()-1]=cluster.clusterInstance(vecInst);
-						Instance instance = new Instance(1, values);
-						traindata.add(instance);
-					}
-        			  traindata.setClassIndex(traindata.numAttributes()-1);
+        			  Instances traindata = CreateInstances(AAs,Vecs,lastPWMColID,AAmapping);
         			  TrainDataCollection.put(lastPWMColID, traindata);
         			 
         			  //clear up AAs and Vecs
@@ -157,6 +170,10 @@ public class Domain2PWM {
         		  AAs.add(comps[1]);
         		  Vecs.add(comps[2]);
   			}
+        	  //add last one 
+        	  Instances traindata = CreateInstances(AAs,Vecs,lastPWMColID,AAmapping);
+		  TrainDataCollection.put(lastPWMColID, traindata);
+        	  
         }
         catch(Exception e)
         {
@@ -188,6 +205,10 @@ public class Domain2PWM {
 			{
 				trainfile=cmd.getOptionValue("train");
 			}
+			else
+			{
+				throw new ParseException("must provide the train file");
+			}
 			if(cmd.hasOption("model"))
 			{
 				modelfile=cmd.getOptionValue("model");
@@ -197,14 +218,30 @@ public class Domain2PWM {
 				testfile=cmd.getOptionValue("test");
 			}
 			HashMap<Integer, Instances> trainData=loadTrainFile(trainfile);
+			HashMap<Integer, Classifier> trainModels=new HashMap<Integer, Classifier>();
+			//build classifier for each PWM column
+			for (Integer PWMcol : trainData.keySet()) {
+				Classifier Modeler=new weka.classifiers.lazy.KStar();
+				//Classifier Modeler=new RandomForest();
+				Instances data = trainData.get(PWMcol);
+				Evaluation eval1 = new Evaluation(data);
+				eval1.crossValidateModel(Modeler, data, 10, new Random(1));//data.numInstances()
+				System.out.println("PWM column "+PWMcol);
+				System.out.println(eval1.toClassDetailsString());
+			}
+			
 			
 			
 		}
 		catch (ParseException e) {
 			// TODO Auto-generated catch block
+			System.err.println(e.getMessage());
 			HelpFormatter formatter = new HelpFormatter();
 			formatter.printHelp( "Domain2PWM", options );
 			return;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
