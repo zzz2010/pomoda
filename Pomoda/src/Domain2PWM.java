@@ -1,6 +1,8 @@
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -72,8 +74,8 @@ public class Domain2PWM {
 		weka.clusterers.XMeans cluster=new XMeans();
 		
 		try {
-			cluster.setMaxKMeans(20);
-			cluster.setMinNumClusters(2);
+			cluster.setMaxNumClusters(20);
+			cluster.setMinNumClusters(4);
 			cluster.buildClusterer(Vecs2Instances(Vecs));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -136,6 +138,48 @@ public class Domain2PWM {
 		  return traindata;
 	}
 	
+	static HashMap<String, HashMap<Integer,Instance>> loadTestFile(String testfile)
+	{
+		//prepare AA mapping table
+		HashMap<String,Integer> AAmapping=new HashMap<String,Integer>();
+		for (int i = 0; i < AAstring.length(); i++) {
+			AAmapping.put(AAstring.substring(i,i+1), i);
+		}
+		//read the test file
+		HashMap<String, HashMap<Integer,Instance>> testData=new HashMap<String, HashMap<Integer,Instance>>();
+		   try {
+	        	  BufferedReader sr = new BufferedReader(new FileReader(new File(testfile)));
+	        	  String line = "";
+	        	  while ((line = sr.readLine()) != null)
+	    			{
+	          		  String[] comps = line.trim().split("[ |\t]+");
+	          		  if(comps.length<3)
+	          			  continue;
+	          		  String proteinName=comps[2];
+	          		  int pwmColid=Integer.parseInt(comps[0]);
+	          		  String AAinst=comps[1];
+	          		double[] values = new double[AAinst.length()+1] ;
+	    			for (int j = 0; j <AAinst.length(); j++) {
+	    				values[j]=AAmapping.get(AAinst.substring(j, j+1));
+	    			}
+	    			values[AAinst.length()]=-1;
+	    			Instance instance = new Instance(1, values);
+	    			if(!testData.containsKey(proteinName))
+	    				testData.put(proteinName, new HashMap<Integer,Instance>());
+	    			testData.get(proteinName).put(pwmColid, instance);
+	    			
+	    			}
+	        	  
+		   }
+	        catch(Exception e)
+	        {
+	        		e.printStackTrace();
+	        }
+		
+		
+		return testData;
+	}
+	
 	static HashMap<Integer, Instances> loadTrainFile(String trainfile)
 	{
 		//prepare AA mapping table
@@ -185,13 +229,15 @@ public class Domain2PWM {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		Options options = new Options();
-		options.addOption("FBP", true, "PWM of combining all the training PWMs");
+		options.addOption("pwm", true, "PWM of combining all the training PWMs");
 		options.addOption("train", true, "amino acid to PWM column file");
 		options.addOption("test", true, "testing domain file");
 		options.addOption("model", true, "training model object file");
+		options.addOption("validate", true, "PWM of test protein sequences");
 		
 		CommandLineParser parser = new GnuParser();
 		PWM FBP=null;
+		List<PWM> validatePWM=null;
 		String trainfile="";
 		String testfile="";
 		String modelfile="";
@@ -200,6 +246,10 @@ public class Domain2PWM {
 			if(cmd.hasOption("pwm"))
 			{
 				FBP=common.LoadPWMFromFile(cmd.getOptionValue("pwm")).get(0);
+			}
+			if(cmd.hasOption("validate"))
+			{
+				validatePWM=common.LoadPWMFromFile(cmd.getOptionValue("validate"));
 			}
 			if(cmd.hasOption("train"))
 			{
@@ -220,16 +270,71 @@ public class Domain2PWM {
 			HashMap<Integer, Instances> trainData=loadTrainFile(trainfile);
 			HashMap<Integer, Classifier> trainModels=new HashMap<Integer, Classifier>();
 			//build classifier for each PWM column
+			System.out.println("===============Building Classification Models==================");
 			for (Integer PWMcol : trainData.keySet()) {
 				Classifier Modeler=new weka.classifiers.lazy.KStar();
 				//Classifier Modeler=new RandomForest();
 				Instances data = trainData.get(PWMcol);
 				Evaluation eval1 = new Evaluation(data);
-				eval1.crossValidateModel(Modeler, data, 10, new Random(1));//data.numInstances()
+				eval1.crossValidateModel(Modeler, data, 20, new Random(1));//data.numInstances() leave one out
 				System.out.println("PWM column "+PWMcol);
 				System.out.println(eval1.toClassDetailsString());
+				Modeler.buildClassifier(data);
+				trainModels.put(PWMcol, Modeler);
+			}
+			HashMap<String, PWM> predictResults=new HashMap<String, PWM>();
+			if(testfile!="")
+			{
+				HashMap<String, HashMap<Integer,Instance>> testData=loadTestFile(testfile);
+				if(FBP!=null)
+				{
+					//output file
+					BufferedWriter writer = new BufferedWriter(new FileWriter(testfile+".pwm"));
+					//construct predicted PWM
+					for (String proteinName : testData.keySet()) {
+						PWM predictPWM=FBP.Clone();
+						predictPWM.Name=proteinName;
+						HashMap<Integer, Instance> PWMcolAAs = testData.get(proteinName);
+						for (Integer PWMcol : PWMcolAAs.keySet()) {
+							Classifier Modeler=trainModels.get(PWMcol);
+							Instance testInst = PWMcolAAs.get(PWMcol);
+							Instances dataSet = trainData.get(PWMcol);
+							testInst.setDataset(dataSet);
+							double classId=Modeler.classifyInstance(testInst);
+							String predictVec=dataSet.classAttribute().value((int) classId);
+							String[] toks=predictVec.split(",");
+							for (int i = 0; i < 4; i++) {
+								predictPWM.setWeight(PWMcol, i, Double.parseDouble(toks[i]));
+							}
+						}
+						predictPWM.Consensus(true);
+						writer.write(predictPWM.toString()+"\n");
+						predictResults.put(proteinName, predictPWM);
+					}
+					writer.close();
+				}
+				
 			}
 			
+			if(validatePWM!=null)
+			{
+				double sumDiv=0;
+				int count=0;
+				System.out.println("===============Validation Result (PWM Divergence)==================");
+				for (PWM pwm : validatePWM) {
+					String name=pwm.Name.split("\\|")[0];
+					if(predictResults.containsKey(name))
+					{
+						PWM pwm2=predictResults.get(name);
+						double pwmdiv=common.PWM_Divergence(pwm, pwm2);
+						System.out.println(name+"\t"+pwmdiv);
+						sumDiv+=pwmdiv;
+						count+=1;
+					}
+				}
+				if(count>0)
+				System.out.println("Average PWM Divergence is "+sumDiv/count);
+			}
 			
 			
 		}
