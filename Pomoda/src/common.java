@@ -659,7 +659,7 @@ public class common {
                        double sump = 0;
                        for (int p = 0; p < 4; p++)
                        {
-                           double temp=refmotif.m_matrix[j][p]-newmotif.m_matrix[j-i][p];
+                           double temp=refmotif.m_matrix[refmotif.head+j][p]-newmotif.m_matrix[newmotif.head+j-i][p];
                            temp*=(temp);
                            sump += (float)temp;
                        }
