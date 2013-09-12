@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -18,6 +19,7 @@ import org.biojava.utils.ChangeVetoException;
 
 import weka.clusterers.XMeans;
 import weka.core.Attribute;
+import weka.core.EuclideanDistance;
 import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -76,7 +78,23 @@ public class Domain2PWM {
 		try {
 			cluster.setMaxNumClusters(20);
 			cluster.setMinNumClusters(4);
-			cluster.buildClusterer(Vecs2Instances(Vecs));
+			Instances insts = Vecs2Instances(Vecs);
+			cluster.buildClusterer(insts);
+			
+			Enumeration enumIt = insts.enumerateInstances();
+			Instances centers = cluster.getClusterCenters();
+			EuclideanDistance ED=new EuclideanDistance(insts);
+			double sum=0;
+			int count=0;
+			while(enumIt.hasMoreElements())
+			{
+				Instance inst=(Instance) enumIt.nextElement();
+				int classid=cluster.clusterInstance(inst);
+				double dist = ED.distance(inst, centers.instance(classid))/(float)Math.sqrt(2);
+				sum+=dist;
+				count+=1;
+			}
+			System.out.println("Average Distance:"+sum/count);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -272,11 +290,14 @@ public class Domain2PWM {
 			//build classifier for each PWM column
 			System.out.println("===============Building Classification Models==================");
 			for (Integer PWMcol : trainData.keySet()) {
-				Classifier Modeler=new weka.classifiers.lazy.KStar();
+				//Classifier Modeler=new weka.classifiers.lazy.KStar();
 				//Classifier Modeler=new RandomForest();
+				Classifier Modeler=new weka.classifiers.functions.MultilayerPerceptron();
 				Instances data = trainData.get(PWMcol);
 				Evaluation eval1 = new Evaluation(data);
-				eval1.crossValidateModel(Modeler, data, 20, new Random(1));//data.numInstances() leave one out
+				Modeler.buildClassifier(data);
+				eval1.evaluateModel(Modeler, data);
+				//eval1.crossValidateModel(Modeler, data, 20, new Random(1));//data.numInstances() leave one out
 				System.out.println("PWM column "+PWMcol);
 				System.out.println(eval1.toClassDetailsString());
 				Modeler.buildClassifier(data);
@@ -307,6 +328,7 @@ public class Domain2PWM {
 								predictPWM.setWeight(PWMcol, i, Double.parseDouble(toks[i]));
 							}
 						}
+						predictPWM=predictPWM.trim();
 						predictPWM.Consensus(true);
 						writer.write(predictPWM.toString()+"\n");
 						predictResults.put(proteinName, predictPWM);

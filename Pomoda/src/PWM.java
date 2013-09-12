@@ -336,6 +336,8 @@ public class PWM extends SimpleWeightMatrix {
        
 	
          rc.Name = this.Name+"_RC";
+         rc.head=this.tail;
+         rc.tail=this.tail;
          return rc;
      }
 	
@@ -429,8 +431,8 @@ public class PWM extends SimpleWeightMatrix {
 	public PWM Clone()
 	{
 		int start=this.head;
-		int end=this.columns()-this.tail;
-		Distribution[] dists=new Distribution[end-start];
+		int end=this.columns()-this.tail; 
+		Distribution[] dists=new Distribution[end-start]; //only retain the core motif part!
 		for (int i = start; i < end; i++) {
 			FiniteAlphabet alpb=(FiniteAlphabet) getColumn(i).getAlphabet();
 			dists[i-start]=new SimpleDistribution(alpb)  ;
