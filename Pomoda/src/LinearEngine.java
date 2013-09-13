@@ -27,6 +27,7 @@ import org.biojavax.bio.seq.RichSequence;
 public class LinearEngine {
 
 	LinkedList<String> ForwardStrand;
+	LinkedList<String> SeqNames;
 	public ArrayList<Double> seqWeighting=null;
 	//LinkedList<String> ReverseStrand;
 	boolean singleStrand=false;
@@ -42,6 +43,7 @@ public class LinearEngine {
 			num_thread=1;
 		this.num_thread=num_thread;
 		ForwardStrand=new LinkedList<String>();
+		SeqNames=new LinkedList<String>();
 		//ReverseStrand=new LinkedList<String>();
 		accSeqLen=new ArrayList<Integer>(10000);
 	}
@@ -157,10 +159,11 @@ public class LinearEngine {
    		          TotalLen=0;
    		       accSeqLen.add(0);
    			      while (seqi.hasNext()) {
-   			    	  
+   			    	
    			    	  Sequence seq=seqi.nextSequence();
    			    	  String seqstr=seq.seqString().replace("N", "");
    				     ForwardStrand.add(seqstr);
+   				  SeqNames.add(seq.getName());
    				  //ReverseStrand.add(common.getReverseCompletementString( seqstr));
    				if(ForwardStrand.size()>maxSeq)
    				    	 break;
@@ -218,12 +221,14 @@ public class LinearEngine {
 			      String seqstr="";
 			      TotalLen=0;
 	   		       accSeqLen.add(0);
+	   		       String seqname="";
+	   		       String lastseqname="";
 			     while( (Line=br.readLine())!=null)
 			     {
 			    	 if(Line.length()>0)
 			    	 {
 			    		 if(Line.charAt(0)=='>')
-			    		 {
+			    		 {   seqname=Line.substring(1);
 			    			 if(seqstr!="")
 			    			 {
 			    			 seqstr=seqstr.replace("N", "");
@@ -238,6 +243,7 @@ public class LinearEngine {
 			    			 if(!filterflag&&ForwardStrand.size()<=maxctrlseq)
 			    			 {
 				    			 ForwardStrand.add(seqstr);
+				    			 SeqNames.add(lastseqname);
 				    			 TotalLen+=seqstr.length();
 				    			 accSeqLen.add(TotalLen);
 			    			 }
@@ -245,6 +251,7 @@ public class LinearEngine {
 			    				 filternum++;
 			    			 seqstr="";
 			    			 }
+			    			 lastseqname=seqname;
 			    			 
 			    		 }
 			    		 else
@@ -282,13 +289,15 @@ public class LinearEngine {
 			      TotalLen=0;
 	   		       accSeqLen.add(0);
 //	   		    UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
-	        	 
+	   		     String seqname="";
+	   		     String lastseqname="";
 			     while( (Line=br.readLine())!=null)
 			     {
 			    	 if(Line.length()>0)
 			    	 {
 			    		 if(Line.charAt(0)=='>')
 			    		 {
+			    			 seqname=Line.substring(1);
 			    			 if(seqstr!="")
 			    			 {
 //			    			String	 bgstr1=DistributionTools.generateSymbolList(ud, 400).seqString();
@@ -296,11 +305,12 @@ public class LinearEngine {
 			    			 seqstr=seqstr.replace("N", "");
 			    			 seqstr=seqstr.replace("-", "N");
 			    			 ForwardStrand.add(seqstr);
+			    			 SeqNames.add(lastseqname);
 			    			 TotalLen+=seqstr.length();
 			    			 accSeqLen.add(TotalLen);
 			    			 seqstr="";
 			    			 }
-			    			 
+			    			 lastseqname=seqname;
 			    		 }
 			    		 else
 			    		 {

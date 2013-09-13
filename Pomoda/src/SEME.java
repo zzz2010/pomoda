@@ -3974,20 +3974,29 @@ public class SEME {
 				BGModel uniform_bg=new  BGModel();
 				uniform_bg.BuildModel(new String[]{"ACGT"}, 1);
 				PWM motif = sortedPWMs.get(key);
-				double thresh=motif.getThresh(0.9999, evaluator.FDR, uniform_bg,true);
-				LinkedList<FastaLocation> falocs = evaluator.SearchEngine.searchPattern(motif, thresh);
-				File file2 = new File(motifFinder.outputPrefix+"Motif_clust"+String.valueOf(c+1)+".pos"); 
+				double thresh=motif.getThresh(0.9999, 0.0001, motifFinder.background,true);
+				
+				LinkedList<FastaLocation> falocs = motifFinder.SearchEngine2.searchPattern(motif, thresh);
+				File file2 = new File(motifFinder.outputPrefix+"Motif_clust"+String.valueOf(c)+".pos"); 
 				BufferedWriter writer2 = new BufferedWriter(new FileWriter(file2));
-				writer2.write("match site\tSeqId\tPos\tScore\tStrand\n");
+				writer2.write("match site\tSeqId(0-based)\tPos\tScore\tStrand\n");
 				for (int i = 0; i < falocs.size(); i++) {
 					FastaLocation posObj = falocs.get(i);
 					String strand="+";
+					posObj.seq=motifFinder.SearchEngine2.getSite(posObj.getSeqId(),posObj.getSeqPos(), motif.core_motiflen);
 					if(posObj.ReverseStrand)
+					{	
 						strand="-";
-					String line=posObj.seq+"\t"+posObj.getSeqId()+"\t"+posObj.getSeqPos()+"\t"+posObj.Score+"\t"+strand;
+					}
+					String seqname=String.valueOf(posObj.getSeqId());
+					if(motifFinder.SearchEngine2.SeqNames.size()==motifFinder.SearchEngine2.ForwardStrand.size())
+						seqname=motifFinder.SearchEngine2.SeqNames.get(posObj.getSeqId());
+					
+					String line=posObj.seq+"\t"+seqname+"\t"+posObj.getSeqPos()+"\t"+posObj.Score+"\t"+strand;
 					writer2.write(line+"\n");
 				}
 				writer2.close();
+				
 				
 			}
 			
