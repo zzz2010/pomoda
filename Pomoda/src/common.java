@@ -634,6 +634,7 @@ public class common {
     static AlignmentResult Alignment(PWM refmotif, PWM newmotif)
     {
     	AlignmentResult ret=new AlignmentResult();
+    	
     	 float alnScore;
     	int bestoverlap;
                    float bestscore=10;
@@ -660,6 +661,7 @@ public class common {
                        for (int p = 0; p < 4; p++)
                        {
                            double temp=refmotif.m_matrix[refmotif.head+j][p]-newmotif.m_matrix[newmotif.head+j-i][p];
+                          
                            temp*=(temp);
                            sump += (float)temp;
                        }
