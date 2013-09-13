@@ -3970,6 +3970,25 @@ public class SEME {
 				else
 					System.out.println("PWM AUC:"+ evaluator.calcAUC(sortedPWMs.get(key),motifFinder.DnaseLib,null));
 
+				/////////////write out motif site//////////////
+				BGModel uniform_bg=new  BGModel();
+				uniform_bg.BuildModel(new String[]{"ACGT"}, 1);
+				PWM motif = sortedPWMs.get(key);
+				double thresh=motif.getThresh(0.9999, evaluator.FDR, uniform_bg,true);
+				LinkedList<FastaLocation> falocs = evaluator.SearchEngine.searchPattern(motif, thresh);
+				File file2 = new File(motifFinder.outputPrefix+"Motif_clust"+String.valueOf(c+1)+".pos"); 
+				BufferedWriter writer2 = new BufferedWriter(new FileWriter(file2));
+				writer2.write("match site\tSeqId\tPos\tScore\tStrand\n");
+				for (int i = 0; i < falocs.size(); i++) {
+					FastaLocation posObj = falocs.get(i);
+					String strand="+";
+					if(posObj.ReverseStrand)
+						strand="-";
+					String line=posObj.seq+"\t"+posObj.getSeqId()+"\t"+posObj.getSeqPos()+"\t"+posObj.Score+"\t"+strand;
+					writer2.write(line+"\n");
+				}
+				writer2.close();
+				
 			}
 			
 			writer.close();
