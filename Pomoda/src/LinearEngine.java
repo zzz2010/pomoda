@@ -150,6 +150,7 @@ public class LinearEngine {
 		// TODO Auto-generated method stub
 		 try {
 			 ForwardStrand.clear();
+			 SeqNames.clear();
 			// ReverseStrand.clear();
 			 //Database to hold the training set
 			      BufferedReader br = new BufferedReader(new FileReader(inputfile));
@@ -213,6 +214,7 @@ public class LinearEngine {
 		 try {
 			 ForwardStrand.clear();
 			 accSeqLen.clear();
+			 SeqNames.clear();
 			// ReverseStrand.clear();
 			 //Database to hold the training set
 			      BufferedReader br = new BufferedReader(new FileReader(inputfile));
@@ -281,6 +283,7 @@ public class LinearEngine {
 		 try {
 			 ForwardStrand.clear();
 			 accSeqLen.clear();
+			 SeqNames.clear();
 			// ReverseStrand.clear();
 			 //Database to hold the training set
 			      BufferedReader br = new BufferedReader(new FileReader(inputfile));
