@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 
@@ -200,6 +201,7 @@ public class Domain2PWM {
 	
 	static HashMap<Integer, Instances> loadTrainFile(String trainfile)
 	{
+		Random rrand=new Random();
 		//prepare AA mapping table
 		HashMap<String,Integer> AAmapping=new HashMap<String,Integer>();
 		for (int i = 0; i < AAstring.length(); i++) {
@@ -213,6 +215,7 @@ public class Domain2PWM {
         	  ArrayList<String> AAs=new ArrayList<String>();
         	  ArrayList<String> Vecs=new ArrayList<String>();
         	  int  lastPWMColID=-1;
+        	  int proteinId=0;
         	  while ((line = sr.readLine()) != null)
   			{
         		  String[] comps = line.trim().split("[ |\t]+");
@@ -225,10 +228,18 @@ public class Domain2PWM {
         			  TrainDataCollection.put(lastPWMColID, traindata);
         			 
         			  //clear up AAs and Vecs
+        			  proteinId=0;
         			  AAs.clear();
         			  Vecs.clear();
         		  }
         		  lastPWMColID=PWMColID;
+        		  proteinId++;
+        		  if(rrand.nextDouble()<0.1&&splitTrainTest) //10% test set
+        		  {
+        			  if(filterProtein.size()<proteinId*0.1)
+        				  filterProtein.add(comps[3]);
+        			  continue;
+        		  }
         		  AAs.add(comps[1]);
         		  Vecs.add(comps[2]);
   			}
@@ -244,7 +255,10 @@ public class Domain2PWM {
 		return TrainDataCollection;	
 	}
 	
+	static HashSet<String> filterProtein=new HashSet<String>();
+	static boolean splitTrainTest=true; //need the 4th column , can split the trainset and testset
 	public static void main(String[] args) {
+		
 		// TODO Auto-generated method stub
 		Options options = new Options();
 		options.addOption("pwm", true, "PWM of combining all the training PWMs");
@@ -285,14 +299,17 @@ public class Domain2PWM {
 			{
 				testfile=cmd.getOptionValue("test");
 			}
+			
+
+			
 			HashMap<Integer, Instances> trainData=loadTrainFile(trainfile);
 			HashMap<Integer, Classifier> trainModels=new HashMap<Integer, Classifier>();
 			//build classifier for each PWM column
 			System.out.println("===============Building Classification Models==================");
 			for (Integer PWMcol : trainData.keySet()) {
 				//Classifier Modeler=new weka.classifiers.lazy.KStar();
-				//Classifier Modeler=new RandomForest();
-				Classifier Modeler=new weka.classifiers.functions.MultilayerPerceptron();
+				Classifier Modeler=new RandomForest();
+				//Classifier Modeler=new weka.classifiers.functions.MultilayerPerceptron();
 				Instances data = trainData.get(PWMcol);
 				Evaluation eval1 = new Evaluation(data);
 				Modeler.buildClassifier(data);
@@ -342,9 +359,13 @@ public class Domain2PWM {
 			{
 				double sumDiv=0;
 				int count=0;
+				int proteinId=0;
 				System.out.println("===============Validation Result (PWM Divergence)==================");
 				for (PWM pwm : validatePWM) {
 					String name=pwm.Name.split("\\|")[0];
+					proteinId++;
+					if(!filterProtein.contains(name)&&splitTrainTest)
+						continue;
 					if(predictResults.containsKey(name))
 					{
 						PWM pwm2=predictResults.get(name);
