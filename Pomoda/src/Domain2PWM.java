@@ -1,13 +1,19 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Random;
 
 import org.apache.commons.cli.CommandLine;
@@ -17,6 +23,10 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.biojava.utils.ChangeVetoException;
+
+import cern.colt.matrix.impl.SparseDoubleMatrix2D;
+
+import com.sun.tools.javac.util.Pair;
 
 import weka.clusterers.XMeans;
 import weka.core.Attribute;
@@ -128,6 +138,16 @@ public class Domain2PWM {
 		
 	}
 	
+	static FastVector AA2AttrList(String AA)
+	{
+		  FastVector attrList=new FastVector(AA.length()+1);
+		  for (int i = 0; i < AA.length(); i++) {
+			  attrList.addElement(createWekaAttribute_AA(String.valueOf(i+1)));
+		}
+		  
+		  return attrList;
+	}
+	
 	static Instances CreateInstances( ArrayList<String> AAs,  ArrayList<String> Vecs,int lastPWMColID,HashMap<String,Integer> AAmapping) throws Exception
 	{
 		  //do cluster for Vecs, parse instances object
@@ -182,6 +202,12 @@ public class Domain2PWM {
 	    				values[j]=AAmapping.get(AAinst.substring(j, j+1));
 	    			}
 	    			values[AAinst.length()]=-1;
+	    			//make an simple instances dataset for the instance
+	    			ArrayList<String> temp_AAs=new ArrayList<String>();
+	    			temp_AAs.add(AAinst);
+	    			ArrayList<String> temp_vecs=new ArrayList<String>();
+	    			temp_vecs.add("0,0,0,0");
+	    			
 	    			Instance instance = new Instance(1, values);
 	    			if(!testData.containsKey(proteinName))
 	    				testData.put(proteinName, new HashMap<Integer,Instance>());
@@ -256,7 +282,7 @@ public class Domain2PWM {
 	}
 	
 	static HashSet<String> filterProtein=new HashSet<String>();
-	static boolean splitTrainTest=true; //need the 4th column , can split the trainset and testset
+	static boolean splitTrainTest=false; //need the 4th column , can split the trainset and testset
 	public static void main(String[] args) {
 		
 		// TODO Auto-generated method stub
@@ -287,14 +313,15 @@ public class Domain2PWM {
 			{
 				trainfile=cmd.getOptionValue("train");
 			}
-			else
-			{
-				throw new ParseException("must provide the train file");
-			}
-			if(cmd.hasOption("model"))
+			else if(cmd.hasOption("model"))
 			{
 				modelfile=cmd.getOptionValue("model");
 			}
+			else 
+			{
+				throw new ParseException("must provide the train file or model file");
+			}
+
 			if(cmd.hasOption("test"))
 			{
 				testfile=cmd.getOptionValue("test");
@@ -302,8 +329,12 @@ public class Domain2PWM {
 			
 
 			
-			HashMap<Integer, Instances> trainData=loadTrainFile(trainfile);
+			
 			HashMap<Integer, Classifier> trainModels=new HashMap<Integer, Classifier>();
+			HashMap<Integer, Instances> trainData=null;
+			if(trainfile!="")
+			{
+				trainData=loadTrainFile(trainfile);
 			//build classifier for each PWM column
 			System.out.println("===============Building Classification Models==================");
 			for (Integer PWMcol : trainData.keySet()) {
@@ -319,6 +350,52 @@ public class Domain2PWM {
 				System.out.println(eval1.toClassDetailsString());
 				Modeler.buildClassifier(data);
 				trainModels.put(PWMcol, Modeler);
+				data.delete(); //saving space for the storeObj
+			}
+			HashMap<String, Object> storeObj=new HashMap<String, Object>();
+			storeObj.put("FBP", FBP);
+			storeObj.put("trainModels", trainModels);
+			storeObj.put("trainData", trainData);
+			 try { //serialize the data
+		       	 FileOutputStream fileOut =
+		   		         new FileOutputStream(trainfile+".model");
+		   		         ObjectOutputStream out =
+		   		                            new ObjectOutputStream(fileOut);
+					out.writeObject(storeObj);
+			         out.close();
+			          fileOut.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			else if(modelfile!="")
+			{
+				
+				//load the pre-build model
+				File f1=new File(modelfile);
+				if(f1.exists())
+				{
+					 FileInputStream fileIn;
+					 try {
+						fileIn = new FileInputStream(f1.getAbsolutePath());
+						 ObjectInputStream in = new ObjectInputStream(fileIn);
+						 HashMap<String, Object> temp=(HashMap<String, Object>)in.readObject();
+						 fileIn.close();
+						if(temp.get("FBP")!=null)
+							FBP=(PWM) temp.get("FBP");
+						if(temp.get("trainModels")!=null)
+							trainModels=(HashMap<Integer, Classifier>) temp.get("trainModels");
+						if(temp.get("trainData")!=null)
+							trainData=(HashMap<Integer, Instances>) temp.get("trainData");
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						System.err.println(e.getMessage());
+					} 
+				}
+				else
+					System.err.println("fail to load model file:"+modelfile);
+				
 			}
 			HashMap<String, PWM> predictResults=new HashMap<String, PWM>();
 			if(testfile!="")
