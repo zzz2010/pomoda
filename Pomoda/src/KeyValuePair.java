@@ -1,8 +1,13 @@
+import java.io.Serializable;
 import java.util.Map.Entry;
 
 
-public class KeyValuePair<K,V> implements Entry<K, V> {
+public class KeyValuePair<K,V> implements Entry<K, V>, Serializable{
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -3225161899777880782L;
 	public KeyValuePair(K key, V value) {
 		super();
 		this.key = key;
