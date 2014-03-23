@@ -26,8 +26,6 @@ import org.biojava.utils.ChangeVetoException;
 
 import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 
-import com.sun.tools.javac.util.Pair;
-
 import weka.clusterers.XMeans;
 import weka.core.Attribute;
 import weka.core.EuclideanDistance;
