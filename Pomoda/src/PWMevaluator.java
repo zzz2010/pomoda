@@ -588,7 +588,7 @@ public class PWMevaluator {
 			BGSearch=bg_search;
 		}
 
-     	TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
+    
      	double lamda=(double)SearchEngine.getSeqNum()/SearEngine.TotalLen/2;
         SearchThread.recordSiteThreshold=Math.log((1-lamda)/lamda)+motif.core_motiflen*Math.log(0.25);
         motif.matchsite.clear();
@@ -606,7 +606,7 @@ public class PWMevaluator {
         			 seqcount+=1;
         			 if(lastseq!=-1)
         			 {
-        				 Sorted_labels.put(maxseq_score-seqcount*common.DoubleMinNormal, 1);
+        				 pwmscores.add(maxseq_score);
         				// System.err.println(maxseq_score);
         			 }
         				 lastseq=currloc.getSeqId();
@@ -636,7 +636,7 @@ public class PWMevaluator {
 	    			
 	    			 if(lastseq!=-1)
 	    			 {
-	    			 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 0);
+	    				 pwmscores.add(maxseq_score);
 	    			
 	    			 }
 	    			 maxseq_score=currloc.Score;
