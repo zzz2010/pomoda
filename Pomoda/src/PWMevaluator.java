@@ -544,6 +544,119 @@ public class PWMevaluator {
 
 	}
 	
+	
+	public ArrayList<Double> getMaxPWMscorPerSequence(PWM motif,LinearEngine bg_search)
+	{
+		ArrayList<Double> pwmscores=new ArrayList<Double>();
+		if(motif==null)
+			return null;
+		SearchThread.bestonly=true;
+		 LinearEngine SearEngine=null;
+		
+			 SearEngine=this.SearchEngine;
+
+			 LinearEngine BGSearch=null;
+		if(bg_search==null)
+		{
+		  BGSearch=new LinearEngine(6);
+         Iterator<String> iter2=SearchEngine.ForwardStrand.iterator();
+         background.r.setSeed(0);
+         while(iter2.hasNext())
+         {
+        	 int len=iter2.next().length();
+        	 for (int i = 0; i < 1; i++) { //dont consider bgfold in AUC
+
+	        	 String bgstr="";
+	        	 if(removeBG)
+	        	 {
+		        	 KeyValuePair<Double, String> bgstr_p=background.generateRandomSequence(len);
+		        	 bgstr=bgstr_p.value;
+	        	 }
+	        	 else
+	        	 {
+		        	 UniformDistribution ud=new UniformDistribution(DNATools.getDNA());
+		        	 bgstr=DistributionTools.generateSymbolList(ud, len).seqString();
+	        	 }
+	        	 BGSearch.ForwardStrand.add(bgstr);	 
+	        	 BGSearch.TotalLen+=bgstr.length();
+	        	 BGSearch.accSeqLen.add( BGSearch.TotalLen);
+        	 }
+         }
+		}
+		else
+		{
+			BGSearch=bg_search;
+		}
+
+     	TreeMap<Double,Integer> Sorted_labels=new TreeMap<Double,Integer>();
+     	double lamda=(double)SearchEngine.getSeqNum()/SearEngine.TotalLen/2;
+        SearchThread.recordSiteThreshold=Math.log((1-lamda)/lamda)+motif.core_motiflen*Math.log(0.25);
+        motif.matchsite.clear();
+        	 LinkedList<FastaLocation> falocs =SearchEngine.searchPattern(motif, Double.NEGATIVE_INFINITY);
+        SearchThread.recordSiteThreshold=Double.POSITIVE_INFINITY;
+        	 Iterator<FastaLocation> iter=falocs.iterator();
+        	 int lastseq=-1;
+        	 double seqcount=0;
+        	 double maxseq_score=	Double.NEGATIVE_INFINITY;
+        	 while(iter.hasNext())
+        	 {
+        		 FastaLocation currloc=iter.next();
+        		 if(lastseq!=currloc.getSeqId())
+        		 {
+        			 seqcount+=1;
+        			 if(lastseq!=-1)
+        			 {
+        				 Sorted_labels.put(maxseq_score-seqcount*common.DoubleMinNormal, 1);
+        				// System.err.println(maxseq_score);
+        			 }
+        				 lastseq=currloc.getSeqId();
+        			 maxseq_score=currloc.Score;
+        		 }
+        		 if(maxseq_score<currloc.Score)
+        		 {
+        			 maxseq_score=currloc.Score;
+
+        		 }
+        	 }
+        	 pwmscores.add(maxseq_score);
+        	 
+        	 //bg sequences
+        	 falocs =BGSearch.searchPattern(motif, Double.NEGATIVE_INFINITY);
+        	 iter=falocs.iterator();
+        	lastseq=-1;
+        	 seqcount=0;
+        	maxseq_score=Double.NEGATIVE_INFINITY;
+	       	 while(iter.hasNext())
+	    	 {
+	    		 FastaLocation currloc=iter.next();
+
+	    		 if(lastseq!=currloc.getSeqId())
+	    		 {
+	    			 seqcount+=1;
+	    			
+	    			 if(lastseq!=-1)
+	    			 {
+	    			 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 0);
+	    			
+	    			 }
+	    			 maxseq_score=currloc.Score;
+	    			 lastseq=currloc.getSeqId();
+	    		 }
+	    		 if(maxseq_score<currloc.Score)
+	    		 {
+	    			 maxseq_score=currloc.Score;
+	    		 }
+	    		 
+	    	 }
+	       	pwmscores.add(maxseq_score);
+        	 
+
+
+         SearchThread.bestonly=false;
+         return pwmscores;
+
+	}
+	
 	public double HyperGeometricScore(PWM motif, LinearEngine bg_search)
 	{
 		double HGscore=0;
@@ -1032,6 +1145,7 @@ public class PWMevaluator {
 		options.addOption("pwm", true, "input PWM file");
 		options.addOption("N", true, "the number of PWM want to evaluate");
 		options.addOption("c", true, "control fasta file");
+		options.addOption("outputPWMscore", false, "output max pwmscore for each sequence in a file");
 		options.addOption("dpwm", false,"compare dpwm and its pwm version");
 		options.addOption("convert", false, "convert input PWM file to the transfac format");
 		options.addOption("AUClen", true, "the length for determine use AUC or hypergeometric");
@@ -1055,6 +1169,7 @@ public class PWMevaluator {
 		boolean rocflag=false;
 		boolean dpwmflag=false;
 		boolean corrflag=false;
+		boolean outputPWMscore_flag=false;
 		boolean genrand=false;
 		boolean multiscore_flag=false;
 		boolean convertflag=false;
@@ -1128,6 +1243,10 @@ public class PWMevaluator {
 			if(cmd.hasOption("multiscore"))
 			{
 				multiscore_flag=true;
+			}
+			if(cmd.hasOption("outputPWMscore"))
+			{
+				outputPWMscore_flag=true;
 			}
 			if(cmd.hasOption("convert"))
 			{
@@ -1205,9 +1324,43 @@ public class PWMevaluator {
 				randwriter.close();
 				inputPWM=inputPWM+"_rand.pwm";
 			}
-			File file = new File(inputPWM+"_eval.txt");
+			File file = new File(inputPWM+"_pwmscore.txt");
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-		
+		if(outputPWMscore_flag)
+		{
+			evaluator.initialize();
+			
+			List<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+			if(pwmlist.size()>topN)
+				pwmlist= pwmlist.subList(0, topN);
+			
+			if(restorepwmlist!=null)
+				pwmlist.addAll(restorepwmlist);
+			
+			//set background to uniform
+			evaluator.background=BGModel.CreateUniform();
+			Iterator<PWM> iter=pwmlist.iterator();
+			String header="motif";
+			for (int i = 0; i < evaluator.SearchEngine.getSeqNum(); i++) {
+				header+="\tP";
+			}
+			for (int i = 0; i < evaluator.BGSearchEngine.getSeqNum(); i++) {
+				header+="\tN";
+			}
+			writer.write(header+"\n");
+			while(iter.hasNext())
+			{
+				PWM p1=iter.next();
+
+					ArrayList<Double> scores = evaluator.getMaxPWMscorPerSequence(p1, evaluator.BGSearchEngine);
+					String outstr=p1.Name;
+					for (int i = 0; i < scores.size(); i++) {
+						outstr+="\t"+scores.get(i);
+				}
+				writer.write(outstr+"\n");
+			}
+			writer.close();	
+		}
 		if(rocflag)
 		{
 		evaluator.initialize();
