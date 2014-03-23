@@ -1034,6 +1034,7 @@ public class PWMevaluator {
 		options.addOption("c", true, "control fasta file");
 		options.addOption("dpwm", false,"compare dpwm and its pwm version");
 		options.addOption("convert", false, "convert input PWM file to the transfac format");
+		options.addOption("AUClen", true, "the length for determine use AUC or hypergeometric");
 		options.addOption("roc", false, "compute AUC and draw ROC curve for the given pwm file");
 		options.addOption("corr", false, "compute rank correlation between sequence and PWM score for the given pwm file");
 		options.addOption("pbm", false, "input file is PBM format, and will compute signal correlation");
@@ -1061,6 +1062,7 @@ public class PWMevaluator {
 		
 		LinkedList<PWM> PWMLibrary=null;
 		int topN=1000000;
+		int AUClen=500;
 		try {
 			CommandLine cmd = parser.parse( options, args);
 			if(cmd.hasOption("i"))
@@ -1106,6 +1108,10 @@ public class PWMevaluator {
 			if(cmd.hasOption("roc"))
 			{
 				rocflag=true;
+			}
+			if(cmd.hasOption("AUClen"))
+			{
+				AUClen=Integer.parseInt( cmd.getOptionValue("AUClen"));
 			}
 			if(cmd.hasOption("corr"))
 			{
@@ -1221,7 +1227,7 @@ public class PWMevaluator {
 			PWM p1=iter.next();
 
 			double auc=0;
-			if(evaluator.SearchEngine.TotalLen/evaluator.SearchEngine.getSeqNum()<500)
+			if(evaluator.SearchEngine.TotalLen/evaluator.SearchEngine.getSeqNum()<AUClen)
 				auc=evaluator.calcAUC(p1, evaluator.BGSearchEngine);
 			else
 				auc=evaluator.HyperGeometricScore(p1, evaluator.BGSearchEngine);
