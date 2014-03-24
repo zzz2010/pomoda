@@ -403,6 +403,7 @@ public class PWMevaluator {
 	
 	public double calcAUC(PWM motif,LinearEngine bg_search)
 	{
+		Random rand=new Random();
 		if(motif==null)
 			return Double.NEGATIVE_INFINITY;
 		SearchThread.bestonly=true;
@@ -461,7 +462,7 @@ public class PWMevaluator {
         			 seqcount+=1;
         			 if(lastseq!=-1)
         			 {
-        				 Sorted_labels.put(maxseq_score-seqcount*common.DoubleMinNormal, 1);
+        				 Sorted_labels.put(maxseq_score-(rand.nextDouble()-0.5)*common.DoubleMinNormal, 1);
         				// System.err.println(maxseq_score);
         			 }
         				 lastseq=currloc.getSeqId();
@@ -473,7 +474,7 @@ public class PWMevaluator {
 
         		 }
         	 }
-        	 Sorted_labels.put(maxseq_score-seqcount*common.DoubleMinNormal, 1);
+        	 Sorted_labels.put(maxseq_score-(rand.nextDouble()-0.5)*common.DoubleMinNormal, 1);
         	 
         	 //bg sequences
         	 falocs =BGSearch.searchPattern(motif, Double.NEGATIVE_INFINITY);
@@ -491,7 +492,7 @@ public class PWMevaluator {
 	    			
 	    			 if(lastseq!=-1)
 	    			 {
-	    			 Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 0);
+	    			 Sorted_labels.put(maxseq_score+(rand.nextDouble()-0.5)*common.DoubleMinNormal, 0);
 	    			
 	    			 }
 	    			 maxseq_score=currloc.Score;
@@ -503,7 +504,7 @@ public class PWMevaluator {
 	    		 }
 	    		 
 	    	 }
-	       	Sorted_labels.put(maxseq_score+seqcount*common.DoubleMinNormal, 0);
+	       	Sorted_labels.put(maxseq_score+(rand.nextDouble()-0.5)*common.DoubleMinNormal, 0);
 	       	 int[]  labels=new int[Sorted_labels.size()];
 	       	double[]  scores=new double[Sorted_labels.size()];
 	       	 int ii=0;
