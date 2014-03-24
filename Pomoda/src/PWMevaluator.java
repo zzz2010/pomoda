@@ -1325,10 +1325,13 @@ public class PWMevaluator {
 				randwriter.close();
 				inputPWM=inputPWM+"_rand.pwm";
 			}
-			File file = new File(inputPWM+"_pwmscore.txt");
+			File file = new File(inputPWM+"_eval.txt");
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 		if(outputPWMscore_flag)
 		{
+			File file2 = new File(inputPWM+"_pwmscore.txt");
+			BufferedWriter writer2 = new BufferedWriter(new FileWriter(file2));
+
 			evaluator.initialize();
 			
 			List<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
@@ -1348,7 +1351,7 @@ public class PWMevaluator {
 			for (int i = 0; i < evaluator.BGSearchEngine.getSeqNum(); i++) {
 				header+="\tN";
 			}
-			writer.write(header+"\n");
+			writer2.write(header+"\n");
 			while(iter.hasNext())
 			{
 				PWM p1=iter.next();
@@ -1358,9 +1361,9 @@ public class PWMevaluator {
 					for (int i = 0; i < scores.size(); i++) {
 						outstr+="\t"+scores.get(i);
 				}
-				writer.write(outstr+"\n");
+					writer2.write(outstr+"\n");
 			}
-			writer.close();	
+			writer2.close();	
 		}
 		if(rocflag)
 		{
