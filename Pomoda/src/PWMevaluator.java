@@ -1159,6 +1159,7 @@ public class PWMevaluator {
 		options.addOption("bgfold", true, "if background model is set, the fold change between negative sequence and positive sequences (default 1, Integer)");
 		options.addOption("markov", true, "use markov model of the control sequences rather than directly control sequences");
 		options.addOption("prefix", true, "output directory");
+		options.addOption("nonPalindromeRC",false, "get Reverse Complement PWM from the input PWMs, only output the non-Palindrome cases");
 		options.addOption("ratio",true, "sampling ratio (default 1)");
 		options.addOption("maxROCfp",true, "the x axis scale in ROC curve drawing (default 1)");
 		options.addOption("genrand",false, "shuffle the colums of input PWMs and evaluate");
@@ -1174,6 +1175,7 @@ public class PWMevaluator {
 		boolean genrand=false;
 		boolean multiscore_flag=false;
 		boolean convertflag=false;
+		boolean getNonPalindrome_RC=false;
 		PWM.infothresh=0;  //without cutting the flanking position
 		
 		LinkedList<PWM> PWMLibrary=null;
@@ -1252,6 +1254,10 @@ public class PWMevaluator {
 			if(cmd.hasOption("convert"))
 			{
 				convertflag =true;
+			}
+			if(cmd.hasOption("nonPalindromeRC"))
+			{
+				getNonPalindrome_RC=true;
 			}
 			if(cmd.hasOption("prefix"))
 			{
@@ -1409,6 +1415,8 @@ public class PWMevaluator {
 		//evaluator.pack();
 	     //   RefineryUtilities.centerFrameOnScreen(evaluator);
 	      //  evaluator.setVisible(true);
+		
+
 		}
 
 		
@@ -1527,6 +1535,22 @@ public class PWMevaluator {
 			}
 			writer2.close();
 			convertflag=false;
+		}
+		if(getNonPalindrome_RC)
+		{
+			File file2 = new File(inputPWM+"_RC.pwm"); 
+			BufferedWriter writer2= new BufferedWriter(new FileWriter(file2));
+			LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+			for(PWM motif:pwmlist)
+			{
+				PWM motif_RC = motif.ReverseComplement();
+				AlignmentResult alignResult=common.Alignment(motif,motif_RC );
+				if(alignResult.alnScore<0.18)
+					continue;
+				writer2.write(motif_RC.toString());
+			}
+			writer2.close();
+			getNonPalindrome_RC=false;
 		}
 	    if(PWMLibrary!=null)
 	    {
