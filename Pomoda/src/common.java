@@ -144,6 +144,8 @@ public class common {
            retlist = UniprobeHandler(file);
        else if (file.indexOf("ChIPMunk") != -1)
            retlist = ChIPMunkHandler(file);
+       else if (file.endsWith("jaspar") )
+           retlist = JasparHandler(file);
 
             return retlist;
        
@@ -151,7 +153,105 @@ public class common {
     
     
     
-    public static LinkedList<PWM> ChIPMunkHandler(String file) {
+    private static LinkedList<PWM> JasparHandler(String file) {
+    	 LinkedList<PWM> retlist = new LinkedList<PWM>();
+         String line = "";
+       
+         try {
+         	  BufferedReader sr = new BufferedReader(new FileReader(new File(file)));
+         	 String nname="";
+         	double[][] m_matrix=null;
+         	int w=0;
+         	 int row=0;
+ 			while ((line = sr.readLine()) != null)
+ 			{
+ 			   
+			if(line.startsWith(">"))
+ 			   {
+				if(m_matrix!=null)
+ 			    {
+		 			  ArrayList<Distribution> dists=new ArrayList<Distribution>();
+		 			  double infoContent=0;
+		  			for (int i = 0; i < m_matrix.length; i++) {
+		 				double [] col=m_matrix[i];
+		 				col=common.Normalize(col);
+		 				infoContent+=2-common.lnEntropy(col);
+		 		            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
+		 		             di.setWeight(DNATools.a(), col[0]);
+		 						di.setWeight(DNATools.c(), col[1]);
+		 						di.setWeight(DNATools.g(), col[2]);
+		 						di.setWeight(DNATools.t(), col[3]);
+		 					dists.add(di);
+		 					
+		 			}
+		  			  PWM candidate = new PWM(dists.toArray(new Distribution[1]));
+		  			         candidate.Name = nname;
+		  			       candidate.Score=infoContent/m_matrix.length;
+		  			         retlist.add(candidate);
+			    }
+ 				  nname=line.substring(1);
+ 				 m_matrix=null;
+ 				 continue;
+ 			   }
+ 				 
+ 			  String[] comps = line.substring(4).replace(" ]", "").trim().split("[ ]+");
+ 			  if(m_matrix==null)
+ 			  {
+ 				  w=comps.length;
+ 				  row=0;
+ 				  m_matrix=new double[w][4];
+ 			  }
+
+ 			  if(comps.length<w)
+ 				  break;
+ 			  w=comps.length;
+// 			  System.err.println(line);
+ 			   for (int i = 0; i < comps.length; i++) {
+				m_matrix[i][row%4]=Double.parseDouble(comps[i])+DoubleMinNormal;
+			}
+ 			    row++;
+
+ 			}
+
+		//add the last one	    
+ 			    {
+ 		 			  ArrayList<Distribution> dists=new ArrayList<Distribution>();
+ 		  			for (int i = 0; i < m_matrix.length; i++) {
+ 		 				double [] col=m_matrix[i];
+ 		 				col=common.Normalize(col);
+ 		 		            Distribution di= DistributionFactory.DEFAULT.createDistribution(DNATools.getDNA());
+ 		 		             di.setWeight(DNATools.a(), col[0]);
+ 		 						di.setWeight(DNATools.c(), col[1]);
+ 		 						di.setWeight(DNATools.g(), col[2]);
+ 		 						di.setWeight(DNATools.t(), col[3]);
+ 		 					dists.add(di);
+ 		 			}
+ 		  			  PWM candidate = new PWM(dists.toArray(new Distribution[1]));
+ 		  			         candidate.Name = nname;
+ 		  			         retlist.add(candidate);
+ 			    }
+ 			    
+ 			
+ 			sr.close();
+ 		} catch (NumberFormatException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IllegalAlphabetException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IllegalSymbolException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (ChangeVetoException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		} catch (IOException e) {
+ 			// TODO Auto-generated catch block
+ 			e.printStackTrace();
+ 		}
+         return retlist;
+	}
+	public static LinkedList<PWM> ChIPMunkHandler(String file) {
     	 LinkedList<PWM> retlist = new LinkedList<PWM>();
          String line = "";
        

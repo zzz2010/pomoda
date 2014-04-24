@@ -635,10 +635,13 @@ public class PWM extends SimpleWeightMatrix {
 		double prior_EZ=0;
 		boolean rankbias=false;
 		boolean posbias=false;
+		boolean useInfoContentAsScore=false;
+		double infocontent=0;
 		try {
 			while ((str = reader.readLine()) != null) {
 				if(str.startsWith("DE"))
 				{
+					infocontent=0;
 					String[] elms=str.split("\t| ");
 					if(elms.length>1)
 					pwmName=elms[1];
@@ -667,8 +670,11 @@ public class PWM extends SimpleWeightMatrix {
 						catch(Exception e)
 						{
 							score=0;
+							useInfoContentAsScore=true;
 						}
 					}
+					else
+						useInfoContentAsScore=true;
 				}
 				else if(str.startsWith("P"))
 				{
@@ -689,7 +695,7 @@ public class PWM extends SimpleWeightMatrix {
 						count[i-1]=Double.parseDouble(elms[i])+common.DoubleMinNormal;
 					}
 					count=common.Normalize(count);
-				
+					infocontent+=2-common.lnEntropy(count);
 						di.setWeight(DNATools.a(), count[0]);
 						di.setWeight(DNATools.c(), count[1]);
 						di.setWeight(DNATools.g(), count[2]);
@@ -701,6 +707,8 @@ public class PWM extends SimpleWeightMatrix {
 			pwm=new PWM(dists.toArray(new Distribution[1]));
 			pwm.Name=pwmName;
 			pwm.Score=score;
+			if(useInfoContentAsScore)
+				pwm.Score=infocontent/dists.size();
 			pwm.Prior_EZ=prior_EZ;
 			pwm.pos_en=posbias;
 			pwm.peakrank_en=rankbias;
