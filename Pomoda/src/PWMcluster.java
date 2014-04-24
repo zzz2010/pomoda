@@ -36,7 +36,7 @@ public class PWMcluster {
 	public boolean featureFirst=false;
 	public double overlapThresh=0.1;
 	public String outputPrefix="./";
-	public String inputFasta;
+	public String inputFasta=null;
 	public String ctrlFasta="";
 	public int min_motiflen=7;
 
@@ -62,7 +62,16 @@ public class PWMcluster {
 	{
 		common.initialize();
 		SearchEngine=new LinearEngine(6);
+		if(this.inputFasta!=null)
 		SearchEngine.build_index(this.inputFasta);
+		else
+		{
+			String  seqstr=BGModel.CreateUniform().generateRandomSequence(100000).getValue();
+			SearchEngine.ForwardStrand.add(seqstr);
+			SearchEngine.SeqNames.add("random");
+			SearchEngine.TotalLen+=seqstr.length();
+			SearchEngine. accSeqLen.add(SearchEngine.TotalLen);
+		}
 	
 		background=new BGModel();
 		File file=null;
@@ -86,8 +95,15 @@ public class PWMcluster {
 		{
 			if(ctrlFasta.isEmpty())
 			{
+				if(inputFasta!=null)
+				{
 		     background.BuildModel(inputFasta, bg_markov_order+1); //1-order bg
 		     background.SaveModel(inputFasta+".bg");
+				}
+				else
+				{
+					background=background.CreateUniform();
+				}
 			}
 			else
 			{
@@ -159,8 +175,11 @@ public class PWMcluster {
 			
 			int id=0;
 			for (int i = 0; i < rawPwms.size()-1; i++) {
-				
+				if(!pwm_tid.containsKey(i))
+					continue;
 				for (int j = i+1; j < rawPwms.size(); j++) {
+					if(!pwm_tid.containsKey(j))
+						continue;
 					int overlaplen=Math.max(rawPwms.get(i).core_motiflen, rawPwms.get(j).core_motiflen)/2;
 					OverlappingThread t2=new OverlappingThread(PosSet.get(pwm_tid.get(i)), PosSet.get(pwm_tid.get(j)), overlaplen);
 					t2.run();
@@ -595,7 +614,7 @@ public class PWMcluster {
 	   try {
 		   clustering.initialize();
 
-		LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+		List<PWM> pwmlist=common.LoadPWMFromFile(inputPWM).subList(0,10);
 		if(pairscore_only)
 		{
 			File file2 = new File(inputPWM+".pairscore"); 
