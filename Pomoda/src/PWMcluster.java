@@ -2,8 +2,10 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -94,6 +96,85 @@ public class PWMcluster {
 			}				
 		}
 		
+	}
+	
+	
+	public double[][] PairScore(List<PWM> rawPwms)
+	{
+		double[][] overlapRatio=new double[rawPwms.size()][rawPwms.size()];
+		
+
+		ArrayList<PWM> sortedlist=new ArrayList<PWM>(rawPwms.size());
+		ArrayList<LinkedList<Integer>> PosSet=new ArrayList<LinkedList<Integer>>(rawPwms.size());
+		//sort the positions
+		ExecutorService executor = Executors.newFixedThreadPool(6);
+		ArrayList<Thread> threadpool=new ArrayList<Thread>(rawPwms.size());
+		SearchEngine.DisableBackground();
+		int threadid=0;
+		HashMap<Integer,Integer> pwm_tid=new HashMap<Integer,Integer>();
+		int pwmid=-1;
+		for(PWM rawpwm:rawPwms)
+		{
+			pwmid++;
+			sortedlist.add(rawpwm);
+			if(rawpwm.core_motiflen<6)
+				continue;
+			System.out.println(rawpwm.Consensus(true)+'\t'+rawpwm.Score);
+			double thresh=rawpwm.getThresh(sampling_ratio, FDR, background,false);
+
+			LinkedList<FastaLocation> falocs=SearchEngine.searchPattern(rawpwm, thresh);
+			ArrayList<Integer> pos=new ArrayList<Integer>(falocs.size());
+			rawpwm.matchsite=new LinkedList<Integer>();
+			for(FastaLocation floc:falocs)
+			{
+				rawpwm.matchsite.add(floc.getMin());
+			}
+			Iterator<FastaLocation> iter=falocs.iterator();
+			while(iter.hasNext())
+			{
+				FastaLocation temp=iter.next();
+				pos.add((temp.getMin()+rawpwm.columns()/2));
+			}
+			SortingThread t1=new SortingThread(pos);
+			executor.execute(t1);
+			//t1.start();
+			threadpool.add(t1);
+			pwm_tid.put(pwmid, threadid);
+			threadid+=1;
+
+		}
+		
+		try
+		{
+			executor.shutdown();
+			// Wait until all threads are finish
+			while (!executor.isTerminated()) {
+				Thread.sleep(3000);
+			}
+			for (int i = 0; i < threadpool.size(); i++) {
+				  SortingThread t1=(SortingThread)threadpool.get(i);
+				
+				PosSet.add((LinkedList<Integer>)t1.getResult());
+				}
+			
+			int id=0;
+			for (int i = 0; i < rawPwms.size()-1; i++) {
+				
+				for (int j = i+1; j < rawPwms.size(); j++) {
+					int overlaplen=Math.max(rawPwms.get(i).core_motiflen, rawPwms.get(j).core_motiflen)/2;
+					OverlappingThread t2=new OverlappingThread(PosSet.get(pwm_tid.get(i)), PosSet.get(pwm_tid.get(j)), overlaplen);
+					t2.run();
+					double temp=t2.getResult().size()/(double)Math.min(PosSet.get(i).size()+1, PosSet.get(j).size()+1);
+					overlapRatio[i][j]=temp;
+					overlapRatio[j][i]=overlapRatio[i][j];
+				}
+			}
+
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return overlapRatio;
 	}
 	
 	public ArrayList<PWM> Clustering_(List<PWM> rawPwms,int num_cluster)
@@ -424,6 +505,7 @@ public class PWMcluster {
 		Options options = new Options();
 		options.addOption("i", true, "input fasta file");
 		options.addOption("pwm", true, "input PWM file");
+		options.addOption("pairscore_only", false, "only output pairscore");
 		options.addOption("c", true, "control fasta file");
 		options.addOption("convert", false, "convert input PWM file to the transfac format");
 		options.addOption("clust",true,"linkage type of hierachical clustering:"+Arrays.toString(LinkageCriterion.values()) );
@@ -440,6 +522,7 @@ public class PWMcluster {
 		PWMcluster clustering=new PWMcluster();
 		boolean convertflag=false;
 		LinkedList<PWM> PWMLibrary=null;
+		boolean pairscore_only=false;
 		int num_cluster=5;
 		try {
 			CommandLine cmd = parser.parse( options, args);
@@ -471,6 +554,10 @@ public class PWMcluster {
 			if(cmd.hasOption("convert"))
 			{
 				convertflag =true;
+			}
+			if(cmd.hasOption("pairscore_only"))
+			{
+				pairscore_only =true;
 			}
 			if(cmd.hasOption("prefix"))
 			{
@@ -504,11 +591,34 @@ public class PWMcluster {
 			return;
 		}
 		
-	   File file = new File(inputPWM+"_clust.pwm"); 
+	   
 	   try {
 		   clustering.initialize();
-		BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+
 		LinkedList<PWM> pwmlist=common.LoadPWMFromFile(inputPWM);
+		if(pairscore_only)
+		{
+			File file2 = new File(inputPWM+".pairscore"); 
+			double[][] overlapRatio=clustering.PairScore(pwmlist);
+			PrintWriter writer2=new PrintWriter(file2);
+			String header="";
+			for (int i = 0; i < pwmlist.size(); i++) {
+				header+="\t"+pwmlist.get(i).Name;
+			}
+			writer2.println(header);
+			for (int i = 0; i < pwmlist.size(); i++) {
+				String line=pwmlist.get(i).Name;
+				for (int j = 0; j < pwmlist.size(); j++) {
+					line+="\t"+overlapRatio[i][j];
+				}
+				writer2.println(line);
+			}
+			writer2.close();
+			return;
+		}
+		
+	    File file = new File(inputPWM+"_clust.pwm"); 
+		BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 		ArrayList<PWM>  clusterPWMs=clustering.Clustering_(pwmlist, num_cluster);
 		TreeMap<Double, PWM> sortedPWMs=new TreeMap<Double, PWM>();
 		for(PWM pwm:clusterPWMs)
